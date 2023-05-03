@@ -1,0 +1,26 @@
+{
+    "type": "Repository",
+    "id": 386705382,
+    "name": "web",
+    "active": true,
+    "events": [
+        "issues",
+        "pull_request"
+    ],
+    "config": {
+        "content_type": "json",
+        "insecure_ssl": "0",
+        "url": "http://188.68.57.24:8080/receive"
+    },
+    "updated_at": "2022-11-02T23:03:24Z",
+    "created_at": "2022-11-02T23:03:24Z",
+    "url": "https://api.github.com/repos/Septias/github-bot/hooks/386705382",
+    "test_url": "https://api.github.com/repos/Septias/github-bot/hooks/386705382/test",
+    "ping_url": "https://api.github.com/repos/Septias/github-bot/hooks/386705382/pings",
+    "deliveries_url": "https://api.github.com/repos/Septias/github-bot/hooks/386705382/deliveries",
+    "last_response": {
+        "code": null,
+        "status": "unused",
+        "message": null
+    }
+}
