@@ -2,7 +2,6 @@ pub mod bot;
 pub mod db;
 pub mod cli;
 pub mod server;
-pub mod shared;
 pub mod utils;
 
 use bot::Bot;

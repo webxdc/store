@@ -1,9 +1,10 @@
 //! Local server to receive Githubs webhooks
+use crate::PORT;
+use appstore::AppInfo;
 use log::{error, info};
 use std::sync::Arc;
 use tide::{Request, Server as TideServer};
 use tokio::sync::mpsc::Sender;
-use crate::{shared::AppInfo, PORT};
 
 #[derive(Clone)]
 pub struct ServerState {

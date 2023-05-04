@@ -1,6 +1,7 @@
 //! Entry for the bot code
 
 use anyhow::{Context as _, Result};
+use appstore::AppInfo;
 use clap::{CommandFactory, FromArgMatches};
 use deltachat::{
     chat::{self, send_text_msg, Chat, ChatId},
@@ -23,7 +24,6 @@ use crate::{
     db::DB,
     cli::{Cli, Commands},
     server::Server,
-    shared::AppInfo,
     utils::configure_from_env,
 };
 
