@@ -236,10 +236,14 @@ dependencies = [
 [[package]]
 name = "appstore"
 version = "0.1.0"
-source = "git+https://github.com/webxdc/appstore#5f2cf4397631476a98045c92c5e5d85da3951a01"
+source = "git+https://github.com/webxdc/appstore#188f6ed6e3e39e7cec86df8180785f772222fd0c"
 dependencies = [
+ "anyhow",
+ "futures",
+ "reqwest",
  "serde",
  "serde_json",
+ "tokio",
  "toml",
 ]
 
@@ -1511,7 +1515,6 @@ dependencies = [
 [[package]]
 name = "deltachat"
 version = "1.114.0"
-source = "git+https://github.com/deltachat/deltachat-core-rust#5c3df7e4524bbadb2aa8abf24c92521d255d32ea"
 dependencies = [
  "anyhow",
  "async-channel",
@@ -1580,7 +1583,6 @@ dependencies = [
 [[package]]
 name = "deltachat_derive"
 version = "2.0.0"
-source = "git+https://github.com/deltachat/deltachat-core-rust#5c3df7e4524bbadb2aa8abf24c92521d255d32ea"
 dependencies = [
  "quote",
  "syn 2.0.15",
@@ -2271,7 +2273,6 @@ dependencies = [
 [[package]]
 name = "format-flowed"
 version = "1.0.0"
-source = "git+https://github.com/deltachat/deltachat-core-rust#5c3df7e4524bbadb2aa8abf24c92521d255d32ea"
 
 [[package]]
 name = "funty"
@@ -4425,7 +4426,6 @@ dependencies = [
 [[package]]
 name = "ratelimit"
 version = "1.0.0"
-source = "git+https://github.com/deltachat/deltachat-core-rust#5c3df7e4524bbadb2aa8abf24c92521d255d32ea"
 
 [[package]]
 name = "rcgen"
