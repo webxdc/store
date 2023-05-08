@@ -35,7 +35,7 @@ impl Server {
         let mut server = tide::with_state(ServerState {
             channel: Arc::new(channel),
         });
-        server.at("receive").post(handler).get(get_handler);
+        server.at("/").post(handler).get(get_handler);
         Self { server }
     }
 
@@ -51,8 +51,6 @@ impl Server {
         });
         handle
     }
-
-    pub fn stop(self) {}
 }
 
 async fn receive_webhoook(req: &mut Request<ServerState>) -> anyhow::Result<Vec<AppInfo>> {

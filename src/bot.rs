@@ -13,28 +13,20 @@ use deltachat::{
     stock_str::StockStrings,
     EventType, Events,
 };
+use itertools::Itertools;
 use log::{debug, error, info, warn};
-use std::{collections::HashMap, env, sync::Arc};
+use std::{collections::HashMap, env, path::PathBuf, sync::Arc};
 use tokio::{
     fs,
     sync::mpsc::{self, Receiver},
 };
 
 use crate::{
-    db::DB,
     cli::{Cli, Commands},
+    db::DB,
     server::Server,
     utils::configure_from_env,
 };
-
-/// Internal representation of a git repository that can be subscribed to
-#[derive(Debug, Default)]
-pub struct GitRepository {
-    pub name: String,
-    pub id: RepositoryId,
-}
-
-type RepositoryId = i64;
 
 /// Github Bot state
 pub struct State {
@@ -68,9 +60,13 @@ impl Bot {
             info!("configuration done");
         }
 
+        if !PathBuf::from("appstore_manifest.json").exists() {
+            fs::write("appstore_manifest.json", "[]").await.unwrap();
+        }
+
         let (tx, rx) = mpsc::channel(100);
 
-        let db = DB::new("file://bot.db").await;
+        let db = DB::new("bot.db").await;
 
         Self {
             dc_ctx: ctx,
@@ -181,7 +177,7 @@ impl Bot {
                         let res = <Cli as FromArgMatches>::from_arg_matches_mut(&mut matches)?;
 
                         match &res.command {
-                            Commands::Download { file } => todo!(),
+                            Commands::Download { .. } => todo!(),
                             Commands::Open => todo!(),
                         }
                     }
@@ -216,23 +212,35 @@ impl Bot {
         info!("Handling webhook event");
         let old_manifest_string = fs::read_to_string("./appstore_manifest.json")
             .await
-            .unwrap_or_default();
-        let old_manifest: Vec<AppInfo> =
-            serde_json::from_str(&old_manifest_string).context("Failed to parse old manifest")?;
+            .unwrap();
+
+        let old_manifest: Vec<AppInfo> = serde_json::from_str(&old_manifest_string)
+            .context("Failed to parse old appstore manifest")?;
+
         let versions: HashMap<_, _> = old_manifest
             .into_iter()
             .map(|appinfo| (appinfo.source_code_url, appinfo.version))
             .collect();
 
-        let updated_apps = manifest.into_iter().filter(|app| {
-            versions
-                .get(&app.source_code_url)
-                .and_then(|version| Some(*version == app.version))
-                .unwrap_or(true)
-        });
+        let updated_apps = manifest
+            .into_iter()
+            .filter(|app| {
+                versions
+                    .get(&app.source_code_url)
+                    .and_then(|version| Some(*version == app.version))
+                    .unwrap_or(true)
+            })
+            .collect_vec();
 
-        let update_manifest = serde_json::to_string(&updated_apps.collect::<Vec<_>>())?;
-        // TODO: build all updated apps
+        let update_manifest = serde_json::to_string(&updated_apps)?;
+        info!(
+            "updating apps: {:?}",
+            updated_apps
+                .iter()
+                .map(|appinfo| &appinfo.name)
+                .collect_vec()
+        );
+        Self::synchronise_apps(&updated_apps).await?;
 
         let chatlist = Chatlist::try_load(ctx, 0, None, None).await?;
 
@@ -258,7 +266,16 @@ impl Bot {
         Ok(())
     }
 
-    pub async fn stop(self) {
-        self.hook_server.stop()
+    pub async fn synchronise_apps(apps: &[AppInfo]) -> anyhow::Result<()> {
+        for app in apps {
+            let resp = reqwest::get(&app.xdc_blo_url).await?;
+            let file = resp.bytes().await?;
+            fs::write(
+                format!("xdcs/{}", app.xdc_blo_url.split("/").last().unwrap()),
+                file,
+            )
+            .await?;
+        }
+        Ok(())
     }
 }

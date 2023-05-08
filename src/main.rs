@@ -1,6 +1,6 @@
 pub mod bot;
-pub mod db;
 pub mod cli;
+pub mod db;
 pub mod server;
 pub mod utils;
 
@@ -15,5 +15,4 @@ async fn main() {
     let mut bot = Bot::new().await;
     bot.start().await;
     signal::ctrl_c().await.unwrap();
-    bot.stop().await;
 }

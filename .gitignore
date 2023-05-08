@@ -2,3 +2,5 @@ target
 deltachat.db
 creds.md
 bot.db
+appstore_manifest.json
+xdcs/*
