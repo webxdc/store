@@ -1,10 +1,10 @@
 //! Entry for the bot code
 
-use anyhow::{Context as _, Result};
+use anyhow::{bail, Context as _, Result};
 use appstore::AppInfo;
 use clap::{CommandFactory, FromArgMatches};
 use deltachat::{
-    chat::{self, send_text_msg, Chat, ChatId},
+    chat::{self, send_msg, send_text_msg, Chat, ChatId},
     chatlist::Chatlist,
     config::Config,
     constants::Chattype,
@@ -62,6 +62,10 @@ impl Bot {
 
         if !PathBuf::from("appstore_manifest.json").exists() {
             fs::write("appstore_manifest.json", "[]").await.unwrap();
+        }
+
+        if !PathBuf::from("xdcs").exists() {
+            fs::create_dir("xdcs").await.unwrap();
         }
 
         let (tx, rx) = mpsc::channel(100);
@@ -169,6 +173,24 @@ impl Bot {
             }
         }
 
+        if Self::get_appstore_xdc(ctx, msg.get_chat_id())
+            .await
+            .is_err()
+            || true
+        {
+            send_text_msg(
+                ctx,
+                chat_id,
+                "It seems like you just added the appstore bot. I will shortly send you the appstore itself wher you can find new apps.".to_string(),
+            )
+            .await?;
+
+            let mut webxdc_msg = Message::new(Viewtype::Webxdc);
+            webxdc_msg.set_file("webxdc.xdc", None);
+            send_msg(ctx, chat_id, &mut webxdc_msg).await?;
+            return Ok(());
+        }
+
         if let Some(text) = msg.get_text() {
             // only react to messages with right keywoard
             if text.starts_with("appstore") {
@@ -245,22 +267,13 @@ impl Bot {
         let chatlist = Chatlist::try_load(ctx, 0, None, None).await?;
 
         for (chat_id, _) in chatlist.iter() {
-            let mut msg_ids = chat::get_chat_media(
-                ctx,
-                Some(*chat_id),
-                Viewtype::Webxdc,
-                Viewtype::Unknown,
-                Viewtype::Unknown,
+            let xdc = Self::get_appstore_xdc(ctx, *chat_id).await?;
+            ctx.send_webxdc_status_update(
+                xdc,
+                &update_manifest,
+                &format!("updated some webxdc messages: {update_manifest}"),
             )
             .await?;
-            if let Some(msg_id) = msg_ids.pop() {
-                ctx.send_webxdc_status_update(
-                    msg_id,
-                    &update_manifest,
-                    &format!("updated some webxdc messages: {update_manifest}"),
-                )
-                .await?;
-            }
         }
 
         Ok(())
@@ -268,14 +281,30 @@ impl Bot {
 
     pub async fn synchronise_apps(apps: &[AppInfo]) -> anyhow::Result<()> {
         for app in apps {
-            let resp = reqwest::get(&app.xdc_blo_url).await?;
+            let resp = reqwest::get(&app.xdc_blob_url).await?;
             let file = resp.bytes().await?;
             fs::write(
-                format!("xdcs/{}", app.xdc_blo_url.split("/").last().unwrap()),
+                format!("xdcs/{}", app.xdc_blob_url.split("/").last().unwrap()),
                 file,
             )
             .await?;
         }
         Ok(())
+    }
+
+    async fn get_appstore_xdc(context: &Context, chat_id: ChatId) -> anyhow::Result<MsgId> {
+        let mut msg_ids = chat::get_chat_media(
+            context,
+            Some(chat_id),
+            Viewtype::Webxdc,
+            Viewtype::Unknown,
+            Viewtype::Unknown,
+        )
+        .await?;
+        if let Some(msg_id) = msg_ids.pop() {
+            Ok(msg_id)
+        } else {
+            bail!("no appstore xdc in chat");
+        }
     }
 }

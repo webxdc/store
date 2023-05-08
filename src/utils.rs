@@ -13,7 +13,7 @@ pub async fn configure_from_env(ctx: &Context) -> Result<()> {
     ctx.set_config(Config::Addr, Some(&addr)).await?;
     let pw = env::var("mail_pw")?;
     ctx.set_config(Config::MailPw, Some(&pw)).await?;
-    ctx.set_config(Config::Bot, Some("1")).await?;
+    //ctx.set_config(Config::Bot, Some("1")).await?;
     ctx.set_config(Config::E2eeEnabled, Some("1")).await?;
     ctx.configure()
         .await
