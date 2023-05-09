@@ -1,1 +1,0 @@
-SELECT repo_id FROM repo;

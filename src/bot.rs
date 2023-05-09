@@ -24,38 +24,36 @@ use tokio::{
 use crate::{
     cli::{Cli, Commands},
     db::DB,
-    server::Server,
     utils::configure_from_env,
 };
 
 /// Github Bot state
 pub struct State {
     pub db: DB,
-    pub ip: String,
 }
 
 /// Github Bot
 pub struct Bot {
     dc_ctx: Context,
-    hook_receiver: Option<Receiver<Vec<AppInfo>>>,
-    hook_server: Server,
     state: Arc<State>,
 }
 
 impl Bot {
     pub async fn new() -> Self {
         let dbdir = env::current_dir().unwrap().join("deltachat.db");
+
         std::fs::create_dir_all(dbdir.clone())
             .context("failed to create db folder")
             .unwrap();
+
         let dbfile = dbdir.join("db.sqlite");
         let ctx = Context::new(dbfile.as_path(), 1, Events::new(), StockStrings::new())
             .await
             .context("Failed to create context")
             .unwrap();
-        let is_configured = ctx.get_config_bool(Config::Configured).await.unwrap();
-        if !is_configured {
-            info!("configuring");
+
+        if !ctx.get_config_bool(Config::Configured).await.unwrap() {
+            info!("start configuring...");
             configure_from_env(&ctx).await.unwrap();
             info!("configuration done");
         }
@@ -68,26 +66,11 @@ impl Bot {
             fs::create_dir("xdcs").await.unwrap();
         }
 
-        let (tx, rx) = mpsc::channel(100);
-
         let db = DB::new("bot.db").await;
 
         Self {
             dc_ctx: ctx,
-            hook_receiver: Some(rx),
-            state: Arc::new(State {
-                db,
-                ip: pnet::datalink::interfaces()
-                    .iter()
-                    .find(|e| e.is_up() && !e.is_loopback() && !e.ips.is_empty())
-                    .expect("should have an ip")
-                    .ips
-                    .get(0)
-                    .unwrap()
-                    .ip()
-                    .to_string(),
-            }),
-            hook_server: Server::new(tx),
+            state: Arc::new(State { db }),
         }
     }
 

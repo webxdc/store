@@ -1,13 +1,11 @@
 pub mod bot;
 pub mod cli;
 pub mod db;
-pub mod server;
 pub mod utils;
 
 use bot::Bot;
 use tokio::signal;
 
-pub const PORT: usize = 65005;
 
 #[tokio::main]
 async fn main() {
