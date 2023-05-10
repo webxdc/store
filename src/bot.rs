@@ -1,29 +1,21 @@
 //! Entry for the bot code
-
 use anyhow::{bail, Context as _, Result};
 use appstore::AppInfo;
-use clap::{CommandFactory, FromArgMatches};
 use deltachat::{
-    chat::{self, send_msg, send_text_msg, Chat, ChatId},
-    chatlist::Chatlist,
+    chat::{self, ChatId},
     config::Config,
-    constants::Chattype,
     context::Context,
     message::{Message, MsgId, Viewtype},
     stock_str::StockStrings,
     EventType, Events,
 };
-use itertools::Itertools;
-use log::{debug, error, info, warn};
-use std::{collections::HashMap, env, path::PathBuf, sync::Arc};
-use tokio::{
-    fs,
-    sync::mpsc::{self, Receiver},
-};
+use log::{debug, error, info, trace, warn};
+use std::{env, path::PathBuf, sync::Arc};
+use tokio::fs;
 
 use crate::{
-    cli::{Cli, Commands},
     db::DB,
+    request_handlers::{shop, Chat, ChatType},
     utils::configure_from_env,
 };
 
@@ -83,211 +75,101 @@ impl Bot {
         let events_emitter = self.dc_ctx.get_event_emitter();
         let ctx = self.dc_ctx.clone();
         let state = self.state.clone();
+
         tokio::spawn(async move {
             while let Some(event) = events_emitter.recv().await {
-                Self::dc_event_handler(&ctx, state.clone(), event.typ).await;
-            }
-        });
-        info!("initiated dc message handler (1/4)");
-
-        self.dc_ctx.start_io().await;
-
-        info!("initiated dc io (2/4)");
-
-        // start webhook-server
-        self.hook_server.start();
-
-        info!("initiated webhook server (3/4)");
-
-        // start webhook-handler
-        let mut manifest_update_receiver = self.hook_receiver.take().unwrap();
-        let state = self.state.clone();
-        let ctx = self.dc_ctx.clone();
-        tokio::spawn(async move {
-            while let Some(event) = manifest_update_receiver.recv().await {
-                if let Err(e) = Self::handle_manifest_change(state.clone(), &ctx, event).await {
-                    error!("{e}")
+                if let Err(e) = Self::dc_event_handler(&ctx, state.clone(), event.typ).await {
+                    warn!("{}", e)
                 }
             }
         });
-        info!("initiated webhook handler (4/4)");
+
+        info!("initiated dc message handler (1/2)");
+
+        self.dc_ctx.start_io().await;
+
+        info!("initiated dc io (2/2)");
+
         info!("successfully started bot! 🥳");
     }
 
     /// Handle _all_ dc-events
-    async fn dc_event_handler(ctx: &Context, state: Arc<State>, event: EventType) {
+    async fn dc_event_handler(
+        context: &Context,
+        state: Arc<State>,
+        event: EventType,
+    ) -> anyhow::Result<()> {
         match event {
             EventType::ConfigureProgress { progress, comment } => {
-                info!("DC: Configuring progress: {progress} {comment:?}")
+                trace!("DC: Configuring progress: {progress} {comment:?}")
             }
-            EventType::Info(..) => (), //info!("DC: {msg}"),
+            EventType::Info(msg) => trace!("DC: {msg}"),
             EventType::Warning(msg) => warn!("DC: {msg}"),
             EventType::Error(msg) => error!("DC: {msg}"),
-            EventType::ConnectivityChanged => {
-                warn!(
-                    "DC: ConnectivityChanged: {:?}",
-                    ctx.get_connectivity().await
-                )
-            }
+            EventType::ConnectivityChanged => trace!("DC: ConnectivityChanged"),
             EventType::IncomingMsg { chat_id, msg_id } => {
-                if let Err(err) = Self::handle_dc_message(ctx, state, chat_id, msg_id).await {
-                    error!("DC: error handling message: {err}");
-                }
+                Self::handle_dc_message(context, state, chat_id, msg_id)
+                    .await
+                    .context("Problem while processing message")?
+            }
+            EventType::WebxdcStatusUpdate {
+                msg_id,
+                status_update_serial,
+            } => {
+                let update_string = context
+                    .get_status_update(msg_id, status_update_serial)
+                    .await?;
+
+                Self::handle_dc_webxdc_update(context, state, msg_id, update_string)
+                    .await
+                    .context("Problem while processing webxdc update")?
             }
             other => {
                 debug!("DC: [unhandled event] {other:?}");
             }
         }
+        Ok(())
     }
 
     /// Handles chat messages from clients
     async fn handle_dc_message(
-        ctx: &Context,
-        _state: Arc<State>,
+        context: &Context,
+        state: Arc<State>,
         chat_id: ChatId,
         msg_id: MsgId,
     ) -> Result<()> {
-        let msg = Message::load_from_db(ctx, msg_id).await?;
+        let chat: Chat = state.db.get_chat(chat_id).await;
 
-        if let Some(err) = msg.error() {
-            error!("msg has the following error: {err}");
-            if err.as_str() == "Decrypting failed: missing key" {
-                send_text_msg(ctx, chat_id, "Unable to decrypt your message, but this message might have fixed it, so try again.".to_string()).await?;
-            }
-        }
-
-        if Self::get_appstore_xdc(ctx, msg.get_chat_id())
-            .await
-            .is_err()
-            || true
-        {
-            send_text_msg(
-                ctx,
-                chat_id,
-                "It seems like you just added the appstore bot. I will shortly send you the appstore itself wher you can find new apps.".to_string(),
-            )
-            .await?;
-
-            let mut webxdc_msg = Message::new(Viewtype::Webxdc);
-            webxdc_msg.set_file("webxdc.xdc", None);
-            send_msg(ctx, chat_id, &mut webxdc_msg).await?;
-            return Ok(());
-        }
-
-        if let Some(text) = msg.get_text() {
-            // only react to messages with right keywoard
-            if text.starts_with("appstore") {
-                match <Cli as CommandFactory>::command().try_get_matches_from(text.split(' ')) {
-                    Ok(mut matches) => {
-                        let res = <Cli as FromArgMatches>::from_arg_matches_mut(&mut matches)?;
-
-                        match &res.command {
-                            Commands::Download { .. } => todo!(),
-                            Commands::Open => todo!(),
-                        }
-                    }
-                    Err(err) => {
-                        send_text_msg(ctx, chat_id, err.to_string()).await.unwrap();
-                    }
-                };
-            } else {
-                if !chat_id.is_special() {
-                    let chat = Chat::load_from_db(ctx, chat_id).await?;
-                    if let Chattype::Single = chat.typ {
-                        send_text_msg(
-                            ctx,
-                            chat_id,
-                            "Commands must start with `appstore`".to_string(),
-                        )
-                        .await?;
-                    }
-                }
-            }
+        match chat.chat_type {
+            ChatType::Release => todo!(),
+            ChatType::Review => todo!(),
+            ChatType::Reviewee => todo!(),
+            ChatType::Testers => todo!(),
+            ChatType::Shop => shop::handle_message(context, state, chat_id, msg_id).await?,
         }
 
         Ok(())
     }
 
-    /// Handle a parsed webhook-event
-    async fn handle_manifest_change(
-        _state: Arc<State>,
-        ctx: &Context,
-        manifest: Vec<AppInfo>,
-    ) -> anyhow::Result<()> {
-        info!("Handling webhook event");
-        let old_manifest_string = fs::read_to_string("./appstore_manifest.json")
-            .await
-            .unwrap();
+    /// Handles chat messages from clients
+    async fn handle_dc_webxdc_update(
+        context: &Context,
+        state: Arc<State>,
+        msg_id: MsgId,
+        update: String,
+    ) -> Result<()> {
+        let msg = Message::load_from_db(context, msg_id).await?;
+        let chat_id = msg.get_chat_id();
+        let chat: Chat = state.db.get_chat(chat_id).await;
 
-        let old_manifest: Vec<AppInfo> = serde_json::from_str(&old_manifest_string)
-            .context("Failed to parse old appstore manifest")?;
-
-        let versions: HashMap<_, _> = old_manifest
-            .into_iter()
-            .map(|appinfo| (appinfo.source_code_url, appinfo.version))
-            .collect();
-
-        let updated_apps = manifest
-            .into_iter()
-            .filter(|app| {
-                versions
-                    .get(&app.source_code_url)
-                    .and_then(|version| Some(*version == app.version))
-                    .unwrap_or(true)
-            })
-            .collect_vec();
-
-        let update_manifest = serde_json::to_string(&updated_apps)?;
-        info!(
-            "updating apps: {:?}",
-            updated_apps
-                .iter()
-                .map(|appinfo| &appinfo.name)
-                .collect_vec()
-        );
-        Self::synchronise_apps(&updated_apps).await?;
-
-        let chatlist = Chatlist::try_load(ctx, 0, None, None).await?;
-
-        for (chat_id, _) in chatlist.iter() {
-            let xdc = Self::get_appstore_xdc(ctx, *chat_id).await?;
-            ctx.send_webxdc_status_update(
-                xdc,
-                &update_manifest,
-                &format!("updated some webxdc messages: {update_manifest}"),
-            )
-            .await?;
+        match chat.chat_type {
+            ChatType::Release => todo!(),
+            ChatType::Review => todo!(),
+            ChatType::Reviewee => todo!(),
+            ChatType::Testers => todo!(),
+            ChatType::Shop => shop::handle_status_update(context, state, chat_id, msg_id, update).await?,
         }
 
         Ok(())
-    }
-
-    pub async fn synchronise_apps(apps: &[AppInfo]) -> anyhow::Result<()> {
-        for app in apps {
-            let resp = reqwest::get(&app.xdc_blob_url).await?;
-            let file = resp.bytes().await?;
-            fs::write(
-                format!("xdcs/{}", app.xdc_blob_url.split("/").last().unwrap()),
-                file,
-            )
-            .await?;
-        }
-        Ok(())
-    }
-
-    async fn get_appstore_xdc(context: &Context, chat_id: ChatId) -> anyhow::Result<MsgId> {
-        let mut msg_ids = chat::get_chat_media(
-            context,
-            Some(chat_id),
-            Viewtype::Webxdc,
-            Viewtype::Unknown,
-            Viewtype::Unknown,
-        )
-        .await?;
-        if let Some(msg_id) = msg_ids.pop() {
-            Ok(msg_id)
-        } else {
-            bail!("no appstore xdc in chat");
-        }
     }
 }

@@ -1,11 +1,11 @@
-pub mod bot;
-pub mod cli;
-pub mod db;
-pub mod utils;
+mod bot;
+mod cli;
+mod db;
+mod request_handlers;
+mod utils;
 
 use bot::Bot;
 use tokio::signal;
-
 
 #[tokio::main]
 async fn main() {

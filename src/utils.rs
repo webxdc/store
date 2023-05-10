@@ -1,10 +1,11 @@
 //! Utility functions
 
-use anyhow::{Context as _, Result};
+use anyhow::{bail, Context as _, Result};
 use deltachat::{
-    chat::{send_text_msg, ChatId},
+    chat::{self, ChatId},
     config::Config,
     context::Context,
+    message::{MsgId, Viewtype},
 };
 use std::env;
 
@@ -19,4 +20,20 @@ pub async fn configure_from_env(ctx: &Context) -> Result<()> {
         .await
         .context("configure failed, you might have wrong credentials")?;
     Ok(())
+}
+
+async fn get_appstore_xdc(context: &Context, chat_id: ChatId) -> anyhow::Result<MsgId> {
+    let mut msg_ids = chat::get_chat_media(
+        context,
+        Some(chat_id),
+        Viewtype::Webxdc,
+        Viewtype::Unknown,
+        Viewtype::Unknown,
+    )
+    .await?;
+    if let Some(msg_id) = msg_ids.pop() {
+        Ok(msg_id)
+    } else {
+        bail!("no appstore xdc in chat");
+    }
 }
