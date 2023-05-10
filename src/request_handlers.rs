@@ -1,4 +1,5 @@
 //! Handlers for the different messages the bot receives
+use serde::{Deserialize, Serialize};
 
 pub struct Chat {
     pub chat_type: ChatType,
@@ -11,6 +12,19 @@ pub enum ChatType {
     Testers,
     Shop,
 }
+
+
+#[derive(Deserialize, Serialize, Clone, Debug)]
+pub struct AppInfo {
+    pub name: String,
+    pub author_name: String,
+    pub author_email: String,
+    pub source_code_url: String,
+    pub description: String,
+    pub xdc_blob_url: String,
+    pub version: String,
+}
+
 
 pub mod review {}
 
