@@ -1,3 +1,5 @@
+//! Handlers for the different messages the bot receives
+
 pub struct Chat {
     pub chat_type: ChatType,
 }

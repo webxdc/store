@@ -1,11 +1,10 @@
 //! Entry for the bot code
-use anyhow::{bail, Context as _, Result};
-use appstore::AppInfo;
+use anyhow::{Context as _, Result};
 use deltachat::{
-    chat::{self, ChatId},
+    chat::ChatId,
     config::Config,
     context::Context,
-    message::{Message, MsgId, Viewtype},
+    message::{Message, MsgId},
     stock_str::StockStrings,
     EventType, Events,
 };
@@ -167,7 +166,9 @@ impl Bot {
             ChatType::Review => todo!(),
             ChatType::Reviewee => todo!(),
             ChatType::Testers => todo!(),
-            ChatType::Shop => shop::handle_status_update(context, state, chat_id, msg_id, update).await?,
+            ChatType::Shop => {
+                shop::handle_status_update(context, state, chat_id, msg_id, update).await?
+            }
         }
 
         Ok(())
