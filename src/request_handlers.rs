@@ -70,7 +70,7 @@ pub mod shop {
         .await?;
 
         let mut webxdc_msg = Message::new(Viewtype::Webxdc);
-        webxdc_msg.set_file("webxdc.xdc", None);
+        webxdc_msg.set_file("appstore-bot.xdc", None);
         chat::send_msg(context, chat_id, &mut webxdc_msg).await?;
 
         Ok(())

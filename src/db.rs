@@ -1,14 +1,14 @@
 //! Integration fo SurrealDBpub struct DB {
 #![allow(unused)]
 
-use deltachat::chat::ChatId;
+use deltachat::{chat::ChatId, constants::Chattype};
 use surrealdb::{
     dbs::Session,
     engine::local::{Db, File},
     Surreal,
 };
 
-use crate::request_handlers::Chat;
+use crate::request_handlers::{Chat, ChatType};
 
 pub struct DB {
     db: Surreal<Db>,
@@ -26,6 +26,8 @@ impl DB {
     }
 
     pub async fn get_chat(&self, chat_id: ChatId) -> Chat {
-        todo!()
+        Chat {
+            chat_type: ChatType::Shop,
+        }
     }
 }

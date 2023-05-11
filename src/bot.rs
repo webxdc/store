@@ -135,8 +135,7 @@ impl Bot {
             EventType::ConnectivityChanged => trace!("DC: ConnectivityChanged"),
             EventType::IncomingMsg { chat_id, msg_id } => {
                 Self::handle_dc_message(context, state, chat_id, msg_id)
-                    .await
-                    .context("Problem while processing message")?
+                    .await?
             }
             EventType::WebxdcStatusUpdate {
                 msg_id,

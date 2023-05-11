@@ -8,17 +8,6 @@ import { WebxdcRequest } from '../../bindings/WebxdcRequest';
 
 import { ReceivedStatusUpdate } from './webxdc';
 
-
-async function update() {
-  const response = window.webxdc.sendUpdate({
-    payload: {
-      request_type: "Update",
-    }
-  }, "")
-}
-
-
-
 const App: Component = () => {
   const [appInfo, setAppInfo] = createSignal([
     {
@@ -43,20 +32,41 @@ const App: Component = () => {
     },
   ])
 
+
+  const [lastSerial, setlastSerial] = useStorage('last-serial', 0)
+  const [lastUpdate, setlastUpdate] = useStorage('last-update', new Date())
+  const [isUpdating, setIsUpdating] = createSignal(false)
+
+
   window.webxdc.setUpdateListener((resp: ReceivedStatusUpdate<AppInfo[]>) => {
     console.log("Received update", resp)
-    setAppInfo(resp.payload)
-  })
+    setlastSerial(resp.serial)
+    if (resp.payload.request_type === undefined) {
+      setAppInfo(resp.payload)
+      setIsUpdating(false)
+      setlastUpdate(new Date())
+    }
+  }, lastSerial())
 
-
-  const [lastUpdate, setData] = useStorage('last-update', new Date())
-  const [isUpdating, setIsUpdating] = createSignal(true)
+  async function update() {
+    setIsUpdating(true)
+    const response = window.webxdc.sendUpdate({
+      payload: {
+        request_type: "Update",
+      }
+    }, "")
+  }
 
   return (
     <div class="p-5">
       <div class="flex justify-between">
         <h1 class="text-2xl">Webxd Appstore</h1>
-        <Show when={isUpdating()} fallback={<div> Last update: {lastUpdate().toDateString()} </div>}>
+        <Show when={isUpdating()} fallback={
+          <div>
+            <span>Last update: {lastUpdate().toDateString()}</span>
+            <button onclick={update} class="btn ml-2"> update </button>
+          </div>
+        }>
           updating
         </Show>
       </div>
@@ -78,7 +88,7 @@ const App: Component = () => {
                         </Transition>
                       </div>
                     </div>
-                    <button class="rounded bg-green-400 p-1 text-gray-200 justify-self-center"> Add </button>
+                    <button class="btn justify-self-center"> Add </button>
                   </div>
                   {isExpanded() && (
                     <>

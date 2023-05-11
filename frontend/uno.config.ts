@@ -37,4 +37,7 @@ export default defineConfig({
     transformerDirectives(),
     transformerVariantGroup(),
   ],
+  shortcuts: {
+    btn: 'rounded bg-green-400 p-1 text-gray-200 '
+  }
 })
