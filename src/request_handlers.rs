@@ -25,7 +25,6 @@ pub struct AppInfo {
     pub version: String,
 }
 
-
 pub mod review {}
 
 pub mod shop {
