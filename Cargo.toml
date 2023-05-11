@@ -6,7 +6,6 @@ edition = "2021"
 
 [dependencies]
 deltachat = { path="../deltachat-core-rust"}
-appstore = {git="https://github.com/webxdc/appstore"}
 tokio = { version = "^1.21", features = ["rt-multi-thread", "macros", "signal"]}
 clap = {version="^4.0", features=["derive", "cargo"]}
 anyhow = "^1.0"
@@ -18,3 +17,4 @@ env_logger = "0.10.0"
 surrealdb = {version="1.0.0-beta.9", features = ["kv-rocksdb"]}
 reqwest = "^0.11"
 itertools = "^0.10"
+ts-rs = "*"

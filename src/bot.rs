@@ -14,13 +14,40 @@ use tokio::fs;
 
 use crate::{
     db::DB,
-    request_handlers::{shop, Chat, ChatType},
+    request_handlers::{shop, AppInfo, Chat, ChatType},
     utils::configure_from_env,
 };
 
 /// Github Bot state
 pub struct State {
     pub db: DB,
+}
+
+impl State {
+    pub fn get_apps(&self) -> Vec<AppInfo> {
+        vec![
+            AppInfo {
+                name: "App 1".to_string(),
+                author_name: "Author 1".to_string(),
+                author_email: "author1@example.com".to_string(),
+                source_code_url: "https://github.com/author1/app1".to_string(),
+                description: "This is a description for App 1.".to_string(),
+                xdc_blob_url: "https://blobstore.com/app1".to_string(),
+                version: "1.0.0".to_string(),
+                image: "https://via.placeholder.com/640".to_string(),
+            },
+            AppInfo {
+                name: "App 2".to_string(),
+                author_name: "Author 2".to_string(),
+                author_email: "author2@example.com".to_string(),
+                source_code_url: "https://github.com/author2/app2".to_string(),
+                description: "This is a description for App 2.".to_string(),
+                xdc_blob_url: "https://blobstore.com/app2".to_string(),
+                version: "2.0.0".to_string(),
+                image: "https://via.placeholder.com/640".to_string(),
+            },
+        ]
+    }
 }
 
 /// Github Bot
@@ -135,7 +162,7 @@ impl Bot {
         context: &Context,
         state: Arc<State>,
         chat_id: ChatId,
-        msg_id: MsgId,
+        _msg_id: MsgId,
     ) -> Result<()> {
         let chat: Chat = state.db.get_chat(chat_id).await;
 
@@ -144,7 +171,7 @@ impl Bot {
             ChatType::Review => todo!(),
             ChatType::Reviewee => todo!(),
             ChatType::Testers => todo!(),
-            ChatType::Shop => shop::handle_message(context, state, chat_id, msg_id).await?,
+            ChatType::Shop => shop::handle_message(context, chat_id).await?,
         }
 
         Ok(())
