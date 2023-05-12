@@ -27,12 +27,12 @@ impl State {
     pub fn get_apps(&self) -> Vec<AppInfo> {
         vec![
             AppInfo {
-                name: "App 1".to_string(),
-                author_name: "Author 1".to_string(),
+                name: "App 3".to_string(),
+                author_name: "Author 3".to_string(),
                 author_email: "author1@example.com".to_string(),
-                source_code_url: "https://github.com/author1/app1".to_string(),
-                description: "This is a description for App 1.".to_string(),
-                xdc_blob_url: "https://blobstore.com/app1".to_string(),
+                source_code_url: "https://github.com/author1/app3".to_string(),
+                description: "This is a description for App 3.".to_string(),
+                xdc_blob_url: "https://blobstore.com/app3".to_string(),
                 version: "1.0.0".to_string(),
                 image: "https://via.placeholder.com/640".to_string(),
             },
@@ -134,8 +134,7 @@ impl Bot {
             EventType::Error(msg) => error!("DC: {msg}"),
             EventType::ConnectivityChanged => trace!("DC: ConnectivityChanged"),
             EventType::IncomingMsg { chat_id, msg_id } => {
-                Self::handle_dc_message(context, state, chat_id, msg_id)
-                    .await?
+                Self::handle_dc_message(context, state, chat_id, msg_id).await?
             }
             EventType::WebxdcStatusUpdate {
                 msg_id,
@@ -145,9 +144,7 @@ impl Bot {
                     .get_status_update(msg_id, status_update_serial)
                     .await?;
 
-                Self::handle_dc_webxdc_update(context, state, msg_id, update_string)
-                    .await
-                    .context("Problem while processing webxdc update")?
+                Self::handle_dc_webxdc_update(context, state, msg_id, update_string).await?
             }
             other => {
                 debug!("DC: [unhandled event] {other:?}");
@@ -163,16 +160,25 @@ impl Bot {
         chat_id: ChatId,
         _msg_id: MsgId,
     ) -> Result<()> {
-        let chat: Chat = state.db.get_chat(chat_id).await;
+        if let Ok(Some(chat)) = state.db.get_chat(chat_id).await {
+            match chat.chat_type {
+                ChatType::Release => todo!(),
+                ChatType::Shop => shop::handle_message(context, chat_id).await?,
+            }
+        } else {
+            let chat = Chat {
+                chat_type: ChatType::Shop,
+                chat_id: chat_id,
+                publisher: None,
+                tester: Vec::new(),
+                creator: None,
+            };
 
-        match chat.chat_type {
-            ChatType::Release => todo!(),
-            ChatType::Review => todo!(),
-            ChatType::Reviewee => todo!(),
-            ChatType::Testers => todo!(),
-            ChatType::Shop => shop::handle_message(context, chat_id).await?,
+            //TODO: test for single chat
+
+            state.db.create_chat(chat).await?;
+            shop::handle_message(context, chat_id).await?;
         }
-
         Ok(())
     }
 
@@ -182,16 +188,17 @@ impl Bot {
         state: Arc<State>,
         msg_id: MsgId,
         update: String,
-    ) -> Result<()> {
+    ) -> anyhow::Result<()> {
         let msg = Message::load_from_db(context, msg_id).await?;
         let chat_id = msg.get_chat_id();
-        let chat: Chat = state.db.get_chat(chat_id).await;
+        let chat: Chat = state
+            .db
+            .get_chat(chat_id)
+            .await?
+            .ok_or(anyhow::anyhow!("No chat for this message"))?;
 
         match chat.chat_type {
             ChatType::Release => todo!(),
-            ChatType::Review => todo!(),
-            ChatType::Reviewee => todo!(),
-            ChatType::Testers => todo!(),
             ChatType::Shop => {
                 shop::handle_status_update(context, state, chat_id, msg_id, update).await?
             }
