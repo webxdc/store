@@ -43,10 +43,11 @@ pub struct AppInfo {
 pub mod review {}
 
 pub mod shop {
-    use std::sync::Arc;
+    use std::{any::Any, sync::Arc};
 
     use deltachat::{
         chat::{self, ChatId, ProtectionStatus},
+        contact::ContactId,
         context::Context,
         message::{Message, MsgId, Viewtype},
     };
@@ -66,13 +67,30 @@ pub mod shop {
 
     #[derive(TS, Deserialize)]
     #[ts(export)]
+    struct PublishRequest {
+        name: String,
+    }
+
+    #[derive(TS, Deserialize)]
+    #[ts(export)]
     struct AppstoreRequest {
         request_type: RequestType,
+        data: String,
+    }
+
+    impl AppstoreRequest {
+        fn get_data_as<T: for<'a> Deserialize<'a>>(&self) -> serde_json::Result<T> {
+            serde_json::from_str(&self.data)
+        }
     }
 
     use crate::{bot::State, request_handlers::WebxdcStatusUpdate, utils::get_oon_peer};
 
     use super::ReviewChat;
+
+    fn creat_review_group_message(testers: &[ContactId], publisher: &ContactId) -> String {
+        todo!()
+    }
 
     pub async fn handle_message(context: &Context, chat_id: ChatId) -> anyhow::Result<()> {
         // Handle normal messages to the bot (resend the store itself).
@@ -122,14 +140,6 @@ will shortly send you the appstore itself wher you can explore new apps."#
 
                     let creator = get_oon_peer(context, chat_id).await?;
 
-                    // create the new chat
-                    let chat_id = chat::create_group_chat(
-                        context,
-                        ProtectionStatus::Unprotected,
-                        "Publish: <Some App>",
-                    )
-                    .await?;
-
                     state
                         .db
                         .create_chat(ReviewChat {
@@ -144,23 +154,26 @@ will shortly send you the appstore itself wher you can explore new apps."#
                         })
                         .await?;
 
+                    // create the new chat
+                    let group_date = req.payload.get_data_as::<PublishRequest>()?;
+                    let chat_id = chat::create_group_chat(
+                        context,
+                        ProtectionStatus::Unprotected,
+                        &format!("Publish: {}", group_date.name),
+                    )
+                    .await?;
+
                     // add all chat members
                     for tester in testers.iter() {
                         chat::add_contact_to_chat(context, chat_id, *tester).await?;
                     }
                     chat::add_contact_to_chat(context, chat_id, publisher).await?;
                     chat::add_contact_to_chat(context, chat_id, creator).await?;
-                    let contacts = chat::get_chat_contacts(context, chat_id).await?;
-                    println!("{contacts:?}");
+
                     chat::send_text_msg(
                         context,
                         chat_id,
-                        format!(
-                            r#"I created a textchat for you with 
-publisher: {publisher}
-and testers: {} "#,
-                            testers.iter().copied().join(", ")
-                        ),
+                        creat_review_group_message(&testers, &publisher),
                     )
                     .await?;
                 }
