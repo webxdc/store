@@ -1,14 +1,30 @@
 //! Handlers for the different messages the bot receives
+use std::path::PathBuf;
+
 use deltachat::{chat::ChatId, contact::ContactId};
 use serde::{Deserialize, Serialize};
 use ts_rs::TS;
+
+#[derive(TS)]
+#[ts(export)]
+#[derive(Deserialize, Serialize, Clone, Debug)]
+pub struct AppInfo {
+    pub name: String,
+    pub author_name: String,
+    pub author_email: String,
+    pub source_code_url: String,
+    pub image: String,
+    pub description: String,
+    pub xdc_blob_dir: PathBuf,
+    pub version: String,
+}
 
 #[derive(Serialize, Deserialize)]
 pub struct ReviewChat {
     pub chat_type: ChatType,
     pub chat_id: ChatId,
     pub publisher: ContactId,
-    pub tester: Vec<ContactId>,
+    pub testers: Vec<ContactId>,
     pub creator: ContactId,
     pub ios: bool,
     pub android: bool,
@@ -26,35 +42,25 @@ pub struct WebxdcStatusUpdate<T> {
     payload: T,
 }
 
-#[derive(TS)]
-#[ts(export)]
-#[derive(Deserialize, Serialize, Clone, Debug)]
-pub struct AppInfo {
-    pub name: String,
-    pub author_name: String,
-    pub author_email: String,
-    pub source_code_url: String,
-    pub image: String,
-    pub description: String,
-    pub xdc_blob_url: String,
-    pub version: String,
-}
-
 pub mod review {}
 
 pub mod shop {
-    use std::{any::Any, sync::Arc};
-
+    use super::ReviewChat;
+    use crate::{
+        bot::State,
+        messages::{appstore_message, creat_review_group_message},
+        request_handlers::WebxdcStatusUpdate,
+        utils::get_oon_peer,
+    };
     use deltachat::{
         chat::{self, ChatId, ProtectionStatus},
-        contact::ContactId,
         context::Context,
         message::{Message, MsgId, Viewtype},
     };
-    use itertools::Itertools;
     use log::info;
     use serde::Deserialize;
     use serde_json::json;
+    use std::sync::Arc;
     use ts_rs::TS;
 
     #[derive(TS, Deserialize)]
@@ -68,45 +74,31 @@ pub mod shop {
     #[derive(TS, Deserialize)]
     #[ts(export)]
     struct PublishRequest {
-        name: String,
+        pub name: String,
+        pub source_code_url: String,
+        pub image: String,
+        pub description: String,
     }
 
     #[derive(TS, Deserialize)]
     #[ts(export)]
-    struct AppstoreRequest {
+    struct StoreRequest {
         request_type: RequestType,
         data: String,
     }
 
-    impl AppstoreRequest {
+    impl StoreRequest {
         fn get_data_as<T: for<'a> Deserialize<'a>>(&self) -> serde_json::Result<T> {
             serde_json::from_str(&self.data)
         }
     }
 
-    use crate::{bot::State, request_handlers::WebxdcStatusUpdate, utils::get_oon_peer};
-
-    use super::ReviewChat;
-
-    fn creat_review_group_message(testers: &[ContactId], publisher: &ContactId) -> String {
-        todo!()
-    }
-
     pub async fn handle_message(context: &Context, chat_id: ChatId) -> anyhow::Result<()> {
         // Handle normal messages to the bot (resend the store itself).
-        chat::send_text_msg(
-            context,
-            chat_id,
-            r#"Welcome to the appstore bot! 
-will shortly send you the appstore itself wher you can explore new apps."#
-                .to_string(),
-        )
-        .await?;
-
+        chat::send_text_msg(context, chat_id, appstore_message().to_string()).await?;
         let mut webxdc_msg = Message::new(Viewtype::Webxdc);
         webxdc_msg.set_file("appstore-bot.xdc", None);
         chat::send_msg(context, chat_id, &mut webxdc_msg).await?;
-
         Ok(())
     }
 
@@ -117,7 +109,7 @@ will shortly send you the appstore itself wher you can explore new apps."#
         msg_id: MsgId,
         update: String,
     ) -> anyhow::Result<()> {
-        if let Ok(req) = serde_json::from_str::<WebxdcStatusUpdate<AppstoreRequest>>(&update) {
+        if let Ok(req) = serde_json::from_str::<WebxdcStatusUpdate<StoreRequest>>(&update) {
             match req.payload.request_type {
                 RequestType::Update => {
                     info!("Handling store update");
@@ -137,7 +129,6 @@ will shortly send you the appstore itself wher you can explore new apps."#
                     // get publisher and testers
                     let publisher = state.db.get_publisher().await.unwrap();
                     let testers = state.db.get_testers().await.unwrap();
-
                     let creator = get_oon_peer(context, chat_id).await?;
 
                     state
@@ -146,7 +137,7 @@ will shortly send you the appstore itself wher you can explore new apps."#
                             chat_type: super::ChatType::Release,
                             chat_id,
                             publisher,
-                            tester: testers.iter().copied().collect_vec(),
+                            testers: testers.clone(),
                             creator,
                             ios: false,
                             android: false,
