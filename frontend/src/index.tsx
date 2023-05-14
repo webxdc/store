@@ -2,7 +2,7 @@
 import { render } from 'solid-js/web';
 
 import './index.sass';
-import App from './App';
+import App from './app';
 import "virtual:uno.css"
 import '@unocss/reset/tailwind.css'
 
