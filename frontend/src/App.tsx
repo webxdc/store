@@ -57,6 +57,14 @@ const App: Component = () => {
     }, "")
   }
 
+  async function publish() {
+    const response = window.webxdc.sendUpdate({
+      payload: {
+        request_type: "Publish",
+      }
+    }, "")
+  }
+
   return (
     <div class="p-5">
       <div class="flex justify-between">
@@ -65,6 +73,7 @@ const App: Component = () => {
           <div>
             <span>Last update: {lastUpdate().toDateString()}</span>
             <button onclick={update} class="btn ml-2"> update </button>
+            <button onclick={publish} class="btn ml-2"> publish </button>
           </div>
         }>
           updating

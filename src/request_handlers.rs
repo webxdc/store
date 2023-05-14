@@ -4,15 +4,18 @@ use serde::{Deserialize, Serialize};
 use ts_rs::TS;
 
 #[derive(Serialize, Deserialize)]
-pub struct Chat {
+pub struct ReviewChat {
     pub chat_type: ChatType,
     pub chat_id: ChatId,
-    pub publisher: Option<ContactId>,
+    pub publisher: ContactId,
     pub tester: Vec<ContactId>,
-    pub creator: Option<ContactId>,
+    pub creator: ContactId,
+    pub ios: bool,
+    pub android: bool,
+    pub desktop: bool,
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, Clone, Copy, Debug, PartialEq)]
 pub enum ChatType {
     Release,
     Shop,
@@ -49,7 +52,6 @@ pub mod shop {
     };
     use itertools::Itertools;
     use log::info;
-    use rand::seq::SliceRandom;
     use serde::Deserialize;
     use serde_json::json;
     use ts_rs::TS;
@@ -68,9 +70,9 @@ pub mod shop {
         request_type: RequestType,
     }
 
-    use crate::{bot::State, request_handlers::WebxdcStatusUpdate};
+    use crate::{bot::State, request_handlers::WebxdcStatusUpdate, utils::get_oon_peer};
 
-    use super::Chat;
+    use super::ReviewChat;
 
     pub async fn handle_message(context: &Context, chat_id: ChatId) -> anyhow::Result<()> {
         // Handle normal messages to the bot (resend the store itself).
@@ -114,50 +116,53 @@ will shortly send you the appstore itself wher you can explore new apps."#
                 }
                 RequestType::Dowload => todo!(),
                 RequestType::Publish => {
-                    let publishers = state.db.get_pubslishers().await?;
-                    let testers = state.db.get_testers().await?;
-                    let chosen_publisher = publishers.choose(&mut rand::thread_rng()).unwrap();
-                    let mut chosen_testers = testers
-                        .choose_multiple(&mut rand::thread_rng(), 3)
-                        .collect_vec();
+                    // get publisher and testers
+                    let publisher = state.db.get_publisher().await.unwrap();
+                    let testers = state.db.get_testers().await.unwrap();
 
-                    loop {
-                        let item = chosen_testers
-                            .iter()
-                            .position(|elem| chosen_publisher == *elem);
-                        if let Some(position) = item {
-                            chosen_testers.remove(position);
-                            chosen_testers.push(testers.choose(&mut rand::thread_rng()).unwrap())
-                        } else {
-                            break;
-                        }
-                    }
+                    let creator = get_oon_peer(context, chat_id).await?;
 
-                    let msg = Message::load_from_db(context, msg_id).await?;
-
-                    state
-                        .db
-                        .create_chat(Chat {
-                            chat_type: super::ChatType::Release,
-                            chat_id,
-                            publisher: Some(chosen_publisher.clone()),
-                            tester: chosen_testers.iter().map(|a| *a.clone()).collect_vec(),
-                            creator: Some(msg.get_from_id()),
-                        })
-                        .await?;
-
-                    let chat = chat::create_group_chat(
+                    // create the new chat
+                    let chat_id = chat::create_group_chat(
                         context,
                         ProtectionStatus::Unprotected,
                         "Publish: <Some App>",
                     )
                     .await?;
-                    for tester in chosen_testers {
+
+                    state
+                        .db
+                        .create_chat(ReviewChat {
+                            chat_type: super::ChatType::Release,
+                            chat_id,
+                            publisher: publisher.clone(),
+                            tester: testers.iter().map(|a| a.clone()).collect_vec(),
+                            creator: creator,
+                            ios: false,
+                            android: false,
+                            desktop: false,
+                        })
+                        .await?;
+
+                    // add all chat members
+                    for tester in testers.iter() {
                         chat::add_contact_to_chat(context, chat_id, *tester).await?;
                     }
-
-                    chat::add_contact_to_chat(context, chat_id, *chosen_publisher).await?;
-                    chat::send_text_msg(context, chat, "hi".to_string()).await?;
+                    chat::add_contact_to_chat(context, chat_id, publisher).await?;
+                    chat::add_contact_to_chat(context, chat_id, creator).await?;
+                    let contacts = chat::get_chat_contacts(context, chat_id).await?;
+                    println!("{contacts:?}");
+                    chat::send_text_msg(
+                        context,
+                        chat_id,
+                        format!(
+                            r#"I created a textchat for you with 
+publisher: {publisher}
+and testers: {} "#,
+                            testers.iter().copied().join(", ")
+                        ),
+                    )
+                    .await?;
                 }
             }
         } else {

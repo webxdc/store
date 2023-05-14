@@ -4,6 +4,7 @@ use anyhow::{bail, Context as _, Result};
 use deltachat::{
     chat::{self, ChatId},
     config::Config,
+    contact::ContactId,
     context::Context,
     message::{MsgId, Viewtype},
 };
@@ -22,7 +23,7 @@ pub async fn configure_from_env(ctx: &Context) -> Result<()> {
     Ok(())
 }
 
-async fn get_appstore_xdc(context: &Context, chat_id: ChatId) -> anyhow::Result<MsgId> {
+async fn _get_appstore_xdc(context: &Context, chat_id: ChatId) -> anyhow::Result<MsgId> {
     let mut msg_ids = chat::get_chat_media(
         context,
         Some(chat_id),
@@ -36,4 +37,13 @@ async fn get_appstore_xdc(context: &Context, chat_id: ChatId) -> anyhow::Result<
     } else {
         bail!("no appstore xdc in chat");
     }
+}
+
+pub async fn get_oon_peer(context: &Context, chat_id: ChatId) -> anyhow::Result<ContactId> {
+    let contacts = chat::get_chat_contacts(context, chat_id).await?;
+    contacts
+        .into_iter()
+        .filter(|contact| !contact.is_special())
+        .next()
+        .ok_or(anyhow::anyhow!("No other contact"))
 }

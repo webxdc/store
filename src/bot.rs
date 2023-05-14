@@ -9,12 +9,11 @@ use deltachat::{
     EventType, Events,
 };
 use log::{debug, error, info, trace, warn};
-use std::{env, path::PathBuf, sync::Arc};
-use tokio::fs;
+use std::{env, sync::Arc};
 
 use crate::{
     db::DB,
-    request_handlers::{shop, AppInfo, Chat, ChatType},
+    request_handlers::{shop, AppInfo, ChatType},
     utils::configure_from_env,
 };
 
@@ -65,29 +64,29 @@ impl Bot {
             .unwrap();
 
         let dbfile = dbdir.join("db.sqlite");
-        let ctx = Context::new(dbfile.as_path(), 1, Events::new(), StockStrings::new())
+        let context = Context::new(dbfile.as_path(), 1, Events::new(), StockStrings::new())
             .await
             .context("Failed to create context")
             .unwrap();
 
-        if !ctx.get_config_bool(Config::Configured).await.unwrap() {
+        if !context.get_config_bool(Config::Configured).await.unwrap() {
             info!("start configuring...");
-            configure_from_env(&ctx).await.unwrap();
+            configure_from_env(&context).await.unwrap();
             info!("configuration done");
-        }
-
-        if !PathBuf::from("appstore_manifest.json").exists() {
-            fs::write("appstore_manifest.json", "[]").await.unwrap();
-        }
-
-        if !PathBuf::from("xdcs").exists() {
-            fs::create_dir("xdcs").await.unwrap();
         }
 
         let db = DB::new("bot.db").await;
 
+        /* let contacts = Contact::get_all(&context, 0, None).await.unwrap();
+
+               for contact in &contacts[0..2] {
+                   db.create_tester(contact.clone()).await.unwrap();
+               }
+
+               db.create_publisher(contacts[3]).await.unwrap();
+        */
         Self {
-            dc_ctx: ctx,
+            dc_ctx: context,
             state: Arc::new(State { db }),
         }
     }
@@ -111,11 +110,8 @@ impl Bot {
         });
 
         info!("initiated dc message handler (1/2)");
-
         self.dc_ctx.start_io().await;
-
         info!("initiated dc io (2/2)");
-
         info!("successfully started bot! 🥳");
     }
 
@@ -160,24 +156,22 @@ impl Bot {
         chat_id: ChatId,
         _msg_id: MsgId,
     ) -> Result<()> {
-        if let Ok(Some(chat)) = state.db.get_chat(chat_id).await {
-            match chat.chat_type {
-                ChatType::Release => todo!(),
-                ChatType::Shop => shop::handle_message(context, chat_id).await?,
+        match state.db.get_chat_type(chat_id).await {
+            Ok(Some(chat_type)) => {
+                info!("Handling message with type <{chat_type:?}>");
+                match chat_type {
+                    ChatType::Release => todo!(),
+                    ChatType::Shop => shop::handle_message(context, chat_id).await?,
+                }
             }
-        } else {
-            let chat = Chat {
-                chat_type: ChatType::Shop,
-                chat_id: chat_id,
-                publisher: None,
-                tester: Vec::new(),
-                creator: None,
-            };
-
-            //TODO: test for single chat
-
-            state.db.create_chat(chat).await?;
-            shop::handle_message(context, chat_id).await?;
+            Ok(None) => {
+                info!("creating new 1:1 chat with type Shop");
+                state.db.set_chat_type(chat_id, ChatType::Shop).await?;
+                shop::handle_message(context, chat_id).await?;
+            }
+            Err(e) => {
+                warn!("got some error: {}", e);
+            }
         }
         Ok(())
     }
@@ -191,13 +185,13 @@ impl Bot {
     ) -> anyhow::Result<()> {
         let msg = Message::load_from_db(context, msg_id).await?;
         let chat_id = msg.get_chat_id();
-        let chat: Chat = state
+        let chat_type = state
             .db
-            .get_chat(chat_id)
+            .get_chat_type(chat_id)
             .await?
             .ok_or(anyhow::anyhow!("No chat for this message"))?;
 
-        match chat.chat_type {
+        match chat_type {
             ChatType::Release => todo!(),
             ChatType::Shop => {
                 shop::handle_status_update(context, state, chat_id, msg_id, update).await?
