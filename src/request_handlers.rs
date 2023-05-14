@@ -135,9 +135,9 @@ will shortly send you the appstore itself wher you can explore new apps."#
                         .create_chat(ReviewChat {
                             chat_type: super::ChatType::Release,
                             chat_id,
-                            publisher: publisher.clone(),
-                            tester: testers.iter().map(|a| a.clone()).collect_vec(),
-                            creator: creator,
+                            publisher,
+                            tester: testers.iter().copied().collect_vec(),
+                            creator,
                             ios: false,
                             android: false,
                             desktop: false,

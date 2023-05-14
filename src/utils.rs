@@ -42,8 +42,6 @@ async fn _get_appstore_xdc(context: &Context, chat_id: ChatId) -> anyhow::Result
 pub async fn get_oon_peer(context: &Context, chat_id: ChatId) -> anyhow::Result<ContactId> {
     let contacts = chat::get_chat_contacts(context, chat_id).await?;
     contacts
-        .into_iter()
-        .filter(|contact| !contact.is_special())
-        .next()
+        .into_iter().find(|contact| !contact.is_special())
         .ok_or(anyhow::anyhow!("No other contact"))
 }

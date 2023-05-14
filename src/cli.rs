@@ -12,5 +12,5 @@ pub struct Cli {
 #[derive(Subcommand, PartialEq, Eq, Debug)]
 pub enum Commands {
     Download { file: String },
-    Open
+    Open,
 }
