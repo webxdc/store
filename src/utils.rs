@@ -4,7 +4,7 @@ use anyhow::{bail, Context as _, Result};
 use deltachat::{
     chat::{self, ChatId},
     config::Config,
-    contact::ContactId,
+    contact::{Contact, ContactId},
     context::Context,
     message::{MsgId, Viewtype},
 };
@@ -42,6 +42,14 @@ async fn _get_appstore_xdc(context: &Context, chat_id: ChatId) -> anyhow::Result
 pub async fn get_oon_peer(context: &Context, chat_id: ChatId) -> anyhow::Result<ContactId> {
     let contacts = chat::get_chat_contacts(context, chat_id).await?;
     contacts
-        .into_iter().find(|contact| !contact.is_special())
+        .into_iter()
+        .find(|contact| !contact.is_special())
         .ok_or(anyhow::anyhow!("No other contact"))
+}
+
+pub async fn get_contact_name(context: &Context, contact_id: ContactId) -> String {
+    Contact::get_by_id(context, contact_id)
+        .await
+        .map(|contact| contact.get_name_n_addr())
+        .unwrap_or_else(|_| contact_id.to_string())
 }

@@ -52,13 +52,15 @@ pub mod shop {
         bot::State,
         messages::{appstore_message, creat_review_group_message},
         request_handlers::WebxdcStatusUpdate,
-        utils::get_oon_peer,
+        utils::{get_contact_name, get_oon_peer},
     };
     use deltachat::{
         chat::{self, ChatId, ProtectionStatus},
+        contact::ContactId,
         context::Context,
         message::{Message, MsgId, Viewtype},
     };
+    use itertools::Itertools;
     use log::info;
     use serde::Deserialize;
     use serde_json::json;
@@ -163,10 +165,18 @@ pub mod shop {
                     chat::add_contact_to_chat(context, chat_id, publisher).await?;
                     chat::add_contact_to_chat(context, chat_id, creator).await?;
 
+                    let mut tester_names = Vec::new();
+                    for tester in testers {
+                        tester_names.push(get_contact_name(context, tester).await);
+                    }
+
                     chat::send_text_msg(
                         context,
                         chat_id,
-                        creat_review_group_message(&testers, &publisher),
+                        creat_review_group_message(
+                            &tester_names,
+                            &get_contact_name(context, publisher).await,
+                        ),
                     )
                     .await?;
                 }
