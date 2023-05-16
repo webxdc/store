@@ -3,7 +3,7 @@ use deltachat::{chat::ChatId, contact::ContactId};
 use serde::{Deserialize, Serialize};
 use surrealdb::{
     engine::local::{Db, File},
-    Surreal,
+    Connection, Surreal,
 };
 
 use crate::{
@@ -11,8 +11,8 @@ use crate::{
     request_handlers::{ChatType, ReviewChat},
 };
 
-pub struct DB {
-    db: Surreal<Db>,
+pub struct DB<T: Connection> {
+    db: Surreal<T>,
 }
 #[derive(Serialize, Deserialize)]
 struct DBChatType {
@@ -25,7 +25,7 @@ struct DBContactId {
 }
 
 #[allow(unused)]
-impl DB {
+impl<T: Connection> DB<T> {
     pub async fn new(store: &str) -> Self {
         let db = Surreal::new::<File>(store).await.unwrap();
         db.use_ns("bot").use_db("bot").await.unwrap();
@@ -41,8 +41,6 @@ impl DB {
     }
 
     pub async fn create_chat(&self, chat: ReviewChat) -> surrealdb::Result<()> {
-        self.set_chat_type(chat.chat_id, chat.chat_type).await?;
-
         let _t: ReviewChat = self
             .db
             .create(("chat", chat.chat_id.to_u32().to_string()))
@@ -107,8 +105,8 @@ impl DB {
             .query("SELECT contact_id FROM testers LIMIT 3")
             .await?;
 
-        let users = result.take::<Vec<ContactId>>((0, "contact_id")).unwrap();
-        Ok(users)
+        let testers = result.take::<Vec<ContactId>>((0, "contact_id")).unwrap();
+        Ok(testers)
     }
 
     pub async fn set_config(&self, config: &BotConfig) -> surrealdb::Result<BotConfig> {

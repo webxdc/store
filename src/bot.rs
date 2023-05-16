@@ -3,7 +3,7 @@ use anyhow::{Context as _, Result};
 use deltachat::{
     chat::{self, ChatId, ProtectionStatus},
     config::Config,
-    contact::Contact,
+    contact::{Contact, ContactId},
     context::Context,
     message::{Message, MsgId},
     stock_str::StockStrings,
@@ -12,10 +12,11 @@ use deltachat::{
 use log::{debug, error, info, trace, warn};
 use serde::{Deserialize, Serialize};
 use std::{env, io, sync::Arc};
+use surrealdb::engine::local::Db;
 
 use crate::{
     db::DB,
-    request_handlers::{shop, AppInfo, ChatType},
+    request_handlers::{shop, AppInfo, ChatType, ReviewChat},
     utils::configure_from_env,
 };
 
@@ -26,34 +27,13 @@ pub struct BotConfig {
 
 /// Github Bot state
 pub struct State {
-    pub db: DB,
+    pub db: DB<Db>,
     pub config: BotConfig,
 }
 
 impl State {
     pub fn get_apps(&self) -> Vec<AppInfo> {
-        vec![
-            AppInfo {
-                name: "App 3".to_string(),
-                author_name: "Author 3".to_string(),
-                author_email: "author1@example.com".to_string(),
-                source_code_url: "https://github.com/author1/app3".to_string(),
-                description: "This is a description for App 3.".to_string(),
-                xdc_blob_dir: "https://blobstore.com/app3".into(),
-                version: "1.0.0".to_string(),
-                image: "https://via.placeholder.com/640".to_string(),
-            },
-            AppInfo {
-                name: "App 2".to_string(),
-                author_name: "Author 2".to_string(),
-                author_email: "author2@example.com".to_string(),
-                source_code_url: "https://github.com/author2/app2".to_string(),
-                description: "This is a description for App 2.".to_string(),
-                version: "2.0.0".to_string(),
-                image: "https://via.placeholder.com/640".to_string(),
-                xdc_blob_dir: "https://blobstore.com/app3".into(),
-            },
-        ]
+        vec![]
     }
 }
 
@@ -156,6 +136,23 @@ impl Bot {
                 }
             }
         });
+
+        self.state
+            .db
+            .create_chat(ReviewChat {
+                chat_id: ChatId::new(1),
+                publisher: ContactId::new(10),
+                testers: Vec::new(),
+                creator: ContactId::new(10),
+                ios: false,
+                android: false,
+                desktop: false,
+                app_info: AppInfo {
+                    ..Default::default()
+                },
+            })
+            .await
+            .unwrap();
 
         info!("initiated dc message handler (1/2)");
         self.dc_ctx.start_io().await;

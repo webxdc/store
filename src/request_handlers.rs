@@ -7,25 +7,25 @@ use ts_rs::TS;
 
 #[derive(TS)]
 #[ts(export)]
-#[derive(Deserialize, Serialize, Clone, Debug)]
+#[derive(Deserialize, Serialize, Clone, Debug, Default)]
 pub struct AppInfo {
     pub name: String,
     pub author_name: String,
-    pub author_email: String,
-    pub source_code_url: String,
-    pub image: String,
+    pub author_email: Option<String>,
+    pub source_code_url: Option<String>,
+    pub image: Option<String>,
     pub description: String,
-    pub xdc_blob_dir: PathBuf,
-    pub version: String,
+    pub xdc_blob_dir: Option<PathBuf>,
+    pub version: Option<String>,
 }
 
 #[derive(Serialize, Deserialize)]
 pub struct ReviewChat {
-    pub chat_type: ChatType,
     pub chat_id: ChatId,
     pub publisher: ContactId,
     pub testers: Vec<ContactId>,
     pub creator: ContactId,
+    pub app_info: AppInfo,
     pub ios: bool,
     pub android: bool,
     pub desktop: bool,
@@ -50,17 +50,15 @@ pub mod shop {
     use super::ReviewChat;
     use crate::{
         bot::State,
-        messages::{appstore_message, creat_review_group_message},
+        messages::{appstore_message, creat_review_group_init_message},
         request_handlers::WebxdcStatusUpdate,
         utils::{get_contact_name, get_oon_peer},
     };
     use deltachat::{
         chat::{self, ChatId, ProtectionStatus},
-        contact::ContactId,
         context::Context,
         message::{Message, MsgId, Viewtype},
     };
-    use itertools::Itertools;
     use log::info;
     use serde::Deserialize;
     use serde_json::json;
@@ -79,8 +77,6 @@ pub mod shop {
     #[ts(export)]
     struct PublishRequest {
         pub name: String,
-        pub source_code_url: String,
-        pub image: String,
         pub description: String,
     }
 
@@ -133,12 +129,12 @@ pub mod shop {
                     // get publisher and testers
                     let publisher = state.db.get_publisher().await.unwrap();
                     let testers = state.db.get_testers().await.unwrap();
+
                     let creator = get_oon_peer(context, chat_id).await?;
 
                     state
                         .db
                         .create_chat(ReviewChat {
-                            chat_type: super::ChatType::Release,
                             chat_id,
                             publisher,
                             testers: testers.clone(),
@@ -146,8 +142,12 @@ pub mod shop {
                             ios: false,
                             android: false,
                             desktop: false,
+                            app_info: super::AppInfo {
+                                ..Default::default()
+                            },
                         })
                         .await?;
+                    state.db.set_chat_type(chat_id, super::ChatType::Release);
 
                     // create the new chat
                     let group_date = req.payload.get_data_as::<PublishRequest>()?;
@@ -165,15 +165,15 @@ pub mod shop {
                     chat::add_contact_to_chat(context, chat_id, publisher).await?;
                     chat::add_contact_to_chat(context, chat_id, creator).await?;
 
+                    // create initial message
                     let mut tester_names = Vec::new();
-                    for tester in testers {
-                        tester_names.push(get_contact_name(context, tester).await);
+                    for tester in &testers {
+                        tester_names.push(get_contact_name(context, *tester).await);
                     }
-
                     chat::send_text_msg(
                         context,
                         chat_id,
-                        creat_review_group_message(
+                        creat_review_group_init_message(
                             &tester_names,
                             &get_contact_name(context, publisher).await,
                         ),
