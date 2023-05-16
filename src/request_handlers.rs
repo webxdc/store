@@ -33,6 +33,8 @@ pub struct ReviewChat {
 
 #[derive(Serialize, Deserialize, Clone, Copy, Debug, PartialEq)]
 pub enum ChatType {
+    ReviewPool,
+    TesterPool,
     Release,
     Shop,
 }

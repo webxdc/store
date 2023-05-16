@@ -6,7 +6,10 @@ use surrealdb::{
     Surreal,
 };
 
-use crate::request_handlers::{ChatType, ReviewChat};
+use crate::{
+    bot::BotConfig,
+    request_handlers::{ChatType, ReviewChat},
+};
 
 pub struct DB {
     db: Surreal<Db>,
@@ -106,5 +109,13 @@ impl DB {
 
         let users = result.take::<Vec<ContactId>>((0, "contact_id")).unwrap();
         Ok(users)
+    }
+
+    pub async fn set_config(&self, config: &BotConfig) -> surrealdb::Result<BotConfig> {
+        self.db.create(("config", "config")).content(config).await
+    }
+
+    pub async fn get_config(&self) -> surrealdb::Result<BotConfig> {
+        self.db.select(("config", "config")).await
     }
 }

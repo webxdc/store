@@ -1,15 +1,17 @@
 //! Entry for the bot code
 use anyhow::{Context as _, Result};
 use deltachat::{
-    chat::ChatId,
+    chat::{self, ChatId, ProtectionStatus},
     config::Config,
+    contact::Contact,
     context::Context,
     message::{Message, MsgId},
     stock_str::StockStrings,
     EventType, Events,
 };
 use log::{debug, error, info, trace, warn};
-use std::{env, sync::Arc};
+use serde::{Deserialize, Serialize};
+use std::{env, io, sync::Arc};
 
 use crate::{
     db::DB,
@@ -17,9 +19,15 @@ use crate::{
     utils::configure_from_env,
 };
 
+#[derive(Serialize, Deserialize)]
+pub struct BotConfig {
+    administrator: String,
+}
+
 /// Github Bot state
 pub struct State {
     pub db: DB,
+    pub config: BotConfig,
 }
 
 impl State {
@@ -31,7 +39,7 @@ impl State {
                 author_email: "author1@example.com".to_string(),
                 source_code_url: "https://github.com/author1/app3".to_string(),
                 description: "This is a description for App 3.".to_string(),
-                xdc_blob_url: "https://blobstore.com/app3".to_string(),
+                xdc_blob_dir: "https://blobstore.com/app3".into(),
                 version: "1.0.0".to_string(),
                 image: "https://via.placeholder.com/640".to_string(),
             },
@@ -41,9 +49,9 @@ impl State {
                 author_email: "author2@example.com".to_string(),
                 source_code_url: "https://github.com/author2/app2".to_string(),
                 description: "This is a description for App 2.".to_string(),
-                xdc_blob_url: "https://blobstore.com/app2".to_string(),
                 version: "2.0.0".to_string(),
                 image: "https://via.placeholder.com/640".to_string(),
+                xdc_blob_dir: "https://blobstore.com/app3".into(),
             },
         ]
     }
@@ -77,18 +85,58 @@ impl Bot {
 
         let db = DB::new("bot.db").await;
 
-        /* let contacts = Contact::get_all(&context, 0, None).await.unwrap();
+        let config = match db.get_config().await {
+            Ok(config) => config,
+            Err(_) => {
+                info!("No configuration found, start configuring...");
+                let config = Self::configure(&context).await.unwrap();
+                db.set_config(&config).await.unwrap();
+                config
+            }
+        };
 
-               for contact in &contacts[0..2] {
-                   db.create_tester(contact.clone()).await.unwrap();
-               }
-
-               db.create_publisher(contacts[3]).await.unwrap();
-        */
         Self {
             dc_ctx: context,
-            state: Arc::new(State { db }),
+            state: Arc::new(State { db, config }),
         }
+    }
+
+    // creates the bot configuration.
+    async fn configure(context: &Context) -> Result<BotConfig> {
+        println!("For configuration, please enter the admistrators email address");
+
+        let stdin = io::stdin();
+        let mut email = String::new();
+        email.clear();
+        stdin.read_line(&mut email)?;
+
+        let contact = Contact::create(context, "administrator", &email).await?;
+
+        // create review chat
+        let review_chat = chat::create_group_chat(
+            context,
+            ProtectionStatus::Unprotected,
+            &format!("Appstore: Publishers"),
+        )
+        .await?;
+
+        chat::add_contact_to_chat(context, review_chat, contact).await?;
+        chat::send_text_msg(context, review_chat, "This is the reviewee group, you can add new members who will also take the role of reviewees".to_string()).await?;
+
+        // create testers chat
+        let tester_chat = chat::create_group_chat(
+            context,
+            ProtectionStatus::Unprotected,
+            &format!("Appstore: Testers"),
+        )
+        .await?;
+
+        chat::add_contact_to_chat(context, tester_chat, contact).await?;
+        chat::send_text_msg(context, tester_chat, "This is the testers group, you can add new members who will also take the role of reviewees".to_string()).await?;
+
+        Ok(BotConfig {
+            administrator: email,
+        })
     }
 
     /// Start the bot which includes:
@@ -162,6 +210,7 @@ impl Bot {
                 match chat_type {
                     ChatType::Release => todo!(),
                     ChatType::Shop => shop::handle_message(context, chat_id).await?,
+                    ChatType::ReviewPool | ChatType::TesterPool => (),
                 }
             }
             Ok(None) => {
@@ -196,6 +245,8 @@ impl Bot {
             ChatType::Shop => {
                 shop::handle_status_update(context, state, chat_id, msg_id, update).await?
             }
+            ChatType::ReviewPool => todo!(),
+            ChatType::TesterPool => todo!(),
         }
 
         Ok(())
