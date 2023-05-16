@@ -1,0 +1,2 @@
+- qr-code join
+- qr-code setup
