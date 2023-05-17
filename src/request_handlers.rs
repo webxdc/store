@@ -207,7 +207,6 @@ pub mod release {
                 }
             }
         }
-
         Ok(())
     }
 
@@ -324,12 +323,13 @@ pub mod shop {
         if let Ok(req) = serde_json::from_str::<WebxdcStatusUpdate<StoreRequest>>(&update) {
             match req.payload.request_type {
                 RequestType::Update => {
+                    let apps = state.get_apps().await?;
                     info!("Handling store update");
                     context
                         .send_webxdc_status_update_struct(
                             msg_id,
                             deltachat::webxdc::StatusUpdateItem {
-                                payload: json! {state.get_apps().await?},
+                                payload: json! {apps},
                                 ..Default::default()
                             },
                             "",

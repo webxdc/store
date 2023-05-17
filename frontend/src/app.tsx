@@ -8,9 +8,9 @@ const App: Component = () => {
   return (
     <div class="c-grid">
       <Show when={showPublish()} fallback={
-        <Shop></Shop>
+        <Shop onopen={() => { setPublish(true) }}></Shop>
       }>
-        <Submit />
+        <Submit onclose={() => { setPublish(false) }} />
       </Show>
     </div>
   )

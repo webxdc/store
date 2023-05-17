@@ -1,4 +1,4 @@
-import { Component, Show, createSignal } from 'solid-js';
+import { Component, ComponentProps, Show, createSignal } from 'solid-js';
 import { For } from "solid-js/web";
 import { Transition } from 'solid-transition-group';
 import { useStorage } from 'solidjs-use';
@@ -37,28 +37,8 @@ function create_item(item: AppInfo) {
     )
 }
 
-const App: Component = () => {
-    const [appInfo, setAppInfo] = useStorage('app-info', [{
-        name: "App 1",
-        author_name: "Author 1",
-        author_email: "author1@example.com",
-        source_code_url: "https://github.com/author1/app1",
-        description: "This is a description for App 1.",
-        xdc_blob_dir: "https://blobstore.com/app1",
-        version: "1.0.0",
-        image: "https://via.placeholder.com/640"
-    },
-    {
-        name: "App 2",
-        author_name: "Author 2",
-        author_email: "author2@example.com",
-        source_code_url: "https://github.com/author2/app2",
-        description: "This is a description for App 2. which is very long and will probably expand the whole container fuck",
-        xdc_blob_dir: "https://blobstore.com/app2",
-        version: "2.0.0",
-        image: "https://via.placeholder.com/640"
-    },] as AppInfo[])
-
+const App: ComponentProps<any> = (props: any) => {
+    const [appInfo, setAppInfo] = useStorage('app-info', [] as AppInfo[])
     const [lastSerial, setlastSerial] = useStorage('last-serial', 0)
     const [lastUpdate, setlastUpdate] = useStorage('last-update', new Date())
     const [isUpdating, setIsUpdating] = createSignal(false)
@@ -80,8 +60,13 @@ const App: Component = () => {
         const response = window.webxdc.sendUpdate({
             payload: {
                 request_type: "Update",
+                data: undefined
             }
         }, "")
+    }
+
+    function onopen() {
+        props.onopen()
     }
 
     return (
@@ -104,6 +89,7 @@ const App: Component = () => {
 
             <div class="c-grid p-4 item-stretch">
                 <ul class="flex flex-col gap-2 w-full flex-grow-1">
+                    <li class="button" onClick={onopen}>publish your own app</li>
                     <For each={appInfo()}>
                         {
                             item => create_item(item)

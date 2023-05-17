@@ -145,7 +145,7 @@ impl DB {
 
     pub async fn get_active_app_infos(&self) -> surrealdb::Result<Vec<AppInfo>> {
         let mut result = self.db.query("select * from app_info").await?;
-        let testers = result.take::<Vec<AppInfo>>((0, "contact_id"))?;
+        let testers = result.take::<Vec<AppInfo>>(0)?;
         Ok(testers)
     }
 }
