@@ -43,9 +43,7 @@ pub struct WebxdcStatusUpdate<T> {
     payload: T,
 }
 
-pub mod review {
-    
-}
+pub mod review {}
 
 pub mod shop {
     use super::{AppInfo, ReviewChat};
@@ -81,16 +79,16 @@ pub mod shop {
         pub description: String,
     }
 
-    #[derive(TS, Deserialize)]
-    #[ts(export)]
+    #[derive(Deserialize)]
     struct StoreRequest {
         request_type: RequestType,
     }
 
     #[derive(TS, Deserialize)]
     #[ts(export)]
+    #[allow(unused)]
     struct StoreRequestWithData<T> {
-        //request_type: RequestType,
+        request_type: RequestType,
         data: T,
     }
 

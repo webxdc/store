@@ -1,9 +1,10 @@
 // @ts-check
+import { StoreRequestWithData } from "../../bindings/StoreRequestWithData";
 
 interface SendingStatusUpdate<T> {
     /** the payload, deserialized json:
      * any javascript primitive, array or object. */
-    payload: T
+    payload: StoreRequestWithData<T>
     /** optional, short, informational message that will be added to the chat,
      * eg. "Alice voted" or "Bob scored 123 in MyGame";
      * usually only one line of text is shown,
@@ -60,7 +61,7 @@ interface Webxdc<T> {
      * @param update status update to send
      * @param description short, human-readable description what this update is about. this is shown eg. as a fallback text in an email program.
      */
-    sendUpdate(update: SendingStatusUpdate<T>, description: string): void
+    sendUpdate<F>(update: SendingStatusUpdate<F>, description: string): void
 }
 
 /// /////// ANCHOR: global

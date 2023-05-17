@@ -1,7 +1,6 @@
 import { Component, createSignal } from 'solid-js';
-import "./submit.module.sass"
 import { PublishRequest } from '../../bindings/PublishRequest'
-import { RequestType } from '../../bindings/RequestType'
+import "./submit.module.sass"
 
 const AppSubmitForm: Component = () => {
     const [appName, setAppName] = createSignal('');
@@ -12,7 +11,7 @@ const AppSubmitForm: Component = () => {
         e.preventDefault();
         window.webxdc.sendUpdate({
             payload: {
-                request_type: "Publish" as RequestType,
+                request_type: "Publish",
                 data: {
                     name: appName(),
                     description: description(),
