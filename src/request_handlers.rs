@@ -1,6 +1,7 @@
 //! Handlers for the different messages the bot receives
 use crate::db::DB;
 use async_zip::tokio::read::fs::ZipFileReader;
+use base64::encode;
 use deltachat::{chat::ChatId, contact::ContactId, webxdc::WebxdcManifest};
 use serde::{Deserialize, Serialize};
 use std::path::PathBuf;
@@ -25,6 +26,7 @@ pub struct AppInfo {
     #[serde(skip)]
     #[serde(default = "default_thing")]
     pub originator: RecordId, // bot
+    pub active: bool,                    // bot
 }
 
 impl AppInfo {
@@ -53,16 +55,16 @@ impl AppInfo {
             }
         }
 
-        /* let icon = entries
+        let icon = entries
             .iter()
             .enumerate()
             .find(|(_, entry)| entry.entry().filename().as_str().unwrap() == "icon.png")
             .map(|a| a.0);
 
         if let Some(index) = icon {
-            let res = read_string(&reader, index).await.unwrap();
-            self.image = Some(res);
-        } */
+            let res = read_vec(&reader, index).await.unwrap();
+            self.image = Some(encode(&res));
+        }
         Ok(())
     }
 
@@ -85,12 +87,23 @@ impl AppInfo {
         }
         missing
     }
+
+    pub fn is_complete(&self) -> bool {
+        self.generate_missing_list().is_empty()
+    }
 }
 
 pub async fn read_string(reader: &ZipFileReader, index: usize) -> anyhow::Result<String> {
     let mut entry = reader.reader_with_entry(index).await?;
     let mut data = String::new();
     entry.read_to_string_checked(&mut data).await?;
+    Ok(data)
+}
+
+pub async fn read_vec(reader: &ZipFileReader, index: usize) -> anyhow::Result<Vec<u8>> {
+    let mut entry = reader.reader_with_entry(index).await?;
+    let mut data = Vec::new();
+    entry.read_to_end_checked(&mut data).await?;
     Ok(data)
 }
 
@@ -105,6 +118,7 @@ impl Default for AppInfo {
             description: Default::default(),
             xdc_blob_dir: Default::default(),
             version: Default::default(),
+            active: Default::default(),
             originator: default_thing(),
         }
     }
@@ -159,6 +173,44 @@ pub mod release {
     };
     use log::info;
 
+    pub async fn handle_message(
+        context: &Context,
+        chat_id: ChatId,
+        state: Arc<State>,
+        msg: Message,
+    ) -> anyhow::Result<()> {
+        info!("Handling release message");
+
+        if let Some(msg_text) = msg.get_text() {
+            if msg_text == "/release" {
+                let review_chat = state
+                    .db
+                    .get_review_chat(chat_id)
+                    .await?
+                    .ok_or(anyhow::anyhow!("No review chat found for chat {chat_id}"))?;
+
+                let app_info = review_chat.get_app_info(&state.db).await?;
+                if app_info.is_complete() {
+                    state.db.publish_app(&review_chat.app_info).await.unwrap();
+                    chat::send_text_msg(context, chat_id, "App published".into()).await?;
+                } else {
+                    let missing = app_info.generate_missing_list();
+                    chat::send_text_msg(
+                        context,
+                        chat_id,
+                        format!(
+                            "You still need missing some required fields: {}",
+                            missing.join(", ")
+                        ),
+                    )
+                    .await?;
+                }
+            }
+        }
+
+        Ok(())
+    }
+
     pub async fn handle_webxdc(
         context: &Context,
         chat_id: ChatId,
@@ -180,6 +232,11 @@ pub mod release {
         ))?;
 
         app_info.update_from_xdc(file).await?;
+        state
+            .db
+            .update_app_info(&app_info, &review_chat.app_info)
+            .await?;
+
         let missing = app_info.generate_missing_list();
 
         if !missing.is_empty() {
@@ -272,7 +329,7 @@ pub mod shop {
                         .send_webxdc_status_update_struct(
                             msg_id,
                             deltachat::webxdc::StatusUpdateItem {
-                                payload: json! {state.get_apps()},
+                                payload: json! {state.get_apps().await?},
                                 ..Default::default()
                             },
                             "",

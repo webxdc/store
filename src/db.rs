@@ -1,9 +1,9 @@
 //! Integration fo SurrealDBpub struct DB
 use deltachat::{chat::ChatId, contact::ContactId};
 use serde::{Deserialize, Serialize};
+use serde_json::json;
 use surrealdb::{
     engine::local::{Db, File},
-    opt::Resource,
     sql::Thing,
     Surreal,
 };
@@ -124,7 +124,28 @@ impl DB {
         self.db.create(resource_id).content(app_info).await
     }
 
+    pub async fn update_app_info(
+        &self,
+        app_info: &AppInfo,
+        id: &Thing,
+    ) -> surrealdb::Result<AppInfo> {
+        self.db.update(id.clone()).content(app_info).await
+    }
+
+    pub async fn publish_app(&self, id: &Thing) -> surrealdb::Result<AppInfo> {
+        self.db
+            .update(id.clone())
+            .merge(json!({"active": true}))
+            .await
+    }
+
     pub async fn get_app_info(&self, resource_id: &Thing) -> surrealdb::Result<AppInfo> {
         self.db.select(resource_id.clone()).await
+    }
+
+    pub async fn get_active_app_infos(&self) -> surrealdb::Result<Vec<AppInfo>> {
+        let mut result = self.db.query("select * from app_info").await?;
+        let testers = result.take::<Vec<AppInfo>>((0, "contact_id"))?;
+        Ok(testers)
     }
 }
