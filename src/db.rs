@@ -3,6 +3,8 @@ use deltachat::{chat::ChatId, contact::ContactId};
 use serde::{Deserialize, Serialize};
 use surrealdb::{
     engine::local::{Db, File},
+    opt::Resource,
+    sql::Thing,
     Surreal,
 };
 
@@ -91,9 +93,7 @@ impl DB {
         let _t: DBContactId = self
             .db
             .create(("testers", contact_id.to_u32().to_string()))
-            .content(DBContactId {
-                contact_id,
-            })
+            .content(DBContactId { contact_id })
             .await?;
         Ok(())
     }
@@ -119,17 +119,12 @@ impl DB {
     pub async fn create_app_info(
         &self,
         app_info: &AppInfo,
-        chat_id: &ChatId,
+        resource_id: Thing,
     ) -> surrealdb::Result<AppInfo> {
-        self.db
-            .create(("app_info", chat_id.to_u32().to_string()))
-            .content(app_info)
-            .await
+        self.db.create(resource_id).content(app_info).await
     }
 
-    pub async fn get_app_info(&self, chat_id: ChatId) -> surrealdb::Result<AppInfo> {
-        self.db
-            .select(("app_info", chat_id.to_u32().to_string()))
-            .await
+    pub async fn get_app_info(&self, resource_id: &Thing) -> surrealdb::Result<AppInfo> {
+        self.db.select(resource_id.clone()).await
     }
 }

@@ -5,7 +5,7 @@ use deltachat::{
     config::Config,
     contact::Contact,
     context::Context,
-    message::{Message, MsgId},
+    message::{Message, MsgId, Viewtype},
     stock_str::StockStrings,
     EventType, Events,
 };
@@ -15,7 +15,7 @@ use std::{env, io, sync::Arc};
 
 use crate::{
     db::DB,
-    request_handlers::{shop, AppInfo, ChatType},
+    request_handlers::{release, shop, AppInfo, ChatType},
     utils::configure_from_env,
 };
 
@@ -185,13 +185,18 @@ impl Bot {
         context: &Context,
         state: Arc<State>,
         chat_id: ChatId,
-        _msg_id: MsgId,
+        msg_id: MsgId,
     ) -> Result<()> {
         match state.db.get_chat_type(chat_id).await {
             Ok(Some(chat_type)) => {
                 info!("Handling message with type <{chat_type:?}>");
                 match chat_type {
-                    ChatType::Release => todo!(),
+                    ChatType::Release => {
+                        let msg = Message::load_from_db(context, msg_id).await?;
+                        if msg.get_viewtype() == Viewtype::Webxdc {
+                            release::handle_webxdc(context, chat_id, state, msg).await?;
+                        }
+                    }
                     ChatType::Shop => shop::handle_message(context, chat_id).await?,
                     ChatType::ReviewPool | ChatType::TesterPool => (),
                 }

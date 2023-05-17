@@ -1,22 +1,120 @@
 //! Handlers for the different messages the bot receives
-use std::path::PathBuf;
-
-use deltachat::{chat::ChatId, contact::ContactId};
+use crate::db::DB;
+use async_zip::tokio::read::fs::ZipFileReader;
+use deltachat::{chat::ChatId, contact::ContactId, webxdc::WebxdcManifest};
 use serde::{Deserialize, Serialize};
+use std::path::PathBuf;
+use surrealdb::{
+    opt::RecordId,
+    sql::{Id, Thing},
+};
 use ts_rs::TS;
 
 #[derive(TS)]
 #[ts(export)]
-#[derive(Deserialize, Serialize, Clone, Debug, Default)]
+#[derive(Deserialize, Serialize, Clone, Debug)]
 pub struct AppInfo {
-    pub name: String,
-    pub author_name: String,
-    pub author_email: Option<String>,
-    pub source_code_url: Option<String>,
-    pub image: Option<String>,
-    pub description: String,
-    pub xdc_blob_dir: Option<PathBuf>,
-    pub version: Option<String>,
+    pub name: String,                    // manifest
+    pub author_name: String,             // bot
+    pub author_email: Option<String>,    // bot
+    pub source_code_url: Option<String>, // manifest
+    pub image: Option<String>,           // webxdc
+    pub description: String,             // submit
+    pub xdc_blob_dir: Option<PathBuf>,   // bot
+    pub version: Option<String>,         // manifest
+    #[serde(skip)]
+    #[serde(default = "default_thing")]
+    pub originator: RecordId, // bot
+}
+
+impl AppInfo {
+    async fn update_from_xdc(&mut self, file: PathBuf) -> anyhow::Result<()> {
+        let reader = ZipFileReader::new(&file).await.unwrap();
+        self.xdc_blob_dir = Some(file);
+        let entries = reader.file().entries();
+        let manifest = entries
+            .iter()
+            .enumerate()
+            .find(|(_, entry)| entry.entry().filename().as_str().unwrap() == "manifest.toml")
+            .map(|a| a.0);
+
+        if let Some(index) = manifest {
+            let res = read_string(&reader, index).await.unwrap();
+            let manifest = WebxdcManifest::from_string(&res)?;
+
+            if let Some(name) = manifest.name {
+                self.name = name;
+            }
+            if let Some(source_code_url) = manifest.source_code_url {
+                self.source_code_url = Some(source_code_url);
+            }
+            if let Some(version) = manifest.version {
+                self.version = Some(version);
+            }
+        }
+
+        /* let icon = entries
+            .iter()
+            .enumerate()
+            .find(|(_, entry)| entry.entry().filename().as_str().unwrap() == "icon.png")
+            .map(|a| a.0);
+
+        if let Some(index) = icon {
+            let res = read_string(&reader, index).await.unwrap();
+            self.image = Some(res);
+        } */
+        Ok(())
+    }
+
+    fn generate_missing_list(&self) -> Vec<String> {
+        let mut missing = vec![];
+        if self.name.is_empty() {
+            missing.push("name".to_string());
+        }
+        if self.description.is_empty() {
+            missing.push("description".to_string());
+        }
+        if self.image.is_none() {
+            missing.push("image".to_string());
+        }
+        if self.source_code_url.is_none() {
+            missing.push("source_code_url".to_string());
+        }
+        if self.version.is_none() {
+            missing.push("version".to_string());
+        }
+        missing
+    }
+}
+
+pub async fn read_string(reader: &ZipFileReader, index: usize) -> anyhow::Result<String> {
+    let mut entry = reader.reader_with_entry(index).await?;
+    let mut data = String::new();
+    entry.read_to_string_checked(&mut data).await?;
+    Ok(data)
+}
+
+impl Default for AppInfo {
+    fn default() -> Self {
+        Self {
+            name: Default::default(),
+            author_name: Default::default(),
+            author_email: Default::default(),
+            source_code_url: Default::default(),
+            image: Default::default(),
+            description: Default::default(),
+            xdc_blob_dir: Default::default(),
+            version: Default::default(),
+            originator: default_thing(),
+        }
+    }
+}
+
+fn default_thing() -> Thing {
+    Thing {
+        tb: "hi".to_string(),
+        id: Id::rand(),
+    }
 }
 
 #[derive(Serialize, Deserialize)]
@@ -28,6 +126,13 @@ pub struct ReviewChat {
     pub ios: bool,
     pub android: bool,
     pub desktop: bool,
+    pub app_info: RecordId,
+}
+
+impl ReviewChat {
+    pub async fn get_app_info(&self, db: &DB) -> surrealdb::Result<AppInfo> {
+        db.get_app_info(&self.app_info).await
+    }
 }
 
 #[derive(Serialize, Deserialize, Clone, Copy, Debug, PartialEq)]
@@ -43,7 +148,54 @@ pub struct WebxdcStatusUpdate<T> {
     payload: T,
 }
 
-pub mod review {}
+pub mod release {
+    use std::sync::Arc;
+
+    use crate::bot::State;
+    use deltachat::{
+        chat::{self, ChatId},
+        context::Context,
+        message::Message,
+    };
+    use log::info;
+
+    pub async fn handle_webxdc(
+        context: &Context,
+        chat_id: ChatId,
+        state: Arc<State>,
+        msg: Message,
+    ) -> anyhow::Result<()> {
+        info!("Handling webxdc submission");
+
+        let review_chat = state
+            .db
+            .get_review_chat(chat_id)
+            .await?
+            .ok_or(anyhow::anyhow!("No review chat found for chat {chat_id}"))?;
+
+        let mut app_info = review_chat.get_app_info(&state.db).await.unwrap();
+        let file = msg.get_file(context).ok_or(anyhow::anyhow!(
+            "Webxdc message {} has no file attached",
+            msg.get_id()
+        ))?;
+
+        app_info.update_from_xdc(file).await?;
+        let missing = app_info.generate_missing_list();
+
+        if !missing.is_empty() {
+            chat::send_text_msg(
+                context,
+                chat_id,
+                format!("Missing fields: {}", missing.join(", ")),
+            )
+            .await?;
+        } else {
+            chat::send_text_msg(context, chat_id, "All fields are present".into()).await?;
+        }
+
+        Ok(())
+    }
+}
 
 pub mod shop {
     use super::{AppInfo, ReviewChat};
@@ -55,6 +207,7 @@ pub mod shop {
     };
     use deltachat::{
         chat::{self, ChatId, ProtectionStatus},
+        contact::Contact,
         context::Context,
         message::{Message, MsgId, Viewtype},
     };
@@ -62,6 +215,7 @@ pub mod shop {
     use serde::Deserialize;
     use serde_json::json;
     use std::sync::Arc;
+    use surrealdb::sql::{Id, Thing};
     use ts_rs::TS;
 
     #[derive(TS, Deserialize)]
@@ -185,6 +339,11 @@ pub mod shop {
         .await?;
 
         // add new chat to local state
+        let resource_id = Thing {
+            tb: "app_info".to_string(),
+            id: Id::rand(),
+        };
+
         state
             .db
             .create_chat(&ReviewChat {
@@ -195,6 +354,7 @@ pub mod shop {
                 ios: false,
                 android: false,
                 desktop: false,
+                app_info: resource_id.clone(),
             })
             .await?;
 
@@ -203,15 +363,23 @@ pub mod shop {
             .set_chat_type(chat_id, super::ChatType::Release)
             .await?;
 
+        let createor_contact = Contact::load_from_db(context, creator).await?;
+
         state
             .db
             .create_app_info(
                 &AppInfo {
                     name: data.name.clone(),
+                    author_email: Some(createor_contact.get_addr().to_string()),
+                    author_name: createor_contact.get_name().to_string(),
                     description: data.description,
+                    originator: Thing {
+                        tb: "chat".to_string(),
+                        id: Id::Number(chat_id.to_u32() as i64),
+                    },
                     ..Default::default()
                 },
-                &chat_id,
+                resource_id,
             )
             .await?;
         Ok(())
