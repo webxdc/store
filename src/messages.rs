@@ -4,7 +4,8 @@ pub fn creat_review_group_init_message(testers: &[String], publisher: &String) -
     format!(
         r#"I created a new group to help you publish your app.
 The testers [{}] will test your app and the publisher [{publisher}] will eventually publish it to the appstore
-    "#,
+
+Your next step is to send me your bundled webxdc file (<your app>.xdc)"#,
         testers.iter().join(",")
     )
 }

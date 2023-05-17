@@ -3,17 +3,14 @@ use deltachat::{chat::ChatId, contact::ContactId};
 use serde::{Deserialize, Serialize};
 use surrealdb::{
     engine::local::{Db, File},
-    Connection, Surreal,
+    Surreal,
 };
 
 use crate::{
     bot::BotConfig,
-    request_handlers::{ChatType, ReviewChat},
+    request_handlers::{AppInfo, ChatType, ReviewChat},
 };
 
-pub struct DB<T: Connection> {
-    db: Surreal<T>,
-}
 #[derive(Serialize, Deserialize)]
 struct DBChatType {
     chat_type: ChatType,
@@ -24,8 +21,12 @@ struct DBContactId {
     contact_id: ContactId,
 }
 
+pub struct DB {
+    db: Surreal<Db>,
+}
+
 #[allow(unused)]
-impl<T: Connection> DB<T> {
+impl DB {
     pub async fn new(store: &str) -> Self {
         let db = Surreal::new::<File>(store).await.unwrap();
         db.use_ns("bot").use_db("bot").await.unwrap();
@@ -40,13 +41,11 @@ impl<T: Connection> DB<T> {
         self.db.select("chat").await
     }
 
-    pub async fn create_chat(&self, chat: ReviewChat) -> surrealdb::Result<()> {
-        let _t: ReviewChat = self
-            .db
+    pub async fn create_chat(&self, chat: &ReviewChat) -> surrealdb::Result<ReviewChat> {
+        self.db
             .create(("chat", chat.chat_id.to_u32().to_string()))
             .content(chat)
-            .await?;
-        Ok(())
+            .await
     }
 
     pub async fn set_chat_type(
@@ -88,12 +87,12 @@ impl<T: Connection> DB<T> {
         Ok(contact_id[0])
     }
 
-    pub async fn create_tester(&self, contact: ContactId) -> surrealdb::Result<()> {
+    pub async fn create_tester(&self, contact_id: ContactId) -> surrealdb::Result<()> {
         let _t: DBContactId = self
             .db
-            .create(("testers", contact.to_u32().to_string()))
+            .create(("testers", contact_id.to_u32().to_string()))
             .content(DBContactId {
-                contact_id: contact,
+                contact_id,
             })
             .await?;
         Ok(())
@@ -115,5 +114,22 @@ impl<T: Connection> DB<T> {
 
     pub async fn get_config(&self) -> surrealdb::Result<BotConfig> {
         self.db.select(("config", "config")).await
+    }
+
+    pub async fn create_app_info(
+        &self,
+        app_info: &AppInfo,
+        chat_id: &ChatId,
+    ) -> surrealdb::Result<AppInfo> {
+        self.db
+            .create(("app_info", chat_id.to_u32().to_string()))
+            .content(app_info)
+            .await
+    }
+
+    pub async fn get_app_info(&self, chat_id: ChatId) -> surrealdb::Result<AppInfo> {
+        self.db
+            .select(("app_info", chat_id.to_u32().to_string()))
+            .await
     }
 }

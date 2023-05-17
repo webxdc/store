@@ -3,7 +3,7 @@ use anyhow::{Context as _, Result};
 use deltachat::{
     chat::{self, ChatId, ProtectionStatus},
     config::Config,
-    contact::{Contact, ContactId},
+    contact::Contact,
     context::Context,
     message::{Message, MsgId},
     stock_str::StockStrings,
@@ -12,11 +12,10 @@ use deltachat::{
 use log::{debug, error, info, trace, warn};
 use serde::{Deserialize, Serialize};
 use std::{env, io, sync::Arc};
-use surrealdb::engine::local::Db;
 
 use crate::{
     db::DB,
-    request_handlers::{shop, AppInfo, ChatType, ReviewChat},
+    request_handlers::{shop, AppInfo, ChatType},
     utils::configure_from_env,
 };
 
@@ -27,7 +26,7 @@ pub struct BotConfig {
 
 /// Github Bot state
 pub struct State {
-    pub db: DB<Db>,
+    pub db: DB,
     pub config: BotConfig,
 }
 
@@ -69,7 +68,7 @@ impl Bot {
             Ok(config) => config,
             Err(_) => {
                 info!("No configuration found, start configuring...");
-                let config = Self::configure(&context).await.unwrap();
+                let config = Self::configure(&context, &db).await.unwrap();
                 db.set_config(&config).await.unwrap();
                 config
             }
@@ -82,7 +81,7 @@ impl Bot {
     }
 
     // creates the bot configuration.
-    async fn configure(context: &Context) -> Result<BotConfig> {
+    async fn configure(context: &Context, db: &DB) -> Result<BotConfig> {
         println!("For configuration, please enter the admistrators email address");
 
         let stdin = io::stdin();
@@ -101,7 +100,7 @@ impl Bot {
         .await?;
 
         chat::add_contact_to_chat(context, review_chat, contact).await?;
-        chat::send_text_msg(context, review_chat, "This is the reviewee group, you can add new members who will also take the role of reviewees".to_string()).await?;
+        chat::send_text_msg(context, review_chat, "This is the reviewee group, you can add new members who will also take the role of a reviewer".to_string()).await?;
 
         // create testers chat
         let tester_chat = chat::create_group_chat(
@@ -112,7 +111,11 @@ impl Bot {
         .await?;
 
         chat::add_contact_to_chat(context, tester_chat, contact).await?;
-        chat::send_text_msg(context, tester_chat, "This is the testers group, you can add new members who will also take the role of reviewees".to_string()).await?;
+        chat::send_text_msg(context, tester_chat, "This is the testers group, you can add new members who will also take the role of a tester".to_string()).await?;
+
+        // add administrator as reviewer and tester
+        db.create_publisher(contact).await?;
+        db.create_tester(contact).await?;
 
         Ok(BotConfig {
             administrator: email,
@@ -136,23 +139,6 @@ impl Bot {
                 }
             }
         });
-
-        self.state
-            .db
-            .create_chat(ReviewChat {
-                chat_id: ChatId::new(1),
-                publisher: ContactId::new(10),
-                testers: Vec::new(),
-                creator: ContactId::new(10),
-                ios: false,
-                android: false,
-                desktop: false,
-                app_info: AppInfo {
-                    ..Default::default()
-                },
-            })
-            .await
-            .unwrap();
 
         info!("initiated dc message handler (1/2)");
         self.dc_ctx.start_io().await;

@@ -1,8 +1,8 @@
 mod bot;
 mod db;
+mod messages;
 mod request_handlers;
 mod utils;
-mod messages;
 
 use bot::Bot;
 use tokio::signal;

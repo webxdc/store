@@ -11,7 +11,7 @@ function create_item(item: AppInfo) {
     return (
         <li class="p-4 rounded shadow w-full">
             <div class="flex justify-between items-center gap-2">
-                <img src={item.image} alt={item.name} class="w-20 h-20 object-cover rounded-xl" />
+                <img src={item.image!} alt={item.name} class="w-20 h-20 object-cover rounded-xl" />
                 <div class="overflow-hidden flex-grow-1">
                     <h2 class="text-xl font-semibold">{item.name}</h2>
                     <Transition name="slide-fade">
@@ -25,7 +25,7 @@ function create_item(item: AppInfo) {
                     <p class="my-2 text-gray-600">{item.description}</p>
                     <div class='flex wrap gap-2'>
                         <p class="text-gray-600 text-sm">{item.author_name} &lt{item.author_email}&gt</p>
-                        <a href={item.source_code_url} class="text-blue-500 hover:underline text-sm">Source Code</a>
+                        <a href={item.source_code_url!} class="text-blue-500 hover:underline text-sm">Source Code</a>
                     </div>
                 </>
             )}
@@ -44,7 +44,7 @@ const App: Component = () => {
         author_email: "author1@example.com",
         source_code_url: "https://github.com/author1/app1",
         description: "This is a description for App 1.",
-        xdc_blob_url: "https://blobstore.com/app1",
+        xdc_blob_dir: "https://blobstore.com/app1",
         version: "1.0.0",
         image: "https://via.placeholder.com/640"
     },
@@ -54,7 +54,7 @@ const App: Component = () => {
         author_email: "author2@example.com",
         source_code_url: "https://github.com/author2/app2",
         description: "This is a description for App 2. which is very long and will probably expand the whole container fuck",
-        xdc_blob_url: "https://blobstore.com/app2",
+        xdc_blob_dir: "https://blobstore.com/app2",
         version: "2.0.0",
         image: "https://via.placeholder.com/640"
     },] as AppInfo[])
