@@ -1,0 +1,4 @@
+name = "Webxdc Webstore"
+description = "Webxdc Appstore"
+source_code_url = "https://github.com/webxdc/appstore-bot"
+version = "1.0.0"
