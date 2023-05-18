@@ -39,6 +39,8 @@ To get started with the bot, clone this repository and initiate the bot using th
 addr="<email>" mail_pw="<password>" RUST_LOG=info cargo r
 ```
 
+**Attention**: you also need to build the frontend by going to the folder, installing all npm packages and executing the build script. At the end you need to run the `./create_xdc.sh` skript which will create the `appstore-bot.xdc` file which will be distributed by the bot.
+
 On activation, the bot will prompt you for an administrator email address. Upon providing this, the bot will establish two groups: the `Publisher Group` and the `Tester Group`.
 
 - `Publisher Group`: This group consists of trusted entities authorized to add an app to the appstore.
