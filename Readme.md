@@ -33,7 +33,7 @@ pub struct AppInfo {
 ```
 
 ### Setting Up the Bot
-You need to have rust installed and also follow these (instructions)[https://docs.rs/surrealdb/1.0.0-beta.9+20230402/surrealdb/engine/local/index.html] to get the file-db working. This might change in the future.
+You need to have rust installed and also follow these [instructions](https://docs.rs/surrealdb/1.0.0-beta.9+20230402/surrealdb/engine/local/index.html) to get the file-db working. This might change in the future.
 
 To get started with the bot, clone this repository and initiate the bot using the following command:
 ```
