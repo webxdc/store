@@ -5,7 +5,7 @@ authors = ["DeltaChatBot Contributers<https://github.com/deltachat-bot>"]
 edition = "2021"
 
 [dependencies]
-deltachat = { path="../deltachat-core-rust"}
+deltachat = { git = "https://github.com/deltachat/deltachat-core-rust.git", branch="sk/new_apis"}
 tokio = { version = "^1.21", features = ["rt-multi-thread", "macros", "signal"]}
 clap = {version="^4.0", features=["derive", "cargo"]}
 anyhow = "^1.0"
@@ -15,7 +15,6 @@ serde_json = "^1.0"
 log = "^0.4"
 env_logger = "0.10.0"
 surrealdb = {version="1.0.0-beta.9", features = ["kv-rocksdb"]}
-reqwest = "^0.11"
 itertools = "^0.10"
 ts-rs = "*"
 rand = "*"
