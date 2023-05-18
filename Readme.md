@@ -45,3 +45,11 @@ On activation, the bot will prompt you for an administrator email address. Upon 
 - `Tester Group`: A collection of testers, possibly from the community, who are capable of testing the apps on their devices.
 
 To assign new members to these roles, simply add them to the respective group chats.
+
+## Development
+
+The used database is surrealdb. You can run a local serve like this 
+```
+surreal start --log trace --user root file://bot.db
+```
+and use some client like `Insomnia` to the sql backend `localhost:8000/sql`.
