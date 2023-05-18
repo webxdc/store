@@ -10,7 +10,7 @@ use surrealdb::{
 
 use crate::{
     bot::BotConfig,
-    request_handlers::{AppInfo, ChatType, ReviewChat},
+    request_handlers::{AppInfo, AppInfoId, ChatType, ReviewChat},
 };
 
 #[derive(Serialize, Deserialize)]
@@ -143,9 +143,9 @@ impl DB {
         self.db.select(resource_id.clone()).await
     }
 
-    pub async fn get_active_app_infos(&self) -> surrealdb::Result<Vec<AppInfo>> {
+    pub async fn get_active_app_infos(&self) -> surrealdb::Result<Vec<AppInfoId>> {
         let mut result = self.db.query("select * from app_info").await?;
-        let testers = result.take::<Vec<AppInfo>>(0)?;
+        let testers = result.take::<Vec<AppInfoId>>(0)?;
         Ok(testers)
     }
 }

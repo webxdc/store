@@ -3,7 +3,7 @@ import Submit from './submit'
 import Shop from './shop'
 
 const App: Component = () => {
-  const [showPublish, setPublish] = createSignal(true)
+  const [showPublish, setPublish] = createSignal(false)
 
   return (
     <div class="c-grid">

@@ -29,6 +29,13 @@ pub struct AppInfo {
     pub active: bool,                    // bot
 }
 
+#[derive(Deserialize, Serialize, Clone, Debug)]
+pub struct AppInfoId {
+    #[serde(flatten)]
+    pub app_info: AppInfo,
+    pub id: Thing,
+}
+
 impl AppInfo {
     async fn update_from_xdc(&mut self, file: PathBuf) -> anyhow::Result<()> {
         let reader = ZipFileReader::new(&file).await.unwrap();
@@ -336,7 +343,26 @@ pub mod shop {
                         )
                         .await?;
                 }
-                RequestType::Dowload => todo!(),
+                RequestType::Dowload => {
+                    info!("Handling store download");
+                    let data = serde_json::from_str::<
+                        WebxdcStatusUpdate<StoreRequestWithData<String>>,
+                    >(&update)?
+                    .payload
+                    .data;
+                    let mut parts = data.split(":");
+                    let app = state
+                        .db
+                        .get_app_info(&Thing {
+                            tb: parts.next().unwrap().into(),
+                            id: parts.next().unwrap().into(),
+                        })
+                        .await?;
+
+                    let mut msg = Message::new(Viewtype::Webxdc);
+                    msg.set_file(&app.xdc_blob_dir.unwrap().to_str().unwrap(), None);
+                    chat::send_msg(context, chat_id, &mut msg).await.unwrap();
+                }
                 RequestType::Publish => {
                     info!("Handling store publish");
                     let data = serde_json::from_str::<
@@ -348,7 +374,7 @@ pub mod shop {
                 }
             }
         } else {
-            info!("Ignoring update: {update}")
+            info!("Ignoring update: {}", &update[..10])
         }
         Ok(())
     }

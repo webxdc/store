@@ -15,7 +15,7 @@ use std::{env, io, sync::Arc};
 
 use crate::{
     db::DB,
-    request_handlers::{release, shop, AppInfo, ChatType},
+    request_handlers::{release, shop, AppInfoId, ChatType},
     utils::configure_from_env,
 };
 
@@ -31,7 +31,7 @@ pub struct State {
 }
 
 impl State {
-    pub async fn get_apps(&self) -> anyhow::Result<Vec<AppInfo>> {
+    pub async fn get_apps(&self) -> anyhow::Result<Vec<AppInfoId>> {
         Ok(self.db.get_active_app_infos().await?)
     }
 }
