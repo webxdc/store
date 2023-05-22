@@ -464,7 +464,7 @@ pub mod genisis {
 
     use clap::{CommandFactory, FromArgMatches};
     use deltachat::{
-        chat::{self, ChatId},
+        chat,
         context::Context,
         message::{Message, MsgId},
     };

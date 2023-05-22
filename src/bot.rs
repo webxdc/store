@@ -73,6 +73,16 @@ impl Bot {
                 info!("No configuration found, start configuring...");
                 let config = Self::setup(&context).await.unwrap();
                 db.set_config(&config).await.unwrap();
+                db.set_chat_type(config.genesis_group, ChatType::Genesis)
+                    .await
+                    .unwrap();
+                db.set_chat_type(config.reviewee_group, ChatType::ReviewPool)
+                    .await
+                    .unwrap();
+                db.set_chat_type(config.tester_group, ChatType::TesterPool)
+                    .await
+                    .unwrap();
+
                 config
             }
         };
@@ -173,6 +183,29 @@ impl Bot {
                     let chat_id = state.config.genesis_group;
                     state.db.add_contact_to_genesis(contact_id).await?;
                     chat::send_text_msg(context, chat_id, "Welcome to the genesis group! \n You can type `/help` to get a list of available commands.".into()).await?;
+                }
+            }
+            EventType::ChatModified(chat_id) => {
+                let chat_type = state
+                    .db
+                    .get_chat_type(chat_id)
+                    .await?
+                    .expect("Chat should have chat_type");
+                match chat_type {
+                    ChatType::Genesis => {
+                        let contacts = chat::get_chat_contacts(context, chat_id).await?;
+                        state.db.set_genesis_contacts(&contacts).await?;
+                    }
+                    ChatType::ReviewPool => {
+                        let contacts = chat::get_chat_contacts(context, chat_id).await?;
+                        state.db.set_tester_contacts(&contacts).await?;
+                    }
+                    ChatType::TesterPool => {
+                        let contacts = chat::get_chat_contacts(context, chat_id).await?;
+                        state.db.set_publisher_contacts(&contacts).await?;
+                    }
+                    ChatType::Release => todo!(),
+                    _ => (),
                 }
             }
             other => {

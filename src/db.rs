@@ -97,6 +97,14 @@ impl DB {
         Ok(())
     }
 
+    pub async fn set_publisher_contacts(&self, contacts: &[ContactId]) -> surrealdb::Result<()> {
+        let _t: Vec<()> = self.db.delete("publisher").await?;
+        for contact_id in contacts {
+            self.create_publisher(*contact_id).await?;
+        }
+        Ok(())
+    }
+
     pub async fn get_publisher(&self) -> surrealdb::Result<ContactId> {
         let mut result = self
             .db
@@ -112,6 +120,14 @@ impl DB {
             .create(("testers", contact_id.to_u32().to_string()))
             .content(DBContactId { contact_id })
             .await?;
+        Ok(())
+    }
+
+    pub async fn set_tester_contacts(&self, contacts: &[ContactId]) -> surrealdb::Result<()> {
+        let _t: Vec<()> = self.db.delete("testers").await?;
+        for contact_id in contacts {
+            self.create_tester(*contact_id).await?;
+        }
         Ok(())
     }
 
