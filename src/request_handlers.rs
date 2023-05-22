@@ -269,6 +269,7 @@ pub mod shop {
     use serde_json::json;
     use std::sync::Arc;
     use surrealdb::sql::{Id, Thing};
+    use thiserror::Error;
     use ts_rs::TS;
 
     #[derive(TS, Deserialize)]
@@ -360,7 +361,17 @@ pub mod shop {
                     >(&update)?
                     .payload
                     .data;
-                    handle_publish(context, state, chat_id, data).await?;
+                    if let Err(e) = handle_publish(context, state.clone(), chat_id, data).await {
+                        match e {
+                            HandlePublishError::NotEnoughTesters => {
+                                chat::send_text_msg(context, state.config.genesis_group, "Tried to create review chat, but there are not enough testers available".into()).await?;
+                            }
+                            HandlePublishError::NotEnoughReviewee => {
+                                chat::send_text_msg(context, state.config.genesis_group, "Tried to create review chat, but there are not enough publishers available".into()).await?;
+                            }
+                            e => return Err(anyhow::anyhow!(e)),
+                        }
+                    }
                 }
             }
         } else {
@@ -369,15 +380,36 @@ pub mod shop {
         Ok(())
     }
 
+    #[derive(Debug, Error)]
+    pub enum HandlePublishError {
+        #[error("Not enough testers in pool")]
+        NotEnoughTesters,
+        #[error("Not enough reviewee in pool")]
+        NotEnoughReviewee,
+        #[error(transparent)]
+        SurrealDb(#[from] surrealdb::Error),
+        #[error(transparent)]
+        Other(#[from] anyhow::Error),
+    }
+
     pub async fn handle_publish(
         context: &Context,
         state: Arc<State>,
         chat_id: ChatId,
         data: PublishRequest,
-    ) -> anyhow::Result<()> {
+    ) -> Result<(), HandlePublishError> {
         // get publisher and testers
-        let publisher = state.db.get_publisher().await.unwrap();
-        let testers = state.db.get_testers().await.unwrap();
+        let publisher = state
+            .db
+            .get_publisher()
+            .await
+            .map_err(|_| HandlePublishError::NotEnoughReviewee)?;
+
+        let testers = state.db.get_testers().await?;
+
+        if testers.len() < 1 {
+            return Err(HandlePublishError::NotEnoughTesters);
+        }
 
         let creator = get_oon_peer(context, chat_id).await?;
 

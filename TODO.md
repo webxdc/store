@@ -1,3 +1,0 @@
-- qr-code join
-- qr-code setup
-- add/remove memebers from review and tester group
