@@ -3,15 +3,15 @@ use anyhow::{Context as _, Result};
 use deltachat::{
     chat::{self, ChatId, ProtectionStatus},
     config::Config,
-    contact::Contact,
     context::Context,
     message::{Message, MsgId, Viewtype},
+    securejoin,
     stock_str::StockStrings,
     EventType, Events,
 };
 use log::{debug, error, info, trace, warn};
 use serde::{Deserialize, Serialize};
-use std::{env, io, sync::Arc};
+use std::{env, sync::Arc};
 
 use crate::{
     db::DB,
@@ -21,7 +21,10 @@ use crate::{
 
 #[derive(Serialize, Deserialize)]
 pub struct BotConfig {
-    administrator: String,
+    invite_qr: String,
+    tester_group: ChatId,
+    reviewee_group: ChatId,
+    genesis_group: ChatId,
 }
 
 /// Github Bot state
@@ -68,11 +71,14 @@ impl Bot {
             Ok(config) => config,
             Err(_) => {
                 info!("No configuration found, start configuring...");
-                let config = Self::configure(&context, &db).await.unwrap();
+                let config = Self::setup(&context).await.unwrap();
                 db.set_config(&config).await.unwrap();
                 config
             }
         };
+
+        println!("Scan this group to start the admin group:");
+        qr2term::print_qr(&config.invite_qr).unwrap();
 
         Self {
             dc_ctx: context,
@@ -80,54 +86,41 @@ impl Bot {
         }
     }
 
-    // creates the bot configuration.
-    async fn configure(context: &Context, db: &DB) -> Result<BotConfig> {
-        println!("For configuration, please enter the admistrators email address");
-
-        let stdin = io::stdin();
-        let mut email = String::new();
-        email.clear();
-        stdin.read_line(&mut email)?;
-
-        let contact = Contact::create(context, "administrator", &email).await?;
-
-        // create review chat
-        let review_chat = chat::create_group_chat(
+    async fn setup(context: &Context) -> Result<BotConfig> {
+        let genesis_group = chat::create_group_chat(
             context,
-            ProtectionStatus::Unprotected,
+            ProtectionStatus::Protected,
+            &format!("Appstore: Genesis"),
+        )
+        .await?;
+
+        let reviewee_group = chat::create_group_chat(
+            context,
+            ProtectionStatus::Protected,
             &format!("Appstore: Publishers"),
         )
         .await?;
 
-        chat::add_contact_to_chat(context, review_chat, contact).await?;
-        chat::send_text_msg(context, review_chat, "This is the reviewee group, you can add new members who will also take the role of a reviewer".to_string()).await?;
-
-        // create testers chat
-        let tester_chat = chat::create_group_chat(
+        let tester_group = chat::create_group_chat(
             context,
-            ProtectionStatus::Unprotected,
+            ProtectionStatus::Protected,
             &format!("Appstore: Testers"),
         )
         .await?;
 
-        chat::add_contact_to_chat(context, tester_chat, contact).await?;
-        chat::send_text_msg(context, tester_chat, "This is the testers group, you can add new members who will also take the role of a tester".to_string()).await?;
-
-        // add administrator as reviewer and tester
-        db.create_publisher(contact).await?;
-        db.create_tester(contact).await?;
-
         Ok(BotConfig {
-            administrator: email,
+            invite_qr: securejoin::get_securejoin_qr(context, Some(genesis_group))
+                .await
+                .unwrap(),
+            tester_group,
+            reviewee_group,
+            genesis_group: genesis_group,
         })
     }
 
     /// Start the bot which includes:
     /// - starting dc-message-receive loop
-    /// - starting webhook-receive loop
-    ///   - starting receiving server
     pub async fn start(&mut self) {
-        // start dc message handler
         let events_emitter = self.dc_ctx.get_event_emitter();
         let ctx = self.dc_ctx.clone();
         let state = self.state.clone();
@@ -139,10 +132,8 @@ impl Bot {
                 }
             }
         });
-
-        info!("initiated dc message handler (1/2)");
         self.dc_ctx.start_io().await;
-        info!("initiated dc io (2/2)");
+
         info!("successfully started bot! 🥳");
     }
 
@@ -172,6 +163,17 @@ impl Bot {
                     .await?;
 
                 Self::handle_dc_webxdc_update(context, state, msg_id, update_string).await?
+            }
+            EventType::SecurejoinInviterProgress {
+                contact_id,
+                progress,
+            } => {
+                if progress == 1000 {
+                    info!("Adding contact to genesis group");
+                    let chat_id = state.config.genesis_group;
+                    state.db.add_contact_to_genesis(contact_id).await?;
+                    chat::send_text_msg(context, chat_id, "Welcome to the genesis group! \n You can type `/help` to get a list of available commands.".into()).await?;
+                }
             }
             other => {
                 debug!("DC: [unhandled event] {other:?}");

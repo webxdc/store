@@ -71,6 +71,23 @@ impl DB {
         c.map(|a| a.map(|a| a.chat_type))
     }
 
+    pub async fn add_contact_to_genesis(&self, contact_id: ContactId) -> surrealdb::Result<()> {
+        let _t: DBContactId = self
+            .db
+            .create(("genesis", contact_id.to_u32().to_string()))
+            .content(DBContactId { contact_id })
+            .await?;
+        Ok(())
+    }
+
+    pub async fn set_genesis_contacts(&self, contacts: &[ContactId]) -> surrealdb::Result<()> {
+        let _t: Vec<()> = self.db.delete("genesis").await?;
+        for contact_id in contacts {
+            self.add_contact_to_genesis(*contact_id).await?;
+        }
+        Ok(())
+    }
+
     pub async fn create_publisher(&self, contact_id: ContactId) -> surrealdb::Result<()> {
         let _t: DBContactId = self
             .db
@@ -109,6 +126,7 @@ impl DB {
     }
 
     pub async fn set_config(&self, config: &BotConfig) -> surrealdb::Result<BotConfig> {
+        let _t: Option<BotConfig> = self.db.delete(("config", "config")).await.ok();
         self.db.create(("config", "config")).content(config).await
     }
 

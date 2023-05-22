@@ -20,3 +20,4 @@ ts-rs = "*"
 rand = "*"
 async_zip = {version="0.0.15", features=["full"]}
 base64-compat = "1.0.0"
+qr2term = "*"
