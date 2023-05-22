@@ -3,19 +3,32 @@
   display: grid
   @apply items-center justify-stretch gap-2
 
+.min-width
+  width: 450px
+
 @media screen and (min-width: 450px)
   .min-width
-    width: 450px
+    width: 100%
 
   .c-grid
     @apply justify-center
 
+input, textarea
+  padding: 0.3rem !important
+  @apply border rounded p-2
+
+input:disabled
+  @apply bg-gray-200 cursor-not-allowed
+
+label
+  @apply font-bold
+
 .slide-fade-enter-active,
-.slide-fade-exit-active 
+.slide-fade-exit-active
   transition: all 0.3s ease
 
 .slide-fade-enter,
-.slide-fade-exit-to 
+.slide-fade-exit-to
   opacity: 0
 
 .max-width

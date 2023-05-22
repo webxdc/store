@@ -15,8 +15,6 @@ if (import.meta.env.DEV && !(root instanceof HTMLElement)) {
   );
 }
 
-console.log(import.meta.env)
-
 if (import.meta.env.VITE_APPSTORE) {
   render(() => <AppStore />, root!);
 } else {

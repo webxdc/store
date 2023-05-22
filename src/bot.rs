@@ -87,7 +87,7 @@ impl Bot {
             }
         };
 
-        println!("Scan this group to start the admin group:");
+        println!("Scan this qr code to join the admin group:");
         qr2term::print_qr(&config.invite_qr).unwrap();
 
         Self {
@@ -204,7 +204,7 @@ impl Bot {
                         let contacts = chat::get_chat_contacts(context, chat_id).await?;
                         state.db.set_publisher_contacts(&contacts).await?;
                     }
-                    ChatType::Release => todo!(),
+                    ChatType::Release => {}
                     _ => (),
                 }
             }
@@ -267,7 +267,9 @@ impl Bot {
             .ok_or(anyhow::anyhow!("No chat for this message"))?;
 
         match chat_type {
-            ChatType::Release => todo!(),
+            ChatType::Release => {
+                info!("TODO")
+            }
             ChatType::Shop => {
                 shop::handle_status_update(context, state, chat_id, msg_id, update).await?
             }

@@ -19,8 +19,6 @@ function create_item(item: AppInfo) {
         }, "")
     }
 
-
-
     return (
         <li class="p-4 rounded shadow w-full">
             <div class="flex justify-between items-center gap-2">
@@ -41,7 +39,6 @@ function create_item(item: AppInfo) {
                         <p class="text-gray-600 text-sm"><span class="font-bold"> author:</span> {item.author_name}</p>
                         <p class="text-gray-600 text-sm"><span class="font-bold"> contact:</span>  {item.author_email}</p>
                         <p class="text-gray-600 text-sm"><span class="font-bold"> source code:</span>  {item.source_code_url}</p>
-                        <p class="text-gray-600 text-sm"><span class="font-bold"> id:</span>  {item.id}</p>
                     </div>
                 </>
             )}

@@ -1,13 +1,13 @@
 //! Utility functions
 
-use anyhow::{bail, Context as _, Result};
+use anyhow::{Context as _, Result};
 use async_zip::tokio::read::fs::ZipFileReader;
 use deltachat::{
     chat::{self, ChatId},
     config::Config,
     contact::{Contact, ContactId},
     context::Context,
-    message::{MsgId, Viewtype},
+    message::{Message, MsgId, Viewtype},
 };
 use std::env;
 
@@ -24,7 +24,7 @@ pub async fn configure_from_env(ctx: &Context) -> Result<()> {
     Ok(())
 }
 
-async fn _get_appstore_xdc(context: &Context, chat_id: ChatId) -> anyhow::Result<MsgId> {
+pub async fn get_chat_xdc(context: &Context, chat_id: ChatId) -> anyhow::Result<Option<MsgId>> {
     let mut msg_ids = chat::get_chat_media(
         context,
         Some(chat_id),
@@ -33,11 +33,16 @@ async fn _get_appstore_xdc(context: &Context, chat_id: ChatId) -> anyhow::Result
         Viewtype::Unknown,
     )
     .await?;
-    if let Some(msg_id) = msg_ids.pop() {
-        Ok(msg_id)
-    } else {
-        bail!("no appstore xdc in chat");
-    }
+    Ok(msg_ids.pop())
+}
+
+pub async fn send_webxdc(context: &Context, chat_id: ChatId, path: &str) -> anyhow::Result<()> {
+    let mut webxdc_msg = Message::new(Viewtype::Webxdc);
+    webxdc_msg.set_file(path, None);
+    chat::send_msg(context, chat_id, &mut webxdc_msg)
+        .await
+        .unwrap();
+    Ok(())
 }
 
 pub async fn get_oon_peer(context: &Context, chat_id: ChatId) -> anyhow::Result<ContactId> {

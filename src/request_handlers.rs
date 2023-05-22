@@ -26,7 +26,7 @@ pub struct AppInfo {
     pub image: Option<String>,           // webxdc
     pub description: String,             // submit
     #[ts(skip)]
-    pub xdc_blob_dir: Option<PathBuf>,   // bot
+    pub xdc_blob_dir: Option<PathBuf>, // bot
     pub version: Option<String>,         // manifest
     #[ts(skip)]
     #[serde(default = "default_thing")]
@@ -164,13 +164,17 @@ pub struct WebxdcStatusUpdate<T> {
 pub mod release {
     use std::sync::Arc;
 
-    use crate::bot::State;
+    use crate::{
+        bot::State,
+        utils::{get_chat_xdc, send_webxdc},
+    };
     use deltachat::{
         chat::{self, ChatId},
         context::Context,
         message::Message,
     };
     use log::info;
+    use serde_json::json;
 
     pub async fn handle_message(
         context: &Context,
@@ -235,6 +239,10 @@ pub mod release {
             .update_app_info(&app_info, &review_chat.app_info)
             .await?;
 
+        if get_chat_xdc(context, chat_id).await?.is_none() {
+            send_webxdc(context, chat_id, "./review_helper.xdc").await?;
+        }
+
         let missing = app_info.generate_missing_list();
 
         if !missing.is_empty() {
@@ -245,8 +253,28 @@ pub mod release {
             )
             .await?;
         } else {
-            chat::send_text_msg(context, chat_id, "All fields are present".into()).await?;
+            chat::send_text_msg(
+                context,
+                chat_id,
+                "Hooray, I've got all information neeeded to publish your app! 🥳".into(),
+            )
+            .await?;
         }
+
+        let msg_id = get_chat_xdc(context, chat_id)
+            .await?
+            .expect("Expecting an webxdc in review chat");
+
+        context
+            .send_webxdc_status_update_struct(
+                msg_id,
+                deltachat::webxdc::StatusUpdateItem {
+                    payload: json! {app_info},
+                    ..Default::default()
+                },
+                "",
+            )
+            .await?;
 
         Ok(())
     }
@@ -258,7 +286,7 @@ pub mod shop {
         bot::State,
         messages::{appstore_message, creat_review_group_init_message},
         request_handlers::WebxdcStatusUpdate,
-        utils::{get_contact_name, get_oon_peer},
+        utils::{get_contact_name, get_oon_peer, send_webxdc},
     };
     use deltachat::{
         chat::{self, ChatId, ProtectionStatus},
@@ -310,12 +338,7 @@ pub mod shop {
     pub async fn handle_message(context: &Context, chat_id: ChatId) -> anyhow::Result<()> {
         // Handle normal messages to the bot (resend the store itself).
         chat::send_text_msg(context, chat_id, appstore_message().to_string()).await?;
-        let mut webxdc_msg = Message::new(Viewtype::Webxdc);
-        webxdc_msg.set_file("./appstore-bot.xdc", None);
-        chat::send_msg(context, chat_id, &mut webxdc_msg)
-            .await
-            .unwrap();
-        Ok(())
+        send_webxdc(context, chat_id, "./appstore.xdc").await
     }
 
     pub async fn handle_status_update(
@@ -475,15 +498,15 @@ pub mod shop {
             .set_chat_type(chat_id, super::ChatType::Release)
             .await?;
 
-        let createor_contact = Contact::load_from_db(context, creator).await?;
+        let creator_contact = Contact::load_from_db(context, creator).await?;
 
         state
             .db
             .create_app_info(
                 &AppInfo {
                     name: data.name.clone(),
-                    author_email: Some(createor_contact.get_addr().to_string()),
-                    author_name: createor_contact.get_name().to_string(),
+                    author_email: Some(creator_contact.get_addr().to_string()),
+                    author_name: creator_contact.get_name().to_string(),
                     description: data.description,
                     originator: Thing {
                         tb: "chat".to_string(),

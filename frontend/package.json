@@ -19,6 +19,7 @@
     "@unocss/reset": "^0.51.12",
     "date-fns": "^2.30.0",
     "sass": "^1.62.1",
+    "shelljs": "^0.8.5",
     "solid-js": "^1.6.10",
     "solid-transition-group": "^0.2.2",
     "solidjs-use": "^2.1.0",
