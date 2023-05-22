@@ -2,7 +2,8 @@
 import { render } from 'solid-js/web';
 
 import './index.sass';
-import App from './app';
+import AppStore from './appstore';
+import Review from './review'
 import "virtual:uno.css"
 import '@unocss/reset/tailwind.css'
 
@@ -14,4 +15,11 @@ if (import.meta.env.DEV && !(root instanceof HTMLElement)) {
   );
 }
 
-render(() => <App />, root!);
+console.log(import.meta.env)
+
+if (import.meta.env.VITE_APPSTORE) {
+  render(() => <AppStore />, root!);
+} else {
+  render(() => <Review />, root!);
+}
+

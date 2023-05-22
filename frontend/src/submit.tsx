@@ -1,6 +1,6 @@
 import { Component, ComponentProps, createSignal } from 'solid-js';
-import { PublishRequest } from '../../bindings/PublishRequest'
 import "./submit.module.sass"
+import { PublishRequest } from './bindings/PublishRequest';
 
 const AppSubmitForm: ComponentProps<any> = (props: any) => {
     const [appName, setAppName] = createSignal('');

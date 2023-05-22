@@ -2,18 +2,18 @@ import { Component, ComponentProps, Show, createSignal } from 'solid-js';
 import { For } from "solid-js/web";
 import { Transition } from 'solid-transition-group';
 import { useStorage } from 'solidjs-use';
-import { AppInfo } from '../../bindings/AppInfo';
 import { ReceivedStatusUpdate } from './webxdc';
 import { format } from 'date-fns';
+import { AppInfo } from './bindings/AppInfo';
 
 function create_item(item: AppInfo) {
     const [isExpanded, setIsExpanded] = createSignal(false);
 
     function onAdd() {
-        console.log(item.id);
         window.webxdc.sendUpdate({
             payload: {
                 request_type: 'Dowload',
+                //@ts-ignore
                 data: item.id
             }
         }, "")
@@ -42,7 +42,6 @@ function create_item(item: AppInfo) {
                         <p class="text-gray-600 text-sm"><span class="font-bold"> contact:</span>  {item.author_email}</p>
                         <p class="text-gray-600 text-sm"><span class="font-bold"> source code:</span>  {item.source_code_url}</p>
                         <p class="text-gray-600 text-sm"><span class="font-bold"> id:</span>  {item.id}</p>
-
                     </div>
                 </>
             )}

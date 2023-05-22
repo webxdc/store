@@ -16,6 +16,7 @@ use ts_rs::TS;
 
 #[derive(TS)]
 #[ts(export)]
+#[ts(export_to = "frontend/src/bindings/")]
 #[derive(Deserialize, Serialize, Clone, Debug)]
 pub struct AppInfo {
     pub name: String,                    // manifest
@@ -24,9 +25,10 @@ pub struct AppInfo {
     pub source_code_url: Option<String>, // manifest
     pub image: Option<String>,           // webxdc
     pub description: String,             // submit
+    #[ts(skip)]
     pub xdc_blob_dir: Option<PathBuf>,   // bot
     pub version: Option<String>,         // manifest
-    #[serde(skip)]
+    #[ts(skip)]
     #[serde(default = "default_thing")]
     pub originator: RecordId, // bot
     pub active: bool,                    // bot
@@ -274,6 +276,8 @@ pub mod shop {
 
     #[derive(TS, Deserialize)]
     #[ts(export)]
+    #[ts(export_to = "frontend/src/bindings/")]
+
     enum RequestType {
         Update,
         Dowload,
@@ -282,6 +286,8 @@ pub mod shop {
 
     #[derive(TS, Deserialize)]
     #[ts(export)]
+    #[ts(export_to = "frontend/src/bindings/")]
+
     pub struct PublishRequest {
         pub name: String,
         pub description: String,
@@ -294,6 +300,7 @@ pub mod shop {
 
     #[derive(TS, Deserialize)]
     #[ts(export)]
+    #[ts(export_to = "frontend/src/bindings/")]
     #[allow(unused)]
     struct StoreRequestWithData<T> {
         request_type: RequestType,
