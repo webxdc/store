@@ -15,16 +15,16 @@ use std::{env, sync::Arc};
 
 use crate::{
     db::DB,
-    request_handlers::{release, shop, AppInfoId, ChatType},
+    request_handlers::{genisis, release, shop, AppInfoId, ChatType},
     utils::configure_from_env,
 };
 
 #[derive(Serialize, Deserialize)]
 pub struct BotConfig {
-    invite_qr: String,
-    tester_group: ChatId,
-    reviewee_group: ChatId,
-    genesis_group: ChatId,
+    pub invite_qr: String,
+    pub tester_group: ChatId,
+    pub reviewee_group: ChatId,
+    pub genesis_group: ChatId,
 }
 
 /// Github Bot state
@@ -202,6 +202,7 @@ impl Bot {
                         }
                     }
                     ChatType::Shop => shop::handle_message(context, chat_id).await?,
+                    ChatType::Genesis => genisis::handle_message(context, state, msg_id).await?,
                     ChatType::ReviewPool | ChatType::TesterPool => (),
                 }
             }
@@ -237,8 +238,7 @@ impl Bot {
             ChatType::Shop => {
                 shop::handle_status_update(context, state, chat_id, msg_id, update).await?
             }
-            ChatType::ReviewPool => todo!(),
-            ChatType::TesterPool => todo!(),
+            ChatType::ReviewPool | ChatType::TesterPool | ChatType::Genesis => (),
         }
 
         Ok(())

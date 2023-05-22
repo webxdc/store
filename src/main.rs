@@ -1,4 +1,5 @@
 mod bot;
+mod cli;
 mod db;
 mod messages;
 mod request_handlers;

@@ -1,6 +1,7 @@
 //! Utility functions
 
 use anyhow::{bail, Context as _, Result};
+use async_zip::tokio::read::fs::ZipFileReader;
 use deltachat::{
     chat::{self, ChatId},
     config::Config,
@@ -52,4 +53,18 @@ pub async fn get_contact_name(context: &Context, contact_id: ContactId) -> Strin
         .await
         .map(|contact| contact.get_name_n_addr())
         .unwrap_or_else(|_| contact_id.to_string())
+}
+
+pub async fn read_string(reader: &ZipFileReader, index: usize) -> anyhow::Result<String> {
+    let mut entry = reader.reader_with_entry(index).await?;
+    let mut data = String::new();
+    entry.read_to_string_checked(&mut data).await?;
+    Ok(data)
+}
+
+pub async fn read_vec(reader: &ZipFileReader, index: usize) -> anyhow::Result<Vec<u8>> {
+    let mut entry = reader.reader_with_entry(index).await?;
+    let mut data = Vec::new();
+    entry.read_to_end_checked(&mut data).await?;
+    Ok(data)
 }
