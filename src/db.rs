@@ -44,10 +44,12 @@ impl DB {
     }
 
     pub async fn create_chat(&self, chat: &ReviewChat) -> surrealdb::Result<ReviewChat> {
-        self.db
+        let res = self
+            .db
             .create(("chat", chat.chat_id.to_u32().to_string()))
             .content(chat)
-            .await
+            .await?;
+        Ok(res.unwrap())
     }
 
     pub async fn set_chat_type(
@@ -59,7 +61,8 @@ impl DB {
             .db
             .create(("chattype", chat_id.to_u32().to_string()))
             .content(DBChatType { chat_type })
-            .await?;
+            .await?
+            .unwrap();
         Ok(())
     }
 
@@ -76,7 +79,8 @@ impl DB {
             .db
             .create(("genesis", contact_id.to_u32().to_string()))
             .content(DBContactId { contact_id })
-            .await?;
+            .await?
+            .unwrap();
         Ok(())
     }
 
@@ -93,7 +97,8 @@ impl DB {
             .db
             .create(("publisher", contact_id.to_u32().to_string()))
             .content(DBContactId { contact_id })
-            .await?;
+            .await?
+            .unwrap();
         Ok(())
     }
 
@@ -119,7 +124,8 @@ impl DB {
             .db
             .create(("testers", contact_id.to_u32().to_string()))
             .content(DBContactId { contact_id })
-            .await?;
+            .await?
+            .unwrap();
         Ok(())
     }
 
@@ -142,12 +148,14 @@ impl DB {
     }
 
     pub async fn set_config(&self, config: &BotConfig) -> surrealdb::Result<BotConfig> {
-        let _t: Option<BotConfig> = self.db.delete(("config", "config")).await.ok();
-        self.db.create(("config", "config")).content(config).await
+        let _t: Option<BotConfig> = self.db.delete(("config", "config")).await.ok().flatten();
+        let res = self.db.create(("config", "config")).content(config).await?;
+        Ok(res.unwrap())
     }
 
     pub async fn get_config(&self) -> surrealdb::Result<BotConfig> {
-        self.db.select(("config", "config")).await
+        let res = self.db.select(("config", "config")).await?;
+        Ok(res.unwrap())
     }
 
     pub async fn create_app_info(
@@ -155,7 +163,8 @@ impl DB {
         app_info: &AppInfo,
         resource_id: Thing,
     ) -> surrealdb::Result<AppInfo> {
-        self.db.create(resource_id).content(app_info).await
+        let res = self.db.create(resource_id).content(app_info).await?;
+        Ok(res.unwrap())
     }
 
     pub async fn update_app_info(
@@ -163,18 +172,22 @@ impl DB {
         app_info: &AppInfo,
         id: &Thing,
     ) -> surrealdb::Result<AppInfo> {
-        self.db.update(id.clone()).content(app_info).await
+        let res = self.db.update(id.clone()).content(app_info).await?;
+        Ok(res.unwrap())
     }
 
     pub async fn publish_app(&self, id: &Thing) -> surrealdb::Result<AppInfo> {
-        self.db
+        let res = self
+            .db
             .update(id.clone())
             .merge(json!({"active": true}))
-            .await
+            .await?;
+        Ok(res.unwrap())
     }
 
     pub async fn get_app_info(&self, resource_id: &Thing) -> surrealdb::Result<AppInfo> {
-        self.db.select(resource_id.clone()).await
+        let res = self.db.select(resource_id.clone()).await?;
+        Ok(res.unwrap())
     }
 
     pub async fn get_active_app_infos(&self) -> surrealdb::Result<Vec<AppInfoId>> {
