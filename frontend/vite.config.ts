@@ -1,6 +1,7 @@
 import { defineConfig, loadEnv } from 'vite';
 import solidPlugin from 'vite-plugin-solid';
 import unocssPlugin from "unocss/vite"
+//@ts-ignore
 import shell from "shelljs"
 
 export default defineConfig(({ mode }) => {
