@@ -25,13 +25,14 @@ pub struct AppInfo {
     pub source_code_url: Option<String>, // manifest
     pub image: Option<String>,           // webxdc
     pub description: String,             // submit
-    #[ts(skip)]
+    #[serde(skip)]
     pub xdc_blob_dir: Option<PathBuf>, // bot
     pub version: Option<String>,         // manifest
-    #[ts(skip)]
+    #[serde(skip)]
     #[serde(default = "default_thing")]
     pub originator: RecordId, // bot
-    pub active: bool,                    // bot
+    #[serde(skip)]
+    pub active: bool,  // bot
 }
 
 #[derive(Deserialize, Serialize, Clone, Debug)]
@@ -156,10 +157,28 @@ pub enum ChatType {
     Shop,
 }
 
+/// A generic webxdc update
 #[derive(Deserialize)]
 pub struct WebxdcStatusUpdate<T> {
     payload: T,
 }
+
+#[derive(Deserialize)]
+struct Request<T> {
+    request_type: T,
+}
+
+#[derive(TS, Deserialize)]
+#[ts(export)]
+#[ts(export_to = "frontend/src/bindings/")]
+#[allow(unused)]
+struct RequestWithData<T, R> {
+    request_type: T,
+    data: R,
+}
+
+type FrontendRequest<T> = WebxdcStatusUpdate<Request<T>>;
+type FrontendRequestWithData<T, R> = WebxdcStatusUpdate<RequestWithData<T, R>>;
 
 pub mod release {
     use std::sync::Arc;
@@ -171,10 +190,13 @@ pub mod release {
     use deltachat::{
         chat::{self, ChatId},
         context::Context,
-        message::Message,
+        message::{Message, MsgId},
     };
     use log::info;
+    use serde::Deserialize;
     use serde_json::json;
+
+    use super::FrontendRequest;
 
     pub async fn handle_message(
         context: &Context,
@@ -278,14 +300,46 @@ pub mod release {
 
         Ok(())
     }
+
+    #[derive(Deserialize)]
+    enum RequestType {
+        UpdateInfo,
+        UpdateReviewStatus,
+    }
+
+    pub async fn handle_status_update(
+        _context: &Context,
+        state: Arc<State>,
+        chat_id: ChatId,
+        _msg_id: MsgId,
+        update: String,
+    ) -> anyhow::Result<()> {
+        if let Ok(req) = serde_json::from_str::<FrontendRequest<RequestType>>(&update) {
+            match req.payload.request_type {
+                RequestType::UpdateInfo => {
+                    let review_chat = state
+                        .db
+                        .get_review_chat(chat_id)
+                        .await?
+                        .ok_or(anyhow::anyhow!("No review chat found for chat {chat_id}"))?;
+
+                    let _app_info = review_chat.get_app_info(&state.db).await?;
+                }
+                RequestType::UpdateReviewStatus => todo!(),
+            }
+        } else {
+            info!("Ignoring update: {}", &update[..10])
+        }
+        Ok(())
+    }
 }
 
 pub mod shop {
-    use super::{AppInfo, ReviewChat};
+    use super::{AppInfo, FrontendRequest, ReviewChat};
     use crate::{
         bot::State,
         messages::{appstore_message, creat_review_group_init_message},
-        request_handlers::WebxdcStatusUpdate,
+        request_handlers::FrontendRequestWithData,
         utils::{get_contact_name, get_oon_peer, send_webxdc},
     };
     use deltachat::{
@@ -321,20 +375,6 @@ pub mod shop {
         pub description: String,
     }
 
-    #[derive(Deserialize)]
-    struct StoreRequest {
-        request_type: RequestType,
-    }
-
-    #[derive(TS, Deserialize)]
-    #[ts(export)]
-    #[ts(export_to = "frontend/src/bindings/")]
-    #[allow(unused)]
-    struct StoreRequestWithData<T> {
-        request_type: RequestType,
-        data: T,
-    }
-
     pub async fn handle_message(context: &Context, chat_id: ChatId) -> anyhow::Result<()> {
         // Handle normal messages to the bot (resend the store itself).
         chat::send_text_msg(context, chat_id, appstore_message().to_string()).await?;
@@ -348,7 +388,7 @@ pub mod shop {
         msg_id: MsgId,
         update: String,
     ) -> anyhow::Result<()> {
-        if let Ok(req) = serde_json::from_str::<WebxdcStatusUpdate<StoreRequest>>(&update) {
+        if let Ok(req) = serde_json::from_str::<FrontendRequest<RequestType>>(&update) {
             match req.payload.request_type {
                 RequestType::Update => {
                     let apps = state.get_apps().await?;
@@ -366,11 +406,12 @@ pub mod shop {
                 }
                 RequestType::Dowload => {
                     info!("Handling store download");
-                    let data = serde_json::from_str::<
-                        WebxdcStatusUpdate<StoreRequestWithData<String>>,
-                    >(&update)?
-                    .payload
-                    .data;
+                    let data =
+                        serde_json::from_str::<FrontendRequestWithData<RequestType, String>>(
+                            &update,
+                        )?
+                        .payload
+                        .data;
                     let mut parts = data.split(":");
                     let app = state
                         .db
@@ -387,7 +428,7 @@ pub mod shop {
                 RequestType::Publish => {
                     info!("Handling store publish");
                     let data = serde_json::from_str::<
-                        WebxdcStatusUpdate<StoreRequestWithData<PublishRequest>>,
+                        FrontendRequestWithData<RequestType, PublishRequest>,
                     >(&update)?
                     .payload
                     .data;

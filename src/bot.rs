@@ -268,7 +268,7 @@ impl Bot {
 
         match chat_type {
             ChatType::Release => {
-                info!("TODO")
+                release::handle_status_update(context, state, chat_id, msg_id, update).await?
             }
             ChatType::Shop => {
                 shop::handle_status_update(context, state, chat_id, msg_id, update).await?

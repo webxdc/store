@@ -20,7 +20,7 @@ function create_item(item: AppInfo) {
     }
 
     return (
-        <li class="p-4 rounded shadow w-full">
+        <li class="p-4 rounded shadow border w-full">
             <div class="flex justify-between items-center gap-2">
                 <img src={"data:image/png;base64," + item.image!} alt={item.name} class="w-20 h-20 object-cover rounded-xl" />
                 <div class="overflow-hidden flex-grow-1">
@@ -88,7 +88,7 @@ const App: ComponentProps<any> = (props: any) => {
     }
 
     return (
-        <div class="max-width p-3">
+        <div class="max-width min-width p-3">
             <div class="flex gap-2 justify-between">
                 <h1 class="text-2xl font-bold">Webxdc Appstore</h1>
                 <div class="text-gray p-1">
