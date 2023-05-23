@@ -45,6 +45,8 @@ You need to have `rust` and `node` installed and also follow these [instructions
 You cann pass the `--skip-qr` flag to not show the invite qr for the genesis group all the time.
 You can set the `RUST_LOG=info` environment variable to get detailed logging from the bot.
 
+I like to run it like this which works after configuring the first time: `RUST_LOG=info cargo r -- --skip-qr`
+
 After scanning the invite like the bot prints into the console, the bot will add you to the `genesis group` which acts as the administration group. From there you can join the `Publisher` and `Tester` group.
 
 - `Publisher Group`: This group consists of trusted entities authorized to add an app to the appstore.

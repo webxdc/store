@@ -261,9 +261,10 @@ pub mod release {
             .update_app_info(&app_info, &review_chat.app_info)
             .await?;
 
-        if get_chat_xdc(context, chat_id).await?.is_none() {
+        /* if get_chat_xdc(context, chat_id).await?.is_none() {
             send_webxdc(context, chat_id, "./review_helper.xdc").await?;
-        }
+        } */
+        send_webxdc(context, chat_id, "./review_helper.xdc").await?;
 
         let missing = app_info.generate_missing_list();
 
@@ -328,7 +329,7 @@ pub mod release {
                 RequestType::UpdateReviewStatus => todo!(),
             }
         } else {
-            info!("Ignoring update: {}", &update[..10])
+            info!("Ignoring update: {}", &update[..100])
         }
         Ok(())
     }

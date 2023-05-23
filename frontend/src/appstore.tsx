@@ -6,7 +6,7 @@ const App: Component = () => {
   const [showPublish, setPublish] = createSignal(false)
 
   return (
-    <div class="c-grid">
+    <div class="c-grid p-3">
       <Show when={showPublish()} fallback={
         <Shop onopen={() => { setPublish(true) }}></Shop>
       }>

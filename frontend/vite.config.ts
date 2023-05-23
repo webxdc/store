@@ -10,7 +10,8 @@ export default defineConfig(({ mode }) => {
       closeBundle: () => {
         //@ts-ignore
         const env = loadEnv(mode, process.cwd(), '')
-        if (env.VITE_APPSTORE) {
+
+        if (env.VITE_APPSTORE && mode == 'production') {
           shell.exec('./create_xdc.sh appstore')
         } else {
           shell.exec('./create_xdc.sh review_helper')

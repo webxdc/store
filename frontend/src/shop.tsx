@@ -87,7 +87,7 @@ const App: ComponentProps<any> = (props: any) => {
     }
 
     return (
-        <div class="max-width min-width p-3">
+        <div class="max-width min-width">
             <div class="flex gap-2 justify-between">
                 <h1 class="text-2xl font-bold">Webxdc Appstore</h1>
                 <div class="text-gray p-1">
