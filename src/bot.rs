@@ -87,8 +87,10 @@ impl Bot {
             }
         };
 
-        println!("Scan this qr code to join the admin group:");
-        qr2term::print_qr(&config.invite_qr).unwrap();
+        if env::args().find(|arg| arg == "--skip-qr").is_none() {
+            println!("Scan this qr code to join the admin group:");
+            qr2term::print_qr(&config.invite_qr).unwrap();
+        }
 
         Self {
             dc_ctx: context,

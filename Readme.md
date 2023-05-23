@@ -33,16 +33,19 @@ pub struct AppInfo {
 ```
 
 ### Setting Up the Bot
-You need to have rust installed and also follow these [instructions](https://docs.rs/surrealdb/1.0.0-beta.9+20230402/surrealdb/engine/local/index.html) to get the file-db working. This might change in the future.
+### Requirements
+You need to have `rust` and `node` installed and also follow these [instructions](https://docs.rs/surrealdb/1.0.0-beta.9+20230402/surrealdb/engine/local/index.html) to get the file database working.
 
-To get started with the bot, clone this repository and initiate the bot using the following command:
-```
-addr="<email>" mail_pw="<password>" RUST_LOG=info cargo r
-```
 
-**Attention**: you also need to build the frontend by going to the folder, installing all npm packages and executing the build script. At the end you need to run the `./create_xdc.sh` skript which will create the `appstore-bot.xdc` file which will be distributed by the bot.
+### Setup
+1. Go to the `frontend` folder and install the packages using `pnpm i`.
+2. Build the frontend using `pnpm build`.
+3. Start the bot (from the root folder) `addr="<email>" mail_pw="<password>" cargo r`
 
-On activation, the bot will prompt you for an administrator email address. Upon providing this, the bot will establish two groups: the `Publisher Group` and the `Tester Group`.
+You cann pass the `--skip-qr` flag to not show the invite qr for the genesis group all the time.
+You can set the `RUST_LOG=info` environment variable to get detailed logging from the bot.
+
+After scanning the invite like the bot prints into the console, the bot will add you to the `genesis group` which acts as the administration group. From there you can join the `Publisher` and `Tester` group.
 
 - `Publisher Group`: This group consists of trusted entities authorized to add an app to the appstore.
 - `Tester Group`: A collection of testers, possibly from the community, who are capable of testing the apps on their devices.
@@ -55,4 +58,4 @@ The used database is surrealdb. You can run a local serve like this
 ```
 surreal start --log trace --user root file://bot.db
 ```
-and use some client like `Insomnia` to the sql backend `localhost:8000/sql`.
+and use some client like `Insomnia` to query the sql backend `localhost:8000/sql`.
