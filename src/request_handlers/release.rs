@@ -79,8 +79,8 @@ pub async fn handle_webxdc(
         .await?;
 
     /* if get_chat_xdc(context, chat_id).await?.is_none() {
-            send_webxdc(context, chat_id, "./review_helper.xdc").await?;
-        } */
+        send_webxdc(context, chat_id, "./review_helper.xdc").await?;
+    } */
     send_webxdc(context, chat_id, "./review_helper.xdc").await?;
 
     let missing = app_info.generate_missing_list();
