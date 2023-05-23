@@ -1,4 +1,11 @@
 
-- editing in review_helper.xdc
-- proper manifest & img for both xdcs
-- migrate to seaql
+- split review_helper.xdc into
+  - App info preview
+  - Testing preview
+- Create tester _and_ creator chats
+  - Tester chat interaction
+  - Creator chat interaction
+- Fix tester assignment of the bot itself
+- Proper manifest & img for both xdcs
+- Migrate to SEA_QL
+- Set chat type for genesis group

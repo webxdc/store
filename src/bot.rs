@@ -126,7 +126,7 @@ impl Bot {
                 .unwrap(),
             tester_group,
             reviewee_group,
-            genesis_group: genesis_group,
+            genesis_group,
         })
     }
 
@@ -193,18 +193,28 @@ impl Bot {
                     .get_chat_type(chat_id)
                     .await?
                     .expect("Chat should have chat_type");
+
+                let contacts = chat::get_chat_contacts(context, chat_id).await?;
+                let filtered = contacts.into_iter().filter(|ci| !ci.is_special());
+                info!("updating contacts for chat {chat_id}");
                 match chat_type {
                     ChatType::Genesis => {
-                        let contacts = chat::get_chat_contacts(context, chat_id).await?;
-                        state.db.set_genesis_contacts(&contacts).await?;
+                        state
+                            .db
+                            .set_genesis_contacts(&filtered.collect::<Vec<_>>())
+                            .await?;
                     }
                     ChatType::ReviewPool => {
-                        let contacts = chat::get_chat_contacts(context, chat_id).await?;
-                        state.db.set_tester_contacts(&contacts).await?;
+                        state
+                            .db
+                            .set_tester_contacts(&filtered.collect::<Vec<_>>())
+                            .await?;
                     }
                     ChatType::TesterPool => {
-                        let contacts = chat::get_chat_contacts(context, chat_id).await?;
-                        state.db.set_publisher_contacts(&contacts).await?;
+                        state
+                            .db
+                            .set_publisher_contacts(&filtered.collect::<Vec<_>>())
+                            .await?;
                     }
                     ChatType::Release => {}
                     _ => (),

@@ -572,6 +572,7 @@ pub mod genisis {
         context::Context,
         message::{Message, MsgId},
     };
+    use log::info;
 
     use crate::{bot::State, cli::Genesis};
 
@@ -581,10 +582,10 @@ pub mod genisis {
         msg_id: MsgId,
     ) -> anyhow::Result<()> {
         let msg = Message::load_from_db(context, msg_id).await?;
-
         if let Some(text) = msg.get_text() {
             // only react to messages with right keywoard
             if text.starts_with("/") {
+                info!("Handling command to bot");
                 match <Genesis as CommandFactory>::command()
                     .try_get_matches_from(text[1..].split(' '))
                 {
