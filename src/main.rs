@@ -1,5 +1,5 @@
 mod bot;
-mod cli;
+mod bot_commands;
 mod db;
 mod messages;
 mod request_handlers;

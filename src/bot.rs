@@ -247,7 +247,9 @@ impl Bot {
                         }
                     }
                     ChatType::Shop => shop::handle_message(context, chat_id).await?,
-                    ChatType::Genesis => genisis::handle_message(context, state, msg_id).await?,
+                    ChatType::Genesis => {
+                        genisis::handle_message(context, state, chat_id, msg_id).await?
+                    }
                     ChatType::ReviewPool | ChatType::TesterPool => (),
                 }
             }
