@@ -55,7 +55,7 @@ const AppSubmitForm: ComponentProps<any> = (props: any) => {
         <div class="c-grid h-screen">
             <form onSubmit={onSubmit} class="p-4 rounded shadow border min-width max-width">
                 <div class="flex justify-between items-center">
-                    <h2 class="text-2xl mb-2 text-green-500">Submit App</h2>
+                    <h2 class="text-2xl mb-5 text-indigo-500">Submit App</h2>
                     <button class="i-carbon-home" onClick={onClose}></button>
                 </div>
                 <label class="block text-gray-700"> App name </label>
@@ -64,13 +64,12 @@ const AppSubmitForm: ComponentProps<any> = (props: any) => {
                 <label class="block text-gray-700"> Description </label>
                 <Show when={errors().description}><p class="text-red font-normal">{errors().description}</p></Show>
                 <textarea class="mt-1 block w-full mb-2" onInput={(e: any) => setDescription(e.target.value)}></textarea>
-                <div class="flex items-center justify-center gap-2 mb-2">
-                    <input type="checkbox" class="border-green-400" onClick={() => setHasRights(!hasRights())} />
+                <div class="flex items-center gap-2 mb-2">
+                    <input type="checkbox" class="border-indigo-500" onClick={() => setHasRights(!hasRights())} />
                     <label class="block text-gray-700"> I have all the rights to this software </label>
                 </div>
-
                 <Show when={errors().hasRights}><p class="text-red font-normal">{errors().hasRights}</p></Show>
-                <button class="btn w-full">Submit</button>
+                <button class="btn w-full mt-5">Submit</button>
             </form>
         </div>
     );

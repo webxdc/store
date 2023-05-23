@@ -20,22 +20,21 @@ function create_item(item: AppInfo) {
     }
 
     return (
-        <li class="p-4 rounded shadow border w-full">
+        <li class="p-4 pb-1 rounded shadow border w-full">
             <div class="flex justify-between items-center gap-2">
                 <img src={"data:image/png;base64," + item.image!} alt={item.name} class="w-20 h-20 object-cover rounded-xl" />
                 <div class="overflow-hidden flex-grow-1">
                     <h2 class="text-xl font-semibold">{item.name}</h2>
-                    <Transition name="slide-fade">
-                        {!isExpanded() && <p class="text-gray-600 truncate max-width-text">{item.description}</p>}
-                    </Transition>
+                    <p class="text-gray-600 truncate max-width-text">{item.description}</p>
                 </div>
                 <button class="btn justify-self-center" onClick={onAdd}> Add </button>
             </div>
             {isExpanded() && (
                 <>
+
                     <p class="my-2 text-gray-600">{item.description}</p>
                     <hr />
-                    <div>
+                    <div class="my-2">
                         <p class="text-gray-600 text-sm"><span class="font-bold"> author:</span> {item.author_name}</p>
                         <p class="text-gray-600 text-sm"><span class="font-bold"> contact:</span>  {item.author_email}</p>
                         <p class="text-gray-600 text-sm"><span class="font-bold"> source code:</span>  {item.source_code_url}</p>
@@ -43,7 +42,7 @@ function create_item(item: AppInfo) {
                 </>
             )}
             <div class="flex justify-center">
-                <button onClick={() => setIsExpanded(!isExpanded())} class={`text-blue-500 ${isExpanded() ? 'i-carbon-up-to-top' : 'i-carbon-down-to-bottom'}`}>
+                <button onClick={() => setIsExpanded(!isExpanded())} class={`text-indigo-500 ${isExpanded() ? 'i-carbon-up-to-top' : 'i-carbon-down-to-bottom'}`}>
                 </button>
             </div>
         </li>
@@ -96,7 +95,7 @@ const App: ComponentProps<any> = (props: any) => {
                         <div>
                             <button onclick={update} class="flex items-center gap-2">
                                 <span>{format(lastUpdate(), 'cccc H:m')}</span>
-                                <div class="rounded border border-green-500" i-carbon-reset></div>
+                                <div class="rounded border border-indigo-500" i-carbon-reset></div>
                             </button>
                         </div>
                     }>
@@ -105,18 +104,24 @@ const App: ComponentProps<any> = (props: any) => {
                 </div>
             </div>
 
-            <div class="p-4">
+            <div class="p-4 mt-5">
                 <ul class="flex flex-col gap-2 w-full">
-                    <li >
-                        <button onClick={onopen} class="border border-green-400 p-2 rounded w-full">
-                            publish your own app
-                        </button>
+                    <li class="w-full flex justify-center items-center gap-2 mb-3">
+                        <input class="rounded-2xl border-2" />
+                        <div class="bg-gray-200 rounded-1/2 p-2">
+                            <div class="i-carbon-search text-indigo-500" />
+                        </div>
                     </li>
                     <For each={appInfo()}>
                         {
                             item => create_item(item)
                         }
                     </For>
+                    <li class="mt-3">
+                        <button onClick={onopen} class="btn w-full">
+                            Publish your own app
+                        </button>
+                    </li>
                 </ul>
             </div>
         </div>
