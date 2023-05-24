@@ -10,9 +10,12 @@ use bot::Bot;
 use clap::Parser;
 use cli::{BotActions, BotCli};
 use log::info;
+use surrealdb::sql::Id;
+use surrealdb::sql::Thing;
 use tokio::fs;
 use tokio::signal;
 
+use crate::db::DB;
 use crate::request_handlers::AppInfo;
 
 #[tokio::main]
@@ -23,6 +26,7 @@ async fn main() {
     match &cli.action {
         BotActions::Import => {
             info!("importing webxdcs from '/import/");
+            let db = DB::new("bot.db").await;
             let files = std::fs::read_dir("/import/")
                 .unwrap()
                 .filter_map(|e| e.ok())
@@ -44,7 +48,21 @@ async fn main() {
                         let mut new_path = file.parent().unwrap().to_path_buf();
                         new_path.push("/xdcs");
                         new_path.push(file.file_name().unwrap());
-                        fs::rename(file, new_path).await.unwrap()
+                        fs::rename(file, new_path).await.unwrap();
+
+                        app_info.active = true;
+                        app_info.author_name = "appstore bot".to_string();
+                        app_info.author_email = Some("appstorebot@testrun.org".to_string());
+                        app_info.description = "Some description".to_string();
+                        db.create_app_info(
+                            &app_info,
+                            Thing {
+                                tb: "app_data".to_string(),
+                                id: Id::rand(),
+                            },
+                        )
+                        .await
+                        .unwrap();
                     } else {
                         println!(
                             "The app {} is missing some data: {:?}",

@@ -1,9 +1,6 @@
 use std::sync::Arc;
 
-use crate::{
-    bot::State,
-    utils::{get_chat_xdc, send_webxdc},
-};
+use crate::{bot::State, utils::send_webxdc};
 use deltachat::{
     chat::{self, ChatId},
     context::Context,
@@ -11,7 +8,6 @@ use deltachat::{
 };
 use log::info;
 use serde::Deserialize;
-use serde_json::json;
 
 use super::FrontendRequest;
 
@@ -73,7 +69,7 @@ pub async fn handle_webxdc(
     ))?;
 
     app_info.update_from_xdc(file).await?;
-    
+
     state
         .db
         .update_app_info(&app_info, &review_chat.app_info)
@@ -102,7 +98,7 @@ pub async fn handle_webxdc(
         .await?;
     }
 
-    let msg_id = get_chat_xdc(context, chat_id)
+    /* let msg_id = get_chat_xdc(context, chat_id)
         .await?
         .expect("Expecting an webxdc in review chat");
 
@@ -115,7 +111,7 @@ pub async fn handle_webxdc(
             },
             "",
         )
-        .await?;
+        .await?; */
 
     Ok(())
 }
