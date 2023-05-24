@@ -25,15 +25,20 @@ async fn main() {
 
     match &cli.action {
         BotActions::Import => {
-            info!("importing webxdcs from '/import/");
+            info!("importing webxdcs from 'import/");
             let db = DB::new("bot.db").await;
-            let files = std::fs::read_dir("/import/")
+            let files: Vec<_> = std::fs::read_dir("import/")
                 .unwrap()
                 .filter_map(|e| e.ok())
                 .map(|e| e.path())
-                .filter(|e| e.is_file());
+                .filter(|e| e.is_file())
+                .collect();
 
-            for file in files {
+            if files.is_empty() {
+                println!("no xdcs to add in ./import")
+            }
+
+            for file in &files {
                 if file
                     .file_name()
                     .unwrap()
@@ -43,26 +48,29 @@ async fn main() {
                 {
                     let mut app_info = AppInfo::default();
                     app_info.update_from_xdc(file.clone()).await.unwrap();
+                    app_info.active = true;
+                    app_info.author_name = "appstore bot".to_string();
+                    app_info.author_email = Some("appstorebot@testrun.org".to_string());
+                    app_info.description = "Some description".to_string();
+
                     let missing = app_info.generate_missing_list();
                     if missing.is_empty() {
-                        let mut new_path = file.parent().unwrap().to_path_buf();
-                        new_path.push("/xdcs");
+                        let mut new_path = file.parent().unwrap().parent().unwrap().to_path_buf();
+                        new_path.push("xdcs");
                         new_path.push(file.file_name().unwrap());
-                        fs::rename(file, new_path).await.unwrap();
+                        fs::rename(file, &new_path).await.unwrap();
+                        app_info.xdc_blob_dir = Some(new_path);
 
-                        app_info.active = true;
-                        app_info.author_name = "appstore bot".to_string();
-                        app_info.author_email = Some("appstorebot@testrun.org".to_string());
-                        app_info.description = "Some description".to_string();
                         db.create_app_info(
                             &app_info,
                             Thing {
-                                tb: "app_data".to_string(),
+                                tb: "app_info".to_string(),
                                 id: Id::rand(),
                             },
                         )
                         .await
                         .unwrap();
+                        println!("Added {} to apps", app_info.name);
                     } else {
                         println!(
                             "The app {} is missing some data: {:?}",

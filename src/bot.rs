@@ -10,6 +10,7 @@ use deltachat::{
     EventType, Events,
 };
 use log::{debug, error, info, trace, warn};
+use qrcode_generator::QrCodeEcc;
 use serde::{Deserialize, Serialize};
 use std::{env, sync::Arc};
 
@@ -21,6 +22,7 @@ use crate::{
 
 #[derive(Serialize, Deserialize)]
 pub struct BotConfig {
+    pub genesis_qr: String,
     pub invite_qr: String,
     pub tester_group: ChatId,
     pub reviewee_group: ChatId,
@@ -66,7 +68,7 @@ impl Bot {
         }
 
         let db = DB::new("bot.db").await;
-
+        let config = Self::setup(&context).await.unwrap();
         let config = match db.get_config().await {
             Ok(config) => config,
             Err(_) => {
@@ -87,11 +89,6 @@ impl Bot {
             }
         };
 
-        if !env::args().any(|arg| &arg == "--skip-qr") {
-            println!("Scan this qr code to join the admin group:");
-            qr2term::print_qr(&config.invite_qr).unwrap();
-        }
-
         Self {
             dc_ctx: context,
             state: Arc::new(State { db, config }),
@@ -111,13 +108,25 @@ impl Bot {
             chat::create_group_chat(context, ProtectionStatus::Protected, "Appstore: Testers")
                 .await?;
 
+        let genesis_qr = securejoin::get_securejoin_qr(context, Some(genesis_group))
+            .await
+            .unwrap();
+
+        qrcode_generator::to_png_to_file(&genesis_qr, QrCodeEcc::Low, 1024, "genenis_join_qr.png")
+            .unwrap();
+        println!("Generated genisis group join QR-code at ./genenis_join_qr.png");
+
+        let invite_qr = securejoin::get_securejoin_qr(context, None).await.unwrap();
+        qrcode_generator::to_png_to_file(&invite_qr, QrCodeEcc::Low, 1024, "1o1_invite_qr.png")
+            .unwrap();
+        println!("Generated 1:1 invite QR-code at ./1o1_invite_qr.png");
+
         Ok(BotConfig {
-            invite_qr: securejoin::get_securejoin_qr(context, Some(genesis_group))
-                .await
-                .unwrap(),
-            tester_group,
+            genesis_qr,
+            invite_qr,
             reviewee_group,
             genesis_group,
+            tester_group,
         })
     }
 
