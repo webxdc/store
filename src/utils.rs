@@ -24,7 +24,7 @@ pub async fn configure_from_env(ctx: &Context) -> Result<()> {
     Ok(())
 }
 
-pub async fn get_chat_xdc(context: &Context, chat_id: ChatId) -> anyhow::Result<Option<MsgId>> {
+pub async fn _get_chat_xdc(context: &Context, chat_id: ChatId) -> anyhow::Result<Option<MsgId>> {
     let mut msg_ids = chat::get_chat_media(
         context,
         Some(chat_id),

@@ -44,7 +44,7 @@ async fn main() {
                     let mut app_info = AppInfo::default();
                     app_info.update_from_xdc(file.clone()).await.unwrap();
                     let missing = app_info.generate_missing_list();
-                    if missing.len() < 1 {
+                    if missing.is_empty() {
                         let mut new_path = file.parent().unwrap().to_path_buf();
                         new_path.push("/xdcs");
                         new_path.push(file.file_name().unwrap());
