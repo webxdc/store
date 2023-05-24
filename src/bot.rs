@@ -87,7 +87,7 @@ impl Bot {
             }
         };
 
-        if env::args().find(|arg| arg == "--skip-qr").is_none() {
+        if !env::args().any(|arg| &arg == "--skip-qr") {
             println!("Scan this qr code to join the admin group:");
             qr2term::print_qr(&config.invite_qr).unwrap();
         }
@@ -99,26 +99,17 @@ impl Bot {
     }
 
     async fn setup(context: &Context) -> Result<BotConfig> {
-        let genesis_group = chat::create_group_chat(
-            context,
-            ProtectionStatus::Protected,
-            &format!("Appstore: Genesis"),
-        )
-        .await?;
+        let genesis_group =
+            chat::create_group_chat(context, ProtectionStatus::Protected, "Appstore: Genesis")
+                .await?;
 
-        let reviewee_group = chat::create_group_chat(
-            context,
-            ProtectionStatus::Protected,
-            &format!("Appstore: Publishers"),
-        )
-        .await?;
+        let reviewee_group =
+            chat::create_group_chat(context, ProtectionStatus::Protected, "Appstore: Publishers")
+                .await?;
 
-        let tester_group = chat::create_group_chat(
-            context,
-            ProtectionStatus::Protected,
-            &format!("Appstore: Testers"),
-        )
-        .await?;
+        let tester_group =
+            chat::create_group_chat(context, ProtectionStatus::Protected, "Appstore: Testers")
+                .await?;
 
         Ok(BotConfig {
             invite_qr: securejoin::get_securejoin_qr(context, Some(genesis_group))

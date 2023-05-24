@@ -19,10 +19,9 @@ pub async fn handle_message(
     let msg = Message::load_from_db(context, msg_id).await?;
     if let Some(text) = msg.get_text() {
         // only react to messages with right keywoard
-        if text.starts_with("/") {
+        if let Some(text) = text.strip_prefix('/') {
             info!("Handling command to bot");
-            match <Genesis as CommandFactory>::command().try_get_matches_from(text[1..].split(' '))
-            {
+            match <Genesis as CommandFactory>::command().try_get_matches_from(text.split(' ')) {
                 Ok(mut matches) => {
                     let res = <Genesis as FromArgMatches>::from_arg_matches_mut(&mut matches)?;
 
@@ -31,8 +30,12 @@ pub async fn handle_message(
                             let contact_id = msg.get_from_id();
 
                             let chat_id = match name {
-                                crate::bot_commands::BotGroup::Genesis => state.config.genesis_group,
-                                crate::bot_commands::BotGroup::Reviewee => state.config.reviewee_group,
+                                crate::bot_commands::BotGroup::Genesis => {
+                                    state.config.genesis_group
+                                }
+                                crate::bot_commands::BotGroup::Reviewee => {
+                                    state.config.reviewee_group
+                                }
                                 crate::bot_commands::BotGroup::Tester => state.config.tester_group,
                             };
 
@@ -41,7 +44,7 @@ pub async fn handle_message(
                     }
                 }
                 Err(e) => {
-                    chat::send_text_msg(context, chat_id, format!("{e}").into()).await?;
+                    chat::send_text_msg(context, chat_id, format!("{e}")).await?;
                 }
             };
         }

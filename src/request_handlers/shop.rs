@@ -70,12 +70,10 @@ pub async fn handle_status_update(
             RequestType::Dowload => {
                 info!("Handling store download");
                 let data =
-                    serde_json::from_str::<FrontendRequestWithData<RequestType, String>>(
-                        &update,
-                    )?
-                    .payload
-                    .data;
-                let mut parts = data.split(":");
+                    serde_json::from_str::<FrontendRequestWithData<RequestType, String>>(&update)?
+                        .payload
+                        .data;
+                let mut parts = data.split(':');
                 let app = state
                     .db
                     .get_app_info(&Thing {
@@ -85,7 +83,7 @@ pub async fn handle_status_update(
                     .await?;
 
                 let mut msg = Message::new(Viewtype::Webxdc);
-                msg.set_file(&app.xdc_blob_dir.unwrap().to_str().unwrap(), None);
+                msg.set_file(app.xdc_blob_dir.unwrap().to_str().unwrap(), None);
                 chat::send_msg(context, chat_id, &mut msg).await.unwrap();
             }
             RequestType::Publish => {
@@ -141,7 +139,7 @@ pub async fn handle_publish(
 
     let testers = state.db.get_testers().await?;
 
-    if testers.len() < 1 {
+    if testers.is_empty() {
         return Err(HandlePublishError::NotEnoughTesters);
     }
 
@@ -170,10 +168,7 @@ pub async fn handle_publish(
     chat::send_text_msg(
         context,
         chat_id,
-        creat_review_group_init_message(
-            &tester_names,
-            &get_contact_name(context, publisher).await,
-        ),
+        creat_review_group_init_message(&tester_names, &get_contact_name(context, publisher).await),
     )
     .await?;
 
