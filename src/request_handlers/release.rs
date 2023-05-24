@@ -73,6 +73,7 @@ pub async fn handle_webxdc(
     ))?;
 
     app_info.update_from_xdc(file).await?;
+    
     state
         .db
         .update_app_info(&app_info, &review_chat.app_info)

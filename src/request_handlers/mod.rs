@@ -47,7 +47,7 @@ pub struct AppInfoId {
 }
 
 impl AppInfo {
-    async fn update_from_xdc(&mut self, file: PathBuf) -> anyhow::Result<()> {
+    pub async fn update_from_xdc(&mut self, file: PathBuf) -> anyhow::Result<()> {
         let reader = ZipFileReader::new(&file).await.unwrap();
         self.xdc_blob_dir = Some(file);
         let entries = reader.file().entries();
@@ -85,7 +85,7 @@ impl AppInfo {
         Ok(())
     }
 
-    fn generate_missing_list(&self) -> Vec<String> {
+    pub fn generate_missing_list(&self) -> Vec<String> {
         let mut missing = vec![];
         if self.name.is_empty() {
             missing.push("name".to_string());
