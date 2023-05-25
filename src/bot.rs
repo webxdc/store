@@ -68,13 +68,16 @@ impl Bot {
         }
 
         let db = DB::new("bot.db").await;
-        let config = Self::setup(&context).await.unwrap();
         let config = match db.get_config().await {
             Ok(config) => config,
             Err(_) => {
                 info!("No configuration found, start configuring...");
                 let config = Self::setup(&context).await.unwrap();
+
+                // save config
                 db.set_config(&config).await.unwrap();
+
+                // set chat types
                 db.set_chat_type(config.genesis_group, ChatType::Genesis)
                     .await
                     .unwrap();
@@ -84,6 +87,25 @@ impl Bot {
                 db.set_chat_type(config.tester_group, ChatType::TesterPool)
                     .await
                     .unwrap();
+
+                // save qr codes to disk
+                qrcode_generator::to_png_to_file(
+                    &config.genesis_qr,
+                    QrCodeEcc::Low,
+                    1024,
+                    "genenis_join_qr.png",
+                )
+                .unwrap();
+                println!("Generated genisis group join QR-code at ./genenis_join_qr.png");
+
+                qrcode_generator::to_png_to_file(
+                    &config.invite_qr,
+                    QrCodeEcc::Low,
+                    1024,
+                    "1o1_invite_qr.png",
+                )
+                .unwrap();
+                println!("Generated 1:1 invite QR-code at ./1o1_invite_qr.png");
 
                 config
             }
@@ -112,14 +134,7 @@ impl Bot {
             .await
             .unwrap();
 
-        qrcode_generator::to_png_to_file(&genesis_qr, QrCodeEcc::Low, 1024, "genenis_join_qr.png")
-            .unwrap();
-        println!("Generated genisis group join QR-code at ./genenis_join_qr.png");
-
-        let invite_qr = securejoin::get_securejoin_qr(context, None).await.unwrap();
-        qrcode_generator::to_png_to_file(&invite_qr, QrCodeEcc::Low, 1024, "1o1_invite_qr.png")
-            .unwrap();
-        println!("Generated 1:1 invite QR-code at ./1o1_invite_qr.png");
+        let invite_qr = securejoin::get_securejoin_qr(&context, None).await.unwrap();
 
         Ok(BotConfig {
             genesis_qr,
