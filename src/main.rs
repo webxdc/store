@@ -1,3 +1,4 @@
+#![warn(clippy::all, clippy::indexing_slicing)]
 mod bot;
 mod bot_commands;
 mod cli;
