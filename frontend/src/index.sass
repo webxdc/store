@@ -23,6 +23,13 @@ input:disabled
 label
   @apply font-bold
 
+.loading-spinner
+  animation: rotate 1.5s linear infinite
+
+@keyframes rotate
+  to
+    transform: rotate(-360deg)
+
 .slide-fade-enter-active,
 .slide-fade-exit-active
   transition: all 0.3s ease

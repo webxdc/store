@@ -1,6 +1,5 @@
-import { Component, ComponentProps, Show, createSignal } from 'solid-js';
+import { ComponentProps, Show, createSignal, onMount } from 'solid-js';
 import { For } from "solid-js/web";
-import { Transition } from 'solid-transition-group';
 import { useStorage } from 'solidjs-use';
 import { ReceivedStatusUpdate } from './webxdc';
 import { format } from 'date-fns';
@@ -8,8 +7,10 @@ import { AppInfo } from './bindings/AppInfo';
 
 function create_item(item: AppInfo) {
     const [isExpanded, setIsExpanded] = createSignal(false);
+    const [isInstalling, setInstalling] = createSignal(false);
 
     function onAdd() {
+        setInstalling(true)
         window.webxdc.sendUpdate({
             payload: {
                 request_type: 'Dowload',
@@ -27,25 +28,31 @@ function create_item(item: AppInfo) {
                     <h2 class="text-xl font-semibold">{item.name}</h2>
                     <p class="text-gray-600 truncate max-width-text">{item.description}</p>
                 </div>
-                <button class="btn justify-self-center" onClick={onAdd}> Add </button>
+                <Show when={!isInstalling()} fallback={
+                    <p class="unimportant">Downloading..</p>
+                }>
+                    <button class="btn justify-self-center" onClick={onAdd}> Add </button>
+                </Show>
             </div>
-            {isExpanded() && (
-                <>
+            {
+                isExpanded() && (
+                    <>
 
-                    <p class="my-2 text-gray-600">{item.description}</p>
-                    <hr />
-                    <div class="my-2">
-                        <p class="text-gray-600 text-sm"><span class="font-bold"> author:</span> {item.author_name}</p>
-                        <p class="text-gray-600 text-sm"><span class="font-bold"> contact:</span>  {item.author_email}</p>
-                        <p class="text-gray-600 text-sm"><span class="font-bold"> source code:</span>  {item.source_code_url}</p>
-                    </div>
-                </>
-            )}
+                        <p class="my-2 text-gray-600">{item.description}</p>
+                        <hr />
+                        <div class="my-2">
+                            <p class="text-gray-600 text-sm"><span class="font-bold"> author:</span> {item.author_name}</p>
+                            <p class="text-gray-600 text-sm"><span class="font-bold"> contact:</span>  {item.author_email}</p>
+                            <p class="text-gray-600 text-sm"><span class="font-bold"> source code:</span>  {item.source_code_url}</p>
+                        </div>
+                    </>
+                )
+            }
             <div class="flex justify-center">
                 <button onClick={() => setIsExpanded(!isExpanded())} class={`text-indigo-500 ${isExpanded() ? 'i-carbon-up-to-top' : 'i-carbon-down-to-bottom'}`}>
                 </button>
             </div>
-        </li>
+        </li >
     )
 }
 
@@ -82,6 +89,8 @@ const App: ComponentProps<any> = (props: any) => {
         }, "")
     }
 
+    onMount(update)
+
     function onopen() {
         props.onopen()
     }
@@ -90,17 +99,15 @@ const App: ComponentProps<any> = (props: any) => {
         <div class="max-width min-width">
             <div class="flex gap-2 justify-between">
                 <h1 class="text-2xl font-bold">Webxdc Appstore</h1>
-                <div class="text-gray p-1">
+                <div class="unimportant p-1 flex items-center gap-2">
                     <Show when={isUpdating()} fallback={
-                        <div>
-                            <button onclick={update} class="flex items-center gap-2">
-                                <span>{format(lastUpdate(), 'cccc H:m')}</span>
-                                <div class="rounded border border-indigo-500" i-carbon-reset></div>
-                            </button>
-                        </div>
+                        <button onclick={update}>
+                            <span>{format(lastUpdate(), 'cccc H:m')}</span>
+                        </button>
                     }>
-                        updating...
+                        Updating..
                     </Show>
+                    <div class="rounded border border-indigo-500" classList={{ "loading-spinner": isUpdating() }} i-carbon-reset></div>
                 </div>
             </div>
 
@@ -108,9 +115,9 @@ const App: ComponentProps<any> = (props: any) => {
                 <ul class="flex flex-col gap-2 w-full">
                     <li class="w-full flex justify-center items-center gap-2 mb-3">
                         <input class="rounded-2xl border-2" />
-                        <div class="bg-gray-200 rounded-1/2 p-2">
+                        <button class="btn rounded-1/2 p-2">
                             <div class="i-carbon-search text-indigo-500" />
-                        </div>
+                        </button>
                     </li>
                     <For each={appInfo()}>
                         {
@@ -124,7 +131,7 @@ const App: ComponentProps<any> = (props: any) => {
                     </li>
                 </ul>
             </div>
-        </div>
+        </div >
     );
 };
 
