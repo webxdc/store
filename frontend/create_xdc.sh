@@ -15,7 +15,14 @@ esac
 
 rm "$PACKAGE_NAME.xdc" 2> /dev/null
 cd dist
-zip -9 --recurse-paths "$PACKAGE_NAME.xdc" *
+if [[ $VITE_APPSTORE ]]; then
+  cp ../store_zip_add/* .
+  zip -9 --recurse-paths "$PACKAGE_NAME.xdc" * 
+else
+  cp ../review_zip_add/* .
+  zip -9 --recurse-paths "$PACKAGE_NAME.xdc" * 
+fi
+
 
 echo "success, archive contents:"
 unzip -l "$PACKAGE_NAME.xdc"
