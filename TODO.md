@@ -5,11 +5,7 @@
 - Create tester _and_ creator chats
   - Tester chat interaction
   - Creator chat interaction
-- Fix tester assignment of the bot itself
-- Proper manifest & img for both xdcs
 - Migrate to SEA_QL
-- Set chat type for genesis group
-
 
 ## Make happy path run:
 1. [x] bot admin configures the bot with QRCode

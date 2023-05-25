@@ -85,7 +85,7 @@ impl DB {
     }
 
     pub async fn set_genesis_contacts(&self, contacts: &[ContactId]) -> surrealdb::Result<()> {
-        let _t: Vec<()> = self.db.delete("genesis").await?;
+        let _t: Vec<DBContactId> = self.db.delete("genesis").await?;
         for contact_id in contacts {
             self.add_contact_to_genesis(*contact_id).await?;
         }
@@ -103,7 +103,7 @@ impl DB {
     }
 
     pub async fn set_publisher_contacts(&self, contacts: &[ContactId]) -> surrealdb::Result<()> {
-        let _t: Vec<()> = self.db.delete("publisher").await?;
+        let _t: Vec<DBContactId> = self.db.delete("publisher").await?;
         for contact_id in contacts {
             self.create_publisher(*contact_id).await?;
         }
@@ -130,7 +130,7 @@ impl DB {
     }
 
     pub async fn set_tester_contacts(&self, contacts: &[ContactId]) -> surrealdb::Result<()> {
-        let _t: Vec<()> = self.db.delete("testers").await?;
+        let _t: Vec<DBContactId> = self.db.delete("testers").await?;
         for contact_id in contacts {
             self.create_tester(*contact_id).await?;
         }
