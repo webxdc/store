@@ -116,7 +116,7 @@ impl DB {
             .query("SELECT contact_id FROM publisher LIMIT 1")
             .await?;
         let contact_id: Vec<ContactId> = result.take((0, "contact_id")).unwrap();
-        Ok(contact_id.get(0).map(|a| *a))
+        Ok(contact_id.get(0).copied())
     }
 
     pub async fn create_tester(&self, contact_id: ContactId) -> surrealdb::Result<()> {

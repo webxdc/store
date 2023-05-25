@@ -142,7 +142,7 @@ impl Bot {
             .await
             .unwrap();
 
-        let invite_qr = securejoin::get_securejoin_qr(&context, None).await.unwrap();
+        let invite_qr = securejoin::get_securejoin_qr(context, None).await.unwrap();
 
         Ok(BotConfig {
             genesis_qr,
