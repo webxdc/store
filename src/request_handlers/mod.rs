@@ -29,14 +29,12 @@ pub struct AppInfo {
     pub source_code_url: Option<String>, // manifest
     pub image: Option<String>,           // webxdc
     pub description: String,             // submit
-    #[serde(skip)]
-    pub xdc_blob_dir: Option<PathBuf>, // bot
+    pub xdc_blob_dir: Option<PathBuf>,   // bot
     pub version: Option<String>,         // manifest
-    #[serde(skip)]
     #[serde(default = "default_thing")]
+    #[ts(skip)]
     pub originator: RecordId, // bot
-    #[serde(skip)]
-    pub active: bool,  // bot
+    pub active: bool,                    // bot
 }
 
 #[derive(Deserialize, Serialize, Clone, Debug)]

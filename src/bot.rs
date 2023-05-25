@@ -16,8 +16,9 @@ use std::{env, sync::Arc};
 
 use crate::{
     db::DB,
+    messages::appstore_message,
     request_handlers::{genisis, release, shop, AppInfoId, ChatType},
-    utils::configure_from_env,
+    utils::{configure_from_env, send_webxdc},
 };
 
 #[derive(Serialize, Deserialize)]
@@ -75,9 +76,9 @@ impl Bot {
             .to_string();
         let db = DB::new(&db_path).await;
 
-        let config = match db.get_config().await {
-            Ok(config) => config,
-            Err(_) => {
+        let config = match db.get_config().await.unwrap() {
+            Some(config) => config,
+            None => {
                 info!("No configuration found, start configuring...");
                 let config = Self::setup(&context).await.unwrap();
 
@@ -229,6 +230,8 @@ impl Bot {
                 None => {
                     info!("Chat {chat_id} is not in the database, adding it as 1:1 chat");
                     state.db.set_chat_type(chat_id, ChatType::Shop).await?;
+                    chat::send_text_msg(context, chat_id, appstore_message().to_string()).await?;
+                    send_webxdc(context, chat_id, "./appstore.xdc").await?;
                 }
             },
             other => {

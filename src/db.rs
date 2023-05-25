@@ -153,9 +153,9 @@ impl DB {
         Ok(res.unwrap())
     }
 
-    pub async fn get_config(&self) -> surrealdb::Result<BotConfig> {
+    pub async fn get_config(&self) -> surrealdb::Result<Option<BotConfig>> {
         let res = self.db.select(("config", "config")).await?;
-        Ok(res.unwrap())
+        Ok(res)
     }
 
     pub async fn create_app_info(

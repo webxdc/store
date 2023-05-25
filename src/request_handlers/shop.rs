@@ -69,19 +69,13 @@ pub async fn handle_status_update(
             }
             RequestType::Dowload => {
                 info!("Handling store download");
-                let data =
-                    serde_json::from_str::<FrontendRequestWithData<RequestType, String>>(&update)?
+                let resource =
+                    serde_json::from_str::<FrontendRequestWithData<RequestType, Thing>>(&update)
+                        .unwrap()
                         .payload
                         .data;
-                let mut parts = data.split(':');
-                let app = state
-                    .db
-                    .get_app_info(&Thing {
-                        tb: parts.next().unwrap().into(),
-                        id: parts.next().unwrap().into(),
-                    })
-                    .await?;
 
+                let app = state.db.get_app_info(&resource).await?;
                 let mut msg = Message::new(Viewtype::Webxdc);
                 msg.set_file(app.xdc_blob_dir.unwrap().to_str().unwrap(), None);
                 chat::send_msg(context, chat_id, &mut msg).await.unwrap();

@@ -14,6 +14,6 @@
 ## Make happy path run:
 1. [x] bot admin configures the bot with QRCode
 2. [x] bot admin uses the bot's CLI to add some apps to the bot's App Store
-3. bot admin uses the bot's CLI to get the 1:1 contact verification QR of the bot
-4. bot admin share bot's verification-QR with users
-5. users scan the bot's QR, the bot replies with the App Store users open the app store and see the list of apps, click on download button, get the app in the chat, the download button changes to "downloading.." and "app is in chat" when the app is sent
+3. [x] bot admin uses the bot's CLI to get the 1:1 contact verification QR of the bot
+4. [x] bot admin share bot's verification-QR with users
+5. [x] users scan the bot's QR, the bot replies with the App Store users open the app store and see the list of apps, click on download button, get the app in the chat, the download button changes to "downloading.." and "app is in chat" when the app is sent
