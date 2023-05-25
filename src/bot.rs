@@ -67,8 +67,14 @@ impl Bot {
             info!("configuration done");
         }
 
-        let db = DB::new("bot.db").await;
-        let config = Self::setup(&context).await.unwrap();
+        let db_path = env::current_dir()
+            .unwrap()
+            .join("bot.db")
+            .to_str()
+            .unwrap()
+            .to_string();
+        let db = DB::new(&db_path).await;
+
         let config = match db.get_config().await {
             Ok(config) => config,
             Err(_) => {
@@ -176,50 +182,39 @@ impl Bot {
 
                 Self::handle_dc_webxdc_update(context, state, msg_id, update_string).await?
             }
-            EventType::SecurejoinInviterProgress {
-                contact_id,
-                progress,
-            } => {
-                if progress == 1000 {
-                    info!("Adding contact to genesis group");
-                    let chat_id = state.config.genesis_group;
-                    state.db.add_contact_to_genesis(contact_id).await?;
-                    chat::send_text_msg(context, chat_id, "Welcome to the genesis group! \n You can type `/help` to get a list of available commands.".into()).await?;
+            EventType::ChatModified(chat_id) => match state.db.get_chat_type(chat_id).await? {
+                Some(chat_type) => {
+                    let contacts = chat::get_chat_contacts(context, chat_id).await?;
+                    let filtered = contacts.into_iter().filter(|ci| !ci.is_special());
+                    info!("updating contacts for chat {chat_id}");
+                    match chat_type {
+                        ChatType::Genesis => {
+                            state
+                                .db
+                                .set_genesis_contacts(&filtered.collect::<Vec<_>>())
+                                .await?;
+                        }
+                        ChatType::ReviewPool => {
+                            state
+                                .db
+                                .set_tester_contacts(&filtered.collect::<Vec<_>>())
+                                .await?;
+                        }
+                        ChatType::TesterPool => {
+                            state
+                                .db
+                                .set_publisher_contacts(&filtered.collect::<Vec<_>>())
+                                .await?;
+                        }
+                        ChatType::Release => {}
+                        _ => (),
+                    };
                 }
-            }
-            EventType::ChatModified(chat_id) => {
-                let chat_type = state
-                    .db
-                    .get_chat_type(chat_id)
-                    .await?
-                    .expect("Chat should have chat_type");
-
-                let contacts = chat::get_chat_contacts(context, chat_id).await?;
-                let filtered = contacts.into_iter().filter(|ci| !ci.is_special());
-                info!("updating contacts for chat {chat_id}");
-                match chat_type {
-                    ChatType::Genesis => {
-                        state
-                            .db
-                            .set_genesis_contacts(&filtered.collect::<Vec<_>>())
-                            .await?;
-                    }
-                    ChatType::ReviewPool => {
-                        state
-                            .db
-                            .set_tester_contacts(&filtered.collect::<Vec<_>>())
-                            .await?;
-                    }
-                    ChatType::TesterPool => {
-                        state
-                            .db
-                            .set_publisher_contacts(&filtered.collect::<Vec<_>>())
-                            .await?;
-                    }
-                    ChatType::Release => {}
-                    _ => (),
+                None => {
+                    info!("Chat {chat_id} is not in the database, adding it as 1:1 chat");
+                    state.db.set_chat_type(chat_id, ChatType::Shop).await?;
                 }
-            }
+            },
             other => {
                 debug!("DC: [unhandled event] {other:?}");
             }
