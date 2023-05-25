@@ -44,6 +44,7 @@ const AppSubmitForm: ComponentProps<any> = (props: any) => {
                 } as PublishRequest
             }
         }, "")
+        props.onclose();
     };
 
     const onClose = (e: Event) => {
