@@ -6,6 +6,8 @@ mod messages;
 mod request_handlers;
 mod utils;
 
+use std::env;
+
 use bot::Bot;
 use clap::Parser;
 use cli::{BotActions, BotCli};
@@ -26,7 +28,13 @@ async fn main() {
     match &cli.action {
         BotActions::Import => {
             info!("importing webxdcs from 'import/");
-            let db = DB::new("bot.db").await;
+            let db_path = env::current_dir()
+                .unwrap()
+                .join("bot.db")
+                .to_str()
+                .unwrap()
+                .to_string();
+            let db = DB::new(&db_path).await;
             let files: Vec<_> = std::fs::read_dir("import/")
                 .unwrap()
                 .filter_map(|e| e.ok())
