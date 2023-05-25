@@ -110,13 +110,13 @@ impl DB {
         Ok(())
     }
 
-    pub async fn get_publisher(&self) -> surrealdb::Result<ContactId> {
+    pub async fn get_publisher(&self) -> surrealdb::Result<Option<ContactId>> {
         let mut result = self
             .db
             .query("SELECT contact_id FROM publisher LIMIT 1")
             .await?;
         let contact_id: Vec<ContactId> = result.take((0, "contact_id")).unwrap();
-        Ok(contact_id[0])
+        Ok(contact_id.get(0).map(|a| *a))
     }
 
     pub async fn create_tester(&self, contact_id: ContactId) -> surrealdb::Result<()> {

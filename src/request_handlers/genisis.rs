@@ -24,23 +24,25 @@ pub async fn handle_message(
             match <Genesis as CommandFactory>::command().try_get_matches_from(text.split(' ')) {
                 Ok(mut matches) => {
                     let res = <Genesis as FromArgMatches>::from_arg_matches_mut(&mut matches)?;
+                    let contact_id = msg.get_from_id();
 
-                    match res.join {
-                        crate::bot_commands::GroupName::Join { name } => {
-                            let contact_id = msg.get_from_id();
-
-                            let chat_id = match name {
-                                crate::bot_commands::BotGroup::Genesis => {
-                                    state.config.genesis_group
-                                }
-                                crate::bot_commands::BotGroup::Reviewee => {
-                                    state.config.reviewee_group
-                                }
-                                crate::bot_commands::BotGroup::Tester => state.config.tester_group,
-                            };
-
-                            chat::add_contact_to_chat(context, chat_id, contact_id).await?
+                    if let Some(group) = res.join {
+                        info!("Adding user to group {group:?}");
+                        let chat_id = match group {
+                            crate::bot_commands::BotGroup::Publisher => {
+                                state.db.create_publisher(contact_id).await.ok();
+                                state.config.reviewee_group
+                            }
+                            crate::bot_commands::BotGroup::Tester => {
+                                state.db.create_tester(contact_id).await.ok();
+                                state.config.tester_group
+                            }
+                        };
+                        let chat = chat::Chat::load_from_db(context, chat_id).await?;
+                        if !chat.is_promoted() {
+                            chat::send_text_msg(context, chat_id, "hello".into()).await?;
                         }
+                        chat::add_contact_to_chat(context, chat_id, contact_id).await?;
                     }
                 }
                 Err(e) => {

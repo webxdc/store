@@ -45,6 +45,7 @@ pub async fn send_webxdc(context: &Context, chat_id: ChatId, path: &str) -> anyh
     Ok(())
 }
 
+/// Get the contact Id of the other user in an 1:1 chat.
 pub async fn get_oon_peer(context: &Context, chat_id: ChatId) -> anyhow::Result<ContactId> {
     let contacts = chat::get_chat_contacts(context, chat_id).await?;
     contacts

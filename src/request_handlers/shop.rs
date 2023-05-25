@@ -128,8 +128,8 @@ pub async fn handle_publish(
     let publisher = state
         .db
         .get_publisher()
-        .await
-        .map_err(|_| HandlePublishError::NotEnoughReviewee)?;
+        .await?
+        .ok_or(HandlePublishError::NotEnoughReviewee)?;
 
     let testers = state.db.get_testers().await?;
 
