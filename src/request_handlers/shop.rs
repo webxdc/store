@@ -101,7 +101,7 @@ pub async fn handle_status_update(
             }
         }
     } else {
-        info!("Ignoring update: {}", &update[..10])
+        info!("Ignoring update: {}", &update.get(..10).unwrap_or_default())
     }
     Ok(())
 }
