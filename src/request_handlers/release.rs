@@ -143,7 +143,10 @@ pub async fn handle_status_update(
             RequestType::UpdateReviewStatus => todo!(),
         }
     } else {
-        info!("Ignoring update: {}", &update[..100])
+        info!(
+            "Ignoring update: {}",
+            &update.get(..100).unwrap_or_default()
+        )
     }
     Ok(())
 }
