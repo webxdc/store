@@ -7,8 +7,6 @@ mod messages;
 mod request_handlers;
 mod utils;
 
-use std::env;
-
 use bot::Bot;
 use clap::Parser;
 use cli::{BotActions, BotCli};
@@ -17,9 +15,14 @@ use surrealdb::sql::Id;
 use surrealdb::sql::Thing;
 use tokio::fs;
 use tokio::signal;
+use utils::get_db_path;
 
 use crate::db::DB;
 use crate::request_handlers::AppInfo;
+
+const DB_PATH: &str = "bot.db";
+const GENESIS_QR: &str = "GENESIS_QR";
+const INVITE_QR: &str = "INVITE_QR";
 
 #[tokio::main]
 async fn main() {
@@ -28,14 +31,8 @@ async fn main() {
 
     match &cli.action {
         BotActions::Import => {
-            info!("importing webxdcs from 'import/");
-            let db_path = env::current_dir()
-                .unwrap()
-                .join("bot.db")
-                .to_str()
-                .unwrap()
-                .to_string();
-            let db = DB::new(&db_path).await;
+            info!("importing webxdcs from 'import/'");
+            let db = DB::new(&get_db_path()).await;
             let files: Vec<_> = std::fs::read_dir("import/")
                 .unwrap()
                 .filter_map(|e| e.ok())
@@ -87,6 +84,19 @@ async fn main() {
                         )
                     }
                 }
+            }
+        }
+        BotActions::ShowQr => {
+            let db = DB::new(&get_db_path()).await;
+            match db.get_config().await.unwrap() {
+                Some(config) => {
+                    println!("You can find png files of the qr codes at bot home dir");
+                    println!("Genisis invite qr:");
+                    qr2term::print_qr(config.genesis_qr).unwrap();
+                    println!("Bot invite qr:");
+                    qr2term::print_qr(config.invite_qr).unwrap();
+                }
+                None => println!("Bot not configured yet, start the bot first."),
             }
         }
         BotActions::Start => {

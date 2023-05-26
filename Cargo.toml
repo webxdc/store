@@ -21,3 +21,4 @@ rand = "*"
 async_zip = {version="0.0.15", features=["full"]}
 base64-compat = "1.0.0"
 qrcode-generator = "4.1.8"
+qr2term = "*"

@@ -18,7 +18,8 @@ use crate::{
     db::{AppInfoId, DB},
     messages::appstore_message,
     request_handlers::{genisis, review, shop, submit, ChatType},
-    utils::{configure_from_env, send_webxdc},
+    utils::{configure_from_env, get_db_path, send_webxdc},
+    GENESIS_QR, INVITE_QR,
 };
 
 #[derive(Serialize, Deserialize)]
@@ -68,13 +69,7 @@ impl Bot {
             info!("configuration done");
         }
 
-        let db_path = env::current_dir()
-            .unwrap()
-            .join("bot.db")
-            .to_str()
-            .unwrap()
-            .to_string();
-        let db = DB::new(&db_path).await;
+        let db = DB::new(&get_db_path()).await;
 
         let config = match db.get_config().await.unwrap() {
             Some(config) => config,
@@ -101,7 +96,7 @@ impl Bot {
                     &config.genesis_qr,
                     QrCodeEcc::Low,
                     1024,
-                    "genenis_join_qr.png",
+                    GENESIS_QR,
                 )
                 .unwrap();
                 println!("Generated genisis group join QR-code at ./genenis_join_qr.png");
@@ -110,7 +105,7 @@ impl Bot {
                     &config.invite_qr,
                     QrCodeEcc::Low,
                     1024,
-                    "1o1_invite_qr.png",
+                    INVITE_QR,
                 )
                 .unwrap();
                 println!("Generated 1:1 invite QR-code at ./1o1_invite_qr.png");

@@ -11,6 +11,8 @@ use deltachat::{
 };
 use std::env;
 
+use crate::DB_PATH;
+
 pub async fn configure_from_env(ctx: &Context) -> Result<()> {
     let addr = env::var("addr")?;
     ctx.set_config(Config::Addr, Some(&addr)).await?;
@@ -46,7 +48,7 @@ pub async fn send_webxdc(context: &Context, chat_id: ChatId, path: &str) -> anyh
 }
 
 /// Get the contact Id of the other user in an 1:1 chat.
-pub async fn get_oon_peer(context: &Context, chat_id: ChatId) -> anyhow::Result<ContactId> {
+pub async fn _get_oon_peer(context: &Context, chat_id: ChatId) -> anyhow::Result<ContactId> {
     let contacts = chat::get_chat_contacts(context, chat_id).await?;
     contacts
         .into_iter()
@@ -73,4 +75,13 @@ pub async fn read_vec(reader: &ZipFileReader, index: usize) -> anyhow::Result<Ve
     let mut data = Vec::new();
     entry.read_to_end_checked(&mut data).await?;
     Ok(data)
+}
+
+pub fn get_db_path() -> String {
+    env::current_dir()
+        .unwrap()
+        .join(DB_PATH)
+        .to_str()
+        .unwrap()
+        .to_string()
 }

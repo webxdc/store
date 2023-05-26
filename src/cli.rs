@@ -11,4 +11,5 @@ pub struct BotCli {
 pub enum BotActions {
     Start,
     Import,
+    ShowQr
 }
