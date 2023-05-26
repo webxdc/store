@@ -36,6 +36,7 @@ pub enum HandlePublishError {
     #[error(transparent)]
     Other(#[from] anyhow::Error),
 }
+
 impl ReviewChat {
     // TODO: refactor this to some more idiomatic version
     pub async fn from_submit_chat(
@@ -62,7 +63,7 @@ impl ReviewChat {
         // create review chat
         let chat_id = chat::create_group_chat(
             context,
-            ProtectionStatus::Unprotected,
+            ProtectionStatus::Protected,
             &format!("Testing: {}", app_info.name),
         )
         .await?;
