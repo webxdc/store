@@ -7,11 +7,12 @@ use crate::{
 };
 use deltachat::{
     chat::{self, ChatId, ProtectionStatus},
+    constants,
     contact::Contact,
     context::Context,
     message::{Message, MsgId, Viewtype},
 };
-use log::info;
+use log::{info, warn};
 use serde::Deserialize;
 use serde_json::json;
 use std::sync::Arc;
@@ -40,8 +41,12 @@ pub struct PublishRequest {
 
 pub async fn handle_message(context: &Context, chat_id: ChatId) -> anyhow::Result<()> {
     // Handle normal messages to the bot (resend the store itself).
-    chat::send_text_msg(context, chat_id, appstore_message().to_string()).await?;
-    send_webxdc(context, chat_id, "./appstore.xdc").await
+    let chat = chat::Chat::load_from_db(context, chat_id).await?;
+    if let constants::Chattype::Single = chat.typ {
+        chat::send_text_msg(context, chat_id, appstore_message().to_string()).await?;
+        send_webxdc(context, chat_id, "./appstore.xdc").await?;
+    }
+    Ok(())
 }
 
 pub async fn handle_status_update(
@@ -55,7 +60,7 @@ pub async fn handle_status_update(
         match req.payload.request_type {
             RequestType::Update => {
                 let apps = state.get_apps().await?;
-                info!("Handling store update");
+                info!("Handling store update request");
                 context
                     .send_webxdc_status_update_struct(
                         msg_id,
@@ -70,15 +75,18 @@ pub async fn handle_status_update(
             RequestType::Dowload => {
                 info!("Handling store download");
                 let resource =
-                    serde_json::from_str::<FrontendRequestWithData<RequestType, Thing>>(&update)
-                        .unwrap()
+                    serde_json::from_str::<FrontendRequestWithData<RequestType, Thing>>(&update)?
                         .payload
                         .data;
 
                 let app = state.db.get_app_info(&resource).await?;
                 let mut msg = Message::new(Viewtype::Webxdc);
-                msg.set_file(app.xdc_blob_dir.unwrap().to_str().unwrap(), None);
-                chat::send_msg(context, chat_id, &mut msg).await.unwrap();
+                if let Some(file) = app.xdc_blob_dir {
+                    msg.set_file(file.to_str().unwrap(), None);
+                    chat::send_msg(context, chat_id, &mut msg).await.unwrap();
+                } else {
+                    warn!("No path for downloaded app {}", app.name)
+                }
             }
             RequestType::Publish => {
                 info!("Handling store publish");

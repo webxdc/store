@@ -260,7 +260,14 @@ impl Bot {
                             release::handle_message(context, chat_id, state, msg).await?;
                         }
                     }
-                    ChatType::Shop => shop::handle_message(context, chat_id).await?,
+                    ChatType::Shop => {
+                        let msg = Message::load_from_db(context, msg_id).await?;
+                        if msg.get_viewtype() == Viewtype::Webxdc {
+                            release::handle_webxdc(context, chat_id, state, msg).await?;
+                        } else {
+                            shop::handle_message(context, chat_id).await?;
+                        }
+                    }
                     ChatType::Genesis => {
                         genisis::handle_message(context, state, chat_id, msg_id).await?
                     }

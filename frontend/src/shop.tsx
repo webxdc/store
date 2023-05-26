@@ -67,6 +67,9 @@ const App: ComponentProps<any> = (props: any) => {
     const [lastUpdate, setlastUpdate] = useStorage('last-update', new Date())
     const [isUpdating, setIsUpdating] = createSignal(false)
 
+    if (appInfo() == undefined) {
+        setIsUpdating(true)
+    }
 
     window.webxdc.setUpdateListener((resp: ReceivedStatusUpdate<AppInfo[]>) => {
         console.log("Received update", resp)
@@ -88,8 +91,6 @@ const App: ComponentProps<any> = (props: any) => {
             }
         }, "")
     }
-
-    onMount(update)
 
     function onopen() {
         props.onopen()

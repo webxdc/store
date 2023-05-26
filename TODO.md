@@ -6,6 +6,8 @@
   - Tester chat interaction
   - Creator chat interaction
 - Migrate to SEA_QL
+- Replication protocol
+- Figure out testing
 
 ## Make happy path run:
 1. [x] bot admin configures the bot with QRCode
