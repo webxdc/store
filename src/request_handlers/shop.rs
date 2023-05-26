@@ -1,14 +1,11 @@
-use super::{AppInfo, FrontendRequest, ReviewChat};
+use super::{AppInfo, FrontendRequest};
 use crate::{
-    bot::State,
-    messages::{appstore_message, creat_review_group_init_message},
-    request_handlers::FrontendRequestWithData,
-    utils::{get_contact_name, get_oon_peer, send_webxdc},
+    bot::State, messages::appstore_message, request_handlers::FrontendRequestWithData,
+    utils::send_webxdc,
 };
 use deltachat::{
     chat::{self, ChatId, ProtectionStatus},
     constants,
-    contact::Contact,
     context::Context,
     message::{Message, MsgId, Viewtype},
 };
@@ -16,8 +13,7 @@ use log::{info, warn};
 use serde::Deserialize;
 use serde_json::json;
 use std::sync::Arc;
-use surrealdb::sql::{Id, Thing};
-use thiserror::Error;
+use surrealdb::sql::Thing;
 use ts_rs::TS;
 
 #[derive(TS, Deserialize)]
@@ -27,7 +23,6 @@ use ts_rs::TS;
 enum RequestType {
     Update,
     Dowload,
-    Publish,
 }
 
 #[derive(TS, Deserialize)]
@@ -40,12 +35,32 @@ pub struct PublishRequest {
 }
 
 pub async fn handle_message(context: &Context, chat_id: ChatId) -> anyhow::Result<()> {
-    // Handle normal messages to the bot (resend the store itself).
+    // Handle normal messages to the bot
     let chat = chat::Chat::load_from_db(context, chat_id).await?;
     if let constants::Chattype::Single = chat.typ {
         chat::send_text_msg(context, chat_id, appstore_message().to_string()).await?;
         send_webxdc(context, chat_id, "./appstore.xdc").await?;
     }
+    Ok(())
+}
+
+pub async fn handle_webxdc(
+    context: &Context,
+    msg: Message,
+) -> anyhow::Result<()> {
+    info!("Handling webxdc message in chat with type shop");
+
+    let app_info = AppInfo::from_xdc(msg.get_file(context).unwrap()).await?;
+    let chat_name = format!("Submit: {}", app_info.name);
+    let chat_id =
+        chat::create_group_chat(context, ProtectionStatus::Unprotected, &chat_name).await?;
+
+    let creator = msg.get_from_id();
+    chat::add_contact_to_chat(context, chat_id, creator).await?;
+
+    
+    chat::forward_msgs(context, &[msg.get_id()], chat_id).await?;
+
     Ok(())
 }
 
@@ -88,25 +103,6 @@ pub async fn handle_status_update(
                     warn!("No path for downloaded app {}", app.name)
                 }
             }
-            RequestType::Publish => {
-                info!("Handling store publish");
-                let data = serde_json::from_str::<
-                    FrontendRequestWithData<RequestType, PublishRequest>,
-                >(&update)?
-                .payload
-                .data;
-                if let Err(e) = handle_publish(context, state.clone(), chat_id, data).await {
-                    match e {
-                        HandlePublishError::NotEnoughTesters => {
-                            chat::send_text_msg(context, state.config.genesis_group, "Tried to create review chat, but there are not enough testers available".into()).await?;
-                        }
-                        HandlePublishError::NotEnoughReviewee => {
-                            chat::send_text_msg(context, state.config.genesis_group, "Tried to create review chat, but there are not enough publishers available".into()).await?;
-                        }
-                        e => return Err(anyhow::anyhow!(e)),
-                    }
-                }
-            }
         }
     } else {
         info!("Ignoring update: {}", &update[..10])
@@ -114,109 +110,8 @@ pub async fn handle_status_update(
     Ok(())
 }
 
-#[derive(Debug, Error)]
-pub enum HandlePublishError {
-    #[error("Not enough testers in pool")]
-    NotEnoughTesters,
-    #[error("Not enough reviewee in pool")]
-    NotEnoughReviewee,
-    #[error(transparent)]
-    SurrealDb(#[from] surrealdb::Error),
-    #[error(transparent)]
-    Other(#[from] anyhow::Error),
-}
+/*
 
-pub async fn handle_publish(
-    context: &Context,
-    state: Arc<State>,
-    chat_id: ChatId,
-    data: PublishRequest,
-) -> Result<(), HandlePublishError> {
-    // get publisher and testers
-    let publisher = state
-        .db
-        .get_publisher()
-        .await?
-        .ok_or(HandlePublishError::NotEnoughReviewee)?;
+   let creator = get_oon_peer(context, chat_id).await?;
 
-    let testers = state.db.get_testers().await?;
-
-    if testers.is_empty() {
-        return Err(HandlePublishError::NotEnoughTesters);
-    }
-
-    let creator = get_oon_peer(context, chat_id).await?;
-
-    // create the new chat
-    let chat_id = chat::create_group_chat(
-        context,
-        ProtectionStatus::Unprotected,
-        &format!("Publish: {}", data.name),
-    )
-    .await?;
-
-    // add all chat members
-    for tester in testers.iter() {
-        chat::add_contact_to_chat(context, chat_id, *tester).await?;
-    }
-    chat::add_contact_to_chat(context, chat_id, publisher).await?;
-    chat::add_contact_to_chat(context, chat_id, creator).await?;
-
-    // create initial message
-    let mut tester_names = Vec::new();
-    for tester in &testers {
-        tester_names.push(get_contact_name(context, *tester).await);
-    }
-    chat::send_text_msg(
-        context,
-        chat_id,
-        creat_review_group_init_message(&tester_names, &get_contact_name(context, publisher).await),
-    )
-    .await?;
-
-    // add new chat to local state
-    let resource_id = Thing {
-        tb: "app_info".to_string(),
-        id: Id::rand(),
-    };
-
-    state
-        .db
-        .create_chat(&ReviewChat {
-            chat_id,
-            publisher,
-            testers: testers.clone(),
-            creator,
-            ios: false,
-            android: false,
-            desktop: false,
-            app_info: resource_id.clone(),
-        })
-        .await?;
-
-    state
-        .db
-        .set_chat_type(chat_id, super::ChatType::Release)
-        .await?;
-
-    let creator_contact = Contact::load_from_db(context, creator).await?;
-
-    state
-        .db
-        .create_app_info(
-            &AppInfo {
-                name: data.name.clone(),
-                author_email: Some(creator_contact.get_addr().to_string()),
-                author_name: creator_contact.get_name().to_string(),
-                description: data.description,
-                originator: Thing {
-                    tb: "chat".to_string(),
-                    id: Id::Number(chat_id.to_u32() as i64),
-                },
-                ..Default::default()
-            },
-            resource_id,
-        )
-        .await?;
-    Ok(())
-}
+*/

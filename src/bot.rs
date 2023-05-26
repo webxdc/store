@@ -17,7 +17,7 @@ use std::{env, sync::Arc};
 use crate::{
     db::DB,
     messages::appstore_message,
-    request_handlers::{genisis, release, shop, AppInfoId, ChatType},
+    request_handlers::{genisis, review, shop, submit, AppInfoId, ChatType},
     utils::{configure_from_env, send_webxdc},
 };
 
@@ -223,12 +223,12 @@ impl Bot {
                                 .set_publisher_contacts(&filtered.collect::<Vec<_>>())
                                 .await?;
                         }
-                        ChatType::Release => {}
+                        // TODO: handle membership changes in testing and submit group
                         _ => (),
                     };
                 }
                 None => {
-                    info!("Chat {chat_id} is not in the database, adding it as 1:1 chat");
+                    info!("Chat {chat_id} is not in the database, adding it as chat with type shop");
                     state.db.set_chat_type(chat_id, ChatType::Shop).await?;
                     chat::send_text_msg(context, chat_id, appstore_message().to_string()).await?;
                     send_webxdc(context, chat_id, "./appstore.xdc").await?;
@@ -252,18 +252,18 @@ impl Bot {
             Ok(Some(chat_type)) => {
                 info!("Handling message with type <{chat_type:?}>");
                 match chat_type {
-                    ChatType::Release => {
+                    ChatType::Submit => {
                         let msg = Message::load_from_db(context, msg_id).await?;
                         if msg.get_viewtype() == Viewtype::Webxdc {
-                            release::handle_webxdc(context, chat_id, state, msg).await?;
+                            submit::handle_webxdc(context, chat_id, state, msg).await?;
                         } else {
-                            release::handle_message(context, chat_id, state, msg).await?;
+                            submit::handle_message(context, chat_id, state, msg).await?;
                         }
                     }
                     ChatType::Shop => {
                         let msg = Message::load_from_db(context, msg_id).await?;
                         if msg.get_viewtype() == Viewtype::Webxdc {
-                            release::handle_webxdc(context, chat_id, state, msg).await?;
+                            shop::handle_webxdc(context, msg).await?;
                         } else {
                             shop::handle_message(context, chat_id).await?;
                         }
@@ -272,6 +272,9 @@ impl Bot {
                         genisis::handle_message(context, state, chat_id, msg_id).await?
                     }
                     ChatType::ReviewPool | ChatType::TesterPool => (),
+                    ChatType::Review => {
+                        review::handle_message(context, chat_id, state, msg_id).await?;
+                    }
                 }
             }
             Ok(None) => {
@@ -302,13 +305,14 @@ impl Bot {
             .ok_or(anyhow::anyhow!("No chat for this message"))?;
 
         match chat_type {
-            ChatType::Release => {
-                release::handle_status_update(context, state, chat_id, msg_id, update).await?
+            ChatType::Submit => {
+                submit::handle_status_update(context, state, chat_id, msg_id, update).await?
             }
             ChatType::Shop => {
                 shop::handle_status_update(context, state, chat_id, msg_id, update).await?
             }
             ChatType::ReviewPool | ChatType::TesterPool | ChatType::Genesis => (),
+            ChatType::Review => todo!(),
         }
 
         Ok(())

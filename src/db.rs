@@ -10,7 +10,7 @@ use surrealdb::{
 
 use crate::{
     bot::BotConfig,
-    request_handlers::{AppInfo, AppInfoId, ChatType, ReviewChat},
+    request_handlers::{review::ReviewChat, submit::SubmitChat, AppInfo, AppInfoId, ChatType},
 };
 
 #[derive(Serialize, Deserialize)]
@@ -39,17 +39,27 @@ impl DB {
         self.db.select(("chat", chat_id.to_u32().to_string())).await
     }
 
-    pub async fn get_review_chats(&self) -> surrealdb::Result<Vec<ReviewChat>> {
-        self.db.select("chat").await
+
+    pub async fn get_submit_chat(&self, chat_id: ChatId) -> surrealdb::Result<Option<SubmitChat>> {
+        self.db.select(("chat", chat_id.to_u32().to_string())).await
     }
 
-    pub async fn create_chat(&self, chat: &ReviewChat) -> surrealdb::Result<ReviewChat> {
+    pub async fn create_submit(&self, chat: &SubmitChat) -> surrealdb::Result<SubmitChat> {
         let res = self
             .db
-            .create(("chat", chat.chat_id.to_u32().to_string()))
+            .create(("chat", chat.creator_chat.to_u32().to_string()))
             .content(chat)
             .await?;
         Ok(res.unwrap())
+    }
+
+    pub async fn upgrade_to_review_chat(&self, chat: &ReviewChat) -> surrealdb::Result<()> {
+        let res: Option<ReviewChat> = self
+            .db
+            .update(("chat", chat.creator_chat.to_u32().to_string()))
+            .content(chat)
+            .await?;
+        Ok(())
     }
 
     pub async fn set_chat_type(

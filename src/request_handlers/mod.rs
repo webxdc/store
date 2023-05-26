@@ -1,11 +1,8 @@
 //! Handlers for the different messages the bot receives
-use crate::{
-    db::DB,
-    utils::{read_string, read_vec},
-};
+use crate::utils::{read_string, read_vec};
 use async_zip::tokio::read::fs::ZipFileReader;
 use base64::encode;
-use deltachat::{chat::ChatId, contact::ContactId, webxdc::WebxdcManifest};
+use deltachat::webxdc::WebxdcManifest;
 use serde::{Deserialize, Serialize};
 use std::path::PathBuf;
 use surrealdb::{
@@ -15,8 +12,9 @@ use surrealdb::{
 use ts_rs::TS;
 
 pub mod genisis;
-pub mod release;
+pub mod review;
 pub mod shop;
+pub mod submit;
 
 #[derive(TS)]
 #[ts(export)]
@@ -45,6 +43,12 @@ pub struct AppInfoId {
 }
 
 impl AppInfo {
+    pub async fn from_xdc(file: PathBuf) -> anyhow::Result<Self> {
+        let mut app = AppInfo::default();
+        app.update_from_xdc(file).await?;
+        Ok(app)
+    }
+
     pub async fn update_from_xdc(&mut self, file: PathBuf) -> anyhow::Result<()> {
         let reader = ZipFileReader::new(&file).await.unwrap();
         self.xdc_blob_dir = Some(file);
@@ -132,30 +136,13 @@ fn default_thing() -> Thing {
     }
 }
 
-#[derive(Serialize, Deserialize)]
-pub struct ReviewChat {
-    pub chat_id: ChatId,
-    pub publisher: ContactId,
-    pub testers: Vec<ContactId>,
-    pub creator: ContactId,
-    pub ios: bool,
-    pub android: bool,
-    pub desktop: bool,
-    pub app_info: RecordId,
-}
-
-impl ReviewChat {
-    pub async fn get_app_info(&self, db: &DB) -> surrealdb::Result<AppInfo> {
-        db.get_app_info(&self.app_info).await
-    }
-}
-
 #[derive(Serialize, Deserialize, Clone, Copy, Debug, PartialEq)]
 pub enum ChatType {
     Genesis,
     ReviewPool,
     TesterPool,
-    Release,
+    Review,
+    Submit,
     Shop,
 }
 
