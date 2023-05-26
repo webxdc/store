@@ -162,7 +162,10 @@ pub async fn handle_status_update(
 
         let _app_info = review_chat.get_app_info(&state.db).await?;
     } else {
-        info!("Ignoring update: {}", &update[..100])
+        info!(
+            "Ignoring update: {}",
+            &update.get(..100).unwrap_or_default()
+        )
     } */
     Ok(())
 }

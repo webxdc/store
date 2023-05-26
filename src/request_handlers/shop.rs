@@ -101,13 +101,10 @@ pub async fn handle_status_update(
             }
         }
     } else {
-        info!("Ignoring update: {}", &update.get(..10).unwrap_or_default())
+        info!(
+            "Ignoring update: {}",
+            &update.get(..100).unwrap_or_default()
+        )
     }
     Ok(())
 }
-
-/*
-
-   let creator = get_oon_peer(context, chat_id).await?;
-
-*/
