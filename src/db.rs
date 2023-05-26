@@ -10,7 +10,7 @@ use surrealdb::{
 
 use crate::{
     bot::BotConfig,
-    request_handlers::{review::ReviewChat, submit::SubmitChat, AppInfo, AppInfoId, ChatType},
+    request_handlers::{review::ReviewChat, submit::SubmitChat, AppInfo, ChatType},
 };
 
 #[derive(Serialize, Deserialize)]
@@ -21,6 +21,13 @@ struct DBChatType {
 #[derive(Serialize, Deserialize)]
 struct DBContactId {
     contact_id: ContactId,
+}
+
+#[derive(Deserialize, Serialize, Clone, Debug)]
+pub struct AppInfoId {
+    #[serde(flatten)]
+    pub app_info: AppInfo,
+    pub id: Thing,
 }
 
 pub struct DB {
@@ -38,7 +45,6 @@ impl DB {
     pub async fn get_review_chat(&self, chat_id: ChatId) -> surrealdb::Result<Option<ReviewChat>> {
         self.db.select(("chat", chat_id.to_u32().to_string())).await
     }
-
 
     pub async fn get_submit_chat(&self, chat_id: ChatId) -> surrealdb::Result<Option<SubmitChat>> {
         self.db.select(("chat", chat_id.to_u32().to_string())).await

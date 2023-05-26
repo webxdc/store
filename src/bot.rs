@@ -15,9 +15,9 @@ use serde::{Deserialize, Serialize};
 use std::{env, sync::Arc};
 
 use crate::{
-    db::DB,
+    db::{AppInfoId, DB},
     messages::appstore_message,
-    request_handlers::{genisis, review, shop, submit, AppInfoId, ChatType},
+    request_handlers::{genisis, review, shop, submit, ChatType},
     utils::{configure_from_env, send_webxdc},
 };
 
@@ -228,7 +228,9 @@ impl Bot {
                     };
                 }
                 None => {
-                    info!("Chat {chat_id} is not in the database, adding it as chat with type shop");
+                    info!(
+                        "Chat {chat_id} is not in the database, adding it as chat with type shop"
+                    );
                     state.db.set_chat_type(chat_id, ChatType::Shop).await?;
                     chat::send_text_msg(context, chat_id, appstore_message().to_string()).await?;
                     send_webxdc(context, chat_id, "./appstore.xdc").await?;

@@ -44,13 +44,10 @@ pub async fn handle_message(context: &Context, chat_id: ChatId) -> anyhow::Resul
     Ok(())
 }
 
-pub async fn handle_webxdc(
-    context: &Context,
-    msg: Message,
-) -> anyhow::Result<()> {
+pub async fn handle_webxdc(context: &Context, msg: Message) -> anyhow::Result<()> {
     info!("Handling webxdc message in chat with type shop");
 
-    let app_info = AppInfo::from_xdc(msg.get_file(context).unwrap()).await?;
+    let app_info = AppInfo::from_xdc(&msg.get_file(context).unwrap()).await?;
     let chat_name = format!("Submit: {}", app_info.name);
     let chat_id =
         chat::create_group_chat(context, ProtectionStatus::Unprotected, &chat_name).await?;
@@ -58,7 +55,6 @@ pub async fn handle_webxdc(
     let creator = msg.get_from_id();
     chat::add_contact_to_chat(context, chat_id, creator).await?;
 
-    
     chat::forward_msgs(context, &[msg.get_id()], chat_id).await?;
 
     Ok(())

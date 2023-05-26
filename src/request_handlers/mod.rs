@@ -4,7 +4,7 @@ use async_zip::tokio::read::fs::ZipFileReader;
 use base64::encode;
 use deltachat::webxdc::WebxdcManifest;
 use serde::{Deserialize, Serialize};
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use surrealdb::{
     opt::RecordId,
     sql::{Id, Thing},
@@ -35,17 +35,22 @@ pub struct AppInfo {
     pub active: bool,                    // bot
 }
 
-#[derive(Deserialize, Serialize, Clone, Debug)]
-pub struct AppInfoId {
+#[derive(Deserialize)]
+pub struct ExtendedWebxdcManifest {
     #[serde(flatten)]
-    pub app_info: AppInfo,
-    pub id: Thing,
+    webxdc_manifest: WebxdcManifest,
+
+    /// Version of the application.
+    pub version: Option<String>,
+
+    /// Version of the application.
+    pub description: Option<String>,
 }
 
 impl AppInfo {
-    pub async fn from_xdc(file: PathBuf) -> anyhow::Result<Self> {
+    pub async fn from_xdc(file: &Path) -> anyhow::Result<Self> {
         let mut app = AppInfo::default();
-        app.update_from_xdc(file).await?;
+        app.update_from_xdc(file.to_path_buf()).await?;
         Ok(app)
     }
 
@@ -61,16 +66,19 @@ impl AppInfo {
 
         if let Some(index) = manifest {
             let res = read_string(&reader, index).await.unwrap();
-            let manifest = WebxdcManifest::from_string(&res)?;
+            let manifest: ExtendedWebxdcManifest = serde_json::from_str(&res)?;
 
-            if let Some(name) = manifest.name {
+            if let Some(name) = manifest.webxdc_manifest.name {
                 self.name = name;
             }
-            if let Some(source_code_url) = manifest.source_code_url {
+            if let Some(source_code_url) = manifest.webxdc_manifest.source_code_url {
                 self.source_code_url = Some(source_code_url);
             }
             if let Some(version) = manifest.version {
                 self.version = Some(version);
+            }
+            if let Some(description) = manifest.description {
+                self.version = Some(description)
             }
         }
 

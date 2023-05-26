@@ -54,12 +54,11 @@ async fn main() {
                     .unwrap()
                     .ends_with(".xdc")
                 {
-                    let mut app_info = AppInfo::default();
+                    let mut app_info = AppInfo::from_xdc(&file).await.unwrap();
                     app_info.update_from_xdc(file.clone()).await.unwrap();
                     app_info.active = true;
                     app_info.author_name = "appstore bot".to_string();
                     app_info.author_email = Some("appstorebot@testrun.org".to_string());
-                    app_info.description = "Some description".to_string();
 
                     let missing = app_info.generate_missing_list();
                     if missing.is_empty() {

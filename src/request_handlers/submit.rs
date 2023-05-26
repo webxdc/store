@@ -16,7 +16,7 @@ use serde::{Deserialize, Serialize};
 use serde_json::json;
 use surrealdb::opt::RecordId;
 
-use super::{AppInfo, FrontendRequest};
+use super::AppInfo;
 
 #[derive(Serialize, Deserialize)]
 pub struct SubmitChat {
