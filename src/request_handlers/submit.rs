@@ -56,7 +56,7 @@ pub async fn handle_message(
                         | HandlePublishError::NotEnoughPublishers => e.to_string(),
                         e => return Err(anyhow::anyhow!(e)),
                     };
-                    chat::send_text_msg(context, state.config.genesis_group, msg.into()).await?;
+                    chat::send_text_msg(context, state.config.genesis_group, msg).await?;
                     chat::send_text_msg(
                         context,
                         chat_id,

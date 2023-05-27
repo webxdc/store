@@ -52,7 +52,7 @@ async fn main() {
                     .unwrap()
                     .ends_with(".xdc")
                 {
-                    let mut app_info = AppInfo::from_xdc(&file).await.unwrap();
+                    let mut app_info = AppInfo::from_xdc(file).await.unwrap();
                     app_info.active = true;
                     app_info.author_name = "appstore bot".to_string();
                     app_info.author_email = Some("appstorebot@testrun.org".to_string());
