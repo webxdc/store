@@ -4,9 +4,7 @@
   - App info preview
   - Testing preview
 - Migrate to SEA_QL
-- Replication protocol
 - Figure out testing
-- Merge initial message and appstore
 - Fix retrieving of receiving chat
 - Better skipping for equal serial
 - App updating
