@@ -21,8 +21,8 @@ use crate::db::DB;
 use crate::request_handlers::AppInfo;
 
 const DB_PATH: &str = "bot.db";
-const GENESIS_QR: &str = "GENESIS_QR";
-const INVITE_QR: &str = "INVITE_QR";
+const GENESIS_QR: &str = "genesis_invite_qr.png";
+const INVITE_QR: &str = "1o1_invite_qr.png";
 
 #[tokio::main]
 async fn main() {
@@ -53,7 +53,6 @@ async fn main() {
                     .ends_with(".xdc")
                 {
                     let mut app_info = AppInfo::from_xdc(&file).await.unwrap();
-                    app_info.update_from_xdc(file.clone()).await.unwrap();
                     app_info.active = true;
                     app_info.author_name = "appstore bot".to_string();
                     app_info.author_email = Some("appstorebot@testrun.org".to_string());

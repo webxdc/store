@@ -7,7 +7,9 @@
 - Replication protocol
 - Figure out testing
 - Merge initial message and appstore
-- Fix retrieving of receivin chat
+- Fix retrieving of receiving chat
+- Better skipping for equal serial
+- App updating
 
 ## Make appstore happy path run:
 1. [x] bot admin configures the bot with QRCode

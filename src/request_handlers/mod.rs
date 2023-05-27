@@ -16,17 +16,14 @@ pub mod review;
 pub mod shop;
 pub mod submit;
 
-#[derive(TS)]
-#[ts(export)]
-#[ts(export_to = "frontend/src/bindings/")]
-#[derive(Deserialize, Serialize, Clone, Debug)]
+#[derive(TS, Deserialize, Serialize, Clone, Debug)]
 pub struct AppInfo {
     pub name: String,                    // manifest
     pub author_name: String,             // bot
     pub author_email: Option<String>,    // bot
     pub source_code_url: Option<String>, // manifest
     pub image: Option<String>,           // webxdc
-    pub description: String,             // submit
+    pub description: Option<String>,     // submit
     pub xdc_blob_dir: Option<PathBuf>,   // bot
     pub version: Option<String>,         // manifest
     #[serde(default = "default_thing")]
@@ -56,7 +53,6 @@ impl AppInfo {
 
     pub async fn update_from_xdc(&mut self, file: PathBuf) -> anyhow::Result<()> {
         let reader = ZipFileReader::new(&file).await.unwrap();
-        self.xdc_blob_dir = Some(file);
         let entries = reader.file().entries();
         let manifest = entries
             .iter()
@@ -66,7 +62,7 @@ impl AppInfo {
 
         if let Some(index) = manifest {
             let res = read_string(&reader, index).await.unwrap();
-            let manifest: ExtendedWebxdcManifest = serde_json::from_str(&res)?;
+            let manifest: ExtendedWebxdcManifest = toml::from_str(&res)?;
 
             if let Some(name) = manifest.webxdc_manifest.name {
                 self.name = name;
@@ -78,9 +74,10 @@ impl AppInfo {
                 self.version = Some(version);
             }
             if let Some(description) = manifest.description {
-                self.version = Some(description)
+                self.description = Some(description)
             }
         }
+        self.xdc_blob_dir = Some(file);
 
         let icon = entries
             .iter()
@@ -100,7 +97,7 @@ impl AppInfo {
         if self.name.is_empty() {
             missing.push("name".to_string());
         }
-        if self.description.is_empty() {
+        if self.description.is_none() {
             missing.push("description".to_string());
         }
         if self.image.is_none() {

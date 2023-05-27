@@ -15,7 +15,7 @@ use serde::{Deserialize, Serialize};
 use std::{env, sync::Arc};
 
 use crate::{
-    db::{AppInfoId, DB},
+    db::DB,
     messages::appstore_message,
     request_handlers::{genisis, review, shop, submit, ChatType},
     utils::{configure_from_env, get_db_path, send_webxdc},
@@ -29,18 +29,13 @@ pub struct BotConfig {
     pub tester_group: ChatId,
     pub reviewee_group: ChatId,
     pub genesis_group: ChatId,
+    pub serial: usize,
 }
 
 /// Github Bot state
 pub struct State {
     pub db: DB,
     pub config: BotConfig,
-}
-
-impl State {
-    pub async fn get_apps(&self) -> anyhow::Result<Vec<AppInfoId>> {
-        Ok(self.db.get_active_app_infos().await?)
-    }
 }
 
 /// Github Bot
@@ -145,6 +140,7 @@ impl Bot {
             reviewee_group,
             genesis_group,
             tester_group,
+            serial: 0,
         })
     }
 
@@ -227,8 +223,8 @@ impl Bot {
                         "Chat {chat_id} is not in the database, adding it as chat with type shop"
                     );
                     state.db.set_chat_type(chat_id, ChatType::Shop).await?;
-                    chat::send_text_msg(context, chat_id, appstore_message().to_string()).await?;
-                    send_webxdc(context, chat_id, "./appstore.xdc").await?;
+                    send_webxdc(context, chat_id, "./appstore.xdc", Some(appstore_message()))
+                        .await?;
                 }
             },
             other => {
@@ -262,7 +258,7 @@ impl Bot {
                         if msg.get_viewtype() == Viewtype::Webxdc {
                             shop::handle_webxdc(context, msg).await?;
                         } else {
-                            shop::handle_message(context, chat_id).await?;
+                            shop::handle_message(context, state, chat_id).await?;
                         }
                     }
                     ChatType::Genesis => {
@@ -277,7 +273,7 @@ impl Bot {
             Ok(None) => {
                 info!("creating new 1:1 chat with type Shop");
                 state.db.set_chat_type(chat_id, ChatType::Shop).await?;
-                shop::handle_message(context, chat_id).await?;
+                shop::handle_message(context, state, chat_id).await?;
             }
             Err(e) => {
                 warn!("got some error: {}", e);

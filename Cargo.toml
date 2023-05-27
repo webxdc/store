@@ -12,6 +12,7 @@ anyhow = "^1.0"
 thiserror="^1.0"
 serde = "^1.0"
 serde_json = "^1.0"
+toml = "*"
 log = "^0.4"
 env_logger = "0.10.0"
 surrealdb = {git="https://github.com/surrealdb/surrealdb", features = ["kv-rocksdb"]}

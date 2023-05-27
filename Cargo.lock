@@ -2210,6 +2210,7 @@ dependencies = [
  "surrealdb",
  "thiserror",
  "tokio",
+ "toml",
  "ts-rs",
 ]
 

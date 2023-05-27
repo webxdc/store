@@ -7,6 +7,7 @@ use surrealdb::{
     sql::Thing,
     Surreal,
 };
+use ts_rs::TS;
 
 use crate::{
     bot::BotConfig,
@@ -23,10 +24,18 @@ struct DBContactId {
     contact_id: ContactId,
 }
 
-#[derive(Deserialize, Serialize, Clone, Debug)]
+#[derive(Serialize, Deserialize)]
+struct SerialReps {
+    serial: usize,
+}
+
+#[derive(Deserialize, Serialize, Clone, Debug, TS)]
+#[ts(export)]
+#[ts(export_to = "frontend/src/bindings/")]
 pub struct AppInfoId {
     #[serde(flatten)]
     pub app_info: AppInfo,
+    #[ts(skip)] // TODO: remove this skip
     pub id: Thing,
 }
 
@@ -174,12 +183,24 @@ impl DB {
         Ok(res)
     }
 
+    pub async fn increase_get_serial(&self) -> surrealdb::Result<usize> {
+        let serial = self.get_last_serial().await?.unwrap();
+        let _serial: Option<SerialReps> = self
+            .db
+            .update(("config", "config"))
+            .merge(json!({ "serial": serial + 1 }))
+            .await?;
+        Ok(serial + 1)
+    }
+
     pub async fn create_app_info(
         &self,
         app_info: &AppInfo,
         resource_id: Thing,
     ) -> surrealdb::Result<AppInfo> {
-        let res = self.db.create(resource_id).content(app_info).await?;
+        let mut app_info_json = json!(app_info);
+        app_info_json["serial"] = json!(self.increase_get_serial().await?);
+        let res = self.db.create(resource_id).content(app_info_json).await?;
         Ok(res.unwrap())
     }
 
@@ -188,7 +209,9 @@ impl DB {
         app_info: &AppInfo,
         id: &Thing,
     ) -> surrealdb::Result<AppInfo> {
-        let res = self.db.update(id.clone()).content(app_info).await?;
+        let mut app_info_json = json!(app_info);
+        app_info_json["serial"] = json!(self.increase_get_serial().await?);
+        let res = self.db.update(id.clone()).content(app_info_json).await?;
         Ok(res.unwrap())
     }
 
@@ -213,5 +236,24 @@ impl DB {
             .await?;
         let testers = result.take::<Vec<AppInfoId>>(0)?;
         Ok(testers)
+    }
+
+    pub async fn get_active_app_infos_since(
+        &self,
+        serial: usize,
+    ) -> surrealdb::Result<Vec<AppInfoId>> {
+        let mut result = self
+            .db
+            .query(format!(
+                "select * from app_info where active AND serial > {serial}"
+            ))
+            .await?;
+        let testers = result.take::<Vec<AppInfoId>>(0)?;
+        Ok(testers)
+    }
+
+    pub async fn get_last_serial(&self) -> surrealdb::Result<Option<usize>> {
+        let mut result = self.db.query("SELECT serial FROM config:config").await?;
+        result.take((0, "serial"))
     }
 }

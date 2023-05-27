@@ -38,13 +38,18 @@ pub async fn _get_chat_xdc(context: &Context, chat_id: ChatId) -> anyhow::Result
     Ok(msg_ids.pop())
 }
 
-pub async fn send_webxdc(context: &Context, chat_id: ChatId, path: &str) -> anyhow::Result<()> {
+pub async fn send_webxdc(
+    context: &Context,
+    chat_id: ChatId,
+    path: &str,
+    text: Option<&str>,
+) -> anyhow::Result<MsgId> {
     let mut webxdc_msg = Message::new(Viewtype::Webxdc);
+    if let Some(text) = text {
+        webxdc_msg.set_text(Some(text.to_string()));
+    }
     webxdc_msg.set_file(path, None);
-    chat::send_msg(context, chat_id, &mut webxdc_msg)
-        .await
-        .unwrap();
-    Ok(())
+    chat::send_msg(context, chat_id, &mut webxdc_msg).await
 }
 
 /// Get the contact Id of the other user in an 1:1 chat.

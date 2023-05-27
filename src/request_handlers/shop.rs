@@ -3,6 +3,7 @@ use crate::{
     bot::State, messages::appstore_message, request_handlers::FrontendRequestWithData,
     utils::send_webxdc,
 };
+use anyhow::Context as _;
 use deltachat::{
     chat::{self, ChatId, ProtectionStatus},
     constants,
@@ -34,12 +35,27 @@ pub struct PublishRequest {
     pub description: String,
 }
 
-pub async fn handle_message(context: &Context, chat_id: ChatId) -> anyhow::Result<()> {
+pub async fn handle_message(
+    context: &Context,
+    state: Arc<State>,
+    chat_id: ChatId,
+) -> anyhow::Result<()> {
     // Handle normal messages to the bot
     let chat = chat::Chat::load_from_db(context, chat_id).await?;
     if let constants::Chattype::Single = chat.typ {
-        chat::send_text_msg(context, chat_id, appstore_message().to_string()).await?;
-        send_webxdc(context, chat_id, "./appstore.xdc").await?;
+        let msg = send_webxdc(context, chat_id, "./appstore.xdc", Some(appstore_message())).await?;
+        let curr_serial = state.db.get_last_serial().await?;
+        let apps = state.db.get_active_app_infos().await?;
+        context
+            .send_webxdc_status_update_struct(
+                msg,
+                deltachat::webxdc::StatusUpdateItem {
+                    payload: json! {{"app_infos": apps, "serial": curr_serial}},
+                    ..Default::default()
+                },
+                "",
+            )
+            .await?;
     }
     Ok(())
 }
@@ -69,13 +85,22 @@ pub async fn handle_status_update(
     if let Ok(req) = serde_json::from_str::<FrontendRequest<RequestType>>(&update) {
         match req.payload.request_type {
             RequestType::Update => {
-                let apps = state.get_apps().await?;
                 info!("Handling store update request");
+
+                let req =
+                    serde_json::from_str::<FrontendRequestWithData<RequestType, usize>>(&update)?;
+
+                let apps = state
+                    .db
+                    .get_active_app_infos_since(req.payload.data)
+                    .await?;
+
+                let curr_serial = state.db.get_last_serial().await?.context("no serial")?;
                 context
                     .send_webxdc_status_update_struct(
                         msg_id,
                         deltachat::webxdc::StatusUpdateItem {
-                            payload: json! {apps},
+                            payload: json! {{"app_infos": apps, "serial": curr_serial}},
                             ..Default::default()
                         },
                         "",
@@ -102,7 +127,7 @@ pub async fn handle_status_update(
     } else {
         info!(
             "Ignoring update: {}",
-            &update.get(..100).unwrap_or_default()
+            &update.get(..100.min(update.len())).unwrap_or_default()
         )
     }
     Ok(())

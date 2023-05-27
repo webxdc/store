@@ -105,7 +105,7 @@ pub async fn handle_webxdc(
         send_webxdc(context, chat_id, "./review_helper.xdc").await?;
     } */
 
-    send_webxdc(context, chat_id, "./review_helper.xdc").await?;
+    send_webxdc(context, chat_id, "./review_helper.xdc", None).await?;
 
     let missing = app_info.generate_missing_list();
 
@@ -164,7 +164,8 @@ pub async fn handle_status_update(
     } else {
         info!(
             "Ignoring update: {}",
-            &update.get(..100).unwrap_or_default()
+            &update.get(..100.min(update.len())).unwrap_or_default()
+
         )
     } */
     Ok(())
