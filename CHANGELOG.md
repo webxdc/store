@@ -1,2 +1,3 @@
 - No automatic update in appstore
-- Rewrite
+- Serial based updating (74924be9c6b0231c28eed919a1f263a977fb42ca)
+- 

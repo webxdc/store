@@ -101,15 +101,18 @@ pub async fn handle_webxdc(
         msg.get_id()
     ))?;
 
-    // TODO: check validity
-    app_info.update_from_xdc(file).await?;
+    // TODO: verify update
+    let (changed, upgraded) = app_info.update_from_xdc(file).await?;
+    if upgraded {
+        // TODO: handle upgrade
+    } else if changed {
+        state
+            .db
+            .update_app_info(&app_info, &submit_chat.app_info)
+            .await?;
 
-    state
-        .db
-        .update_app_info(&app_info, &submit_chat.app_info)
-        .await?;
-
-    check_app_info(context, &app_info, &submit_chat, chat_id).await?;
+        check_app_info(context, &app_info, &submit_chat, chat_id).await?;
+    }
     Ok(())
 }
 
@@ -125,8 +128,7 @@ pub async fn handle_status_update(
     chat_id: ChatId,
     update: String,
 ) -> anyhow::Result<()> {
-    // TODO: handle changes on frontend
-    info!("Handling app info update ");
+    info!("Handling [AppInfo] update");
     if let Ok(req) = serde_json::from_str::<FrontendRequestWithData<String, AppInfo>>(&update) {
         let submit_chat = state
             .db

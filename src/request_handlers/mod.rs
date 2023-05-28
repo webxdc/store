@@ -1,5 +1,5 @@
 //! Handlers for the different messages the bot receives
-use crate::utils::{read_string, read_vec};
+use crate::utils::{ne_assign, ne_assign_option, read_string, read_vec};
 use async_zip::tokio::read::fs::ZipFileReader;
 use base64::encode;
 use deltachat::webxdc::WebxdcManifest;
@@ -45,13 +45,20 @@ pub struct AppInfo {
 }
 
 impl AppInfo {
+    /// Create appinfo from webxdc file.
     pub async fn from_xdc(file: &Path) -> anyhow::Result<Self> {
         let mut app = AppInfo::default();
         app.update_from_xdc(file.to_path_buf()).await?;
         Ok(app)
     }
 
-    pub async fn update_from_xdc(&mut self, file: PathBuf) -> anyhow::Result<()> {
+    /// Reads a webxdc file and overwrites current fields.
+    /// Returns whether the xdc was `changed` and `upgraded`
+    /// Upgrade means the version has changed.
+    pub async fn update_from_xdc(&mut self, file: PathBuf) -> anyhow::Result<(bool, bool)> {
+        let mut upgraded = false;
+        let mut changed = false;
+
         let reader = ZipFileReader::new(&file).await.unwrap();
         let entries = reader.file().entries();
         let manifest = entries
@@ -64,21 +71,20 @@ impl AppInfo {
             let res = read_string(&reader, index).await.unwrap();
             let manifest: ExtendedWebxdcManifest = toml::from_str(&res)?;
 
-            if let Some(name) = manifest.webxdc_manifest.name {
-                self.name = name;
+            ne_assign(&mut self.name, manifest.webxdc_manifest.name, &mut changed);
+            ne_assign_option(
+                &mut self.source_code_url,
+                manifest.webxdc_manifest.source_code_url,
+                &mut changed,
+            );
+            ne_assign_option(&mut self.version, manifest.version, &mut upgraded);
+            if upgraded {
+                changed = true
             }
-            if let Some(source_code_url) = manifest.webxdc_manifest.source_code_url {
-                self.source_code_url = Some(source_code_url);
-            }
-            if let Some(version) = manifest.version {
-                self.version = Some(version);
-            }
-            if let Some(description) = manifest.description {
-                self.description = Some(description)
-            }
+            ne_assign_option(&mut self.description, manifest.description, &mut changed);
         }
-        
-        self.xdc_blob_dir = Some(file);
+
+        ne_assign_option(&mut self.xdc_blob_dir, Some(file), &mut changed);
 
         let icon = entries
             .iter()
@@ -88,13 +94,14 @@ impl AppInfo {
 
         if let Some(index) = icon {
             let res = read_vec(&reader, index).await.unwrap();
-            self.image = Some(encode(&res));
+            ne_assign_option(&mut self.image, Some(encode(&res)), &mut changed);
         }
-        Ok(())
+        Ok((changed, upgraded))
     }
 
+    /// Generates a list of missing values from the appinfo.
     pub fn generate_missing_list(&self) -> Vec<String> {
-        let mut missing = vec![];
+        let mut missing: Vec<String> = vec![];
         if self.name.is_empty() {
             missing.push("name".to_string());
         }
@@ -104,7 +111,6 @@ impl AppInfo {
         if self.author_email.is_empty() {
             missing.push("author email".to_string());
         }
-
         if self.description.is_none() {
             missing.push("description".to_string());
         }

@@ -30,18 +30,6 @@ pub async fn configure_from_env(ctx: &Context) -> Result<()> {
     Ok(())
 }
 
-pub async fn _get_chat_xdc(context: &Context, chat_id: ChatId) -> anyhow::Result<Option<MsgId>> {
-    let mut msg_ids = chat::get_chat_media(
-        context,
-        Some(chat_id),
-        Viewtype::Webxdc,
-        Viewtype::Unknown,
-        Viewtype::Unknown,
-    )
-    .await?;
-    Ok(msg_ids.pop())
-}
-
 pub async fn send_webxdc(
     context: &Context,
     chat_id: ChatId,
@@ -101,7 +89,6 @@ pub async fn check_app_info(
     submit_chat: &SubmitChat,
     chat_id: ChatId,
 ) -> anyhow::Result<()> {
-    // TODO: make this conditional?
     context
         .send_webxdc_status_update_struct(
             submit_chat.creator_webxdc,
@@ -112,12 +99,6 @@ pub async fn check_app_info(
             "",
         )
         .await?;
-
-    /*
-    TODO: resend if it is different
-    if get_chat_xdc(context, chat_id).await?.is_none() {
-        send_webxdc(context, chat_id, "./review_helper.xdc", None).await?;
-    } */
 
     let missing = app_info.generate_missing_list();
 
@@ -137,4 +118,33 @@ pub async fn check_app_info(
         .await?;
     }
     Ok(())
+}
+
+/// Updates a value and update changed accordingly.
+pub fn ne_assign<T: PartialEq>(original: &mut T, new: Option<T>, changed: &mut bool) {
+    if let Some(new) = new {
+        if *original != new {
+            *original = new;
+            *changed = true;
+        }
+    }
+}
+
+/// Updates a value and update changed accordingly.
+pub fn ne_assign_option<T: PartialEq>(
+    original: &mut Option<T>,
+    new: Option<T>,
+    changed: &mut bool,
+) {
+    if let Some(new) = new {
+        if let Some(original) = original {
+            if *original != new {
+                *original = new;
+                *changed = true;
+            }
+        } else {
+            *original = Some(new);
+            *changed = true;
+        }
+    }
 }
