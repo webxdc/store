@@ -11,7 +11,6 @@
 - [ ] Inline placeholder image
 - [ ] Nice Serialization for app_info::thing
 - [ ] Close submit helper webxdc on submit
-- [ ] Add search function in frontend
 - [ ] Move bot files into dedicated folder
 
 ## Make appstore happy path run:
