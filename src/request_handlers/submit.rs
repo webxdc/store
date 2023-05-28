@@ -116,12 +116,6 @@ pub async fn handle_webxdc(
     Ok(())
 }
 
-#[derive(Deserialize)]
-enum RequestType {
-    UpdateInfo,
-    UpdateReviewStatus,
-}
-
 pub async fn handle_status_update(
     context: &Context,
     state: Arc<State>,
@@ -134,12 +128,14 @@ pub async fn handle_status_update(
             .db
             .get_submit_chat(chat_id)
             .await?
-            .ok_or(anyhow::anyhow!("No review chat found for chat {chat_id}"))?;
+            .ok_or(anyhow::anyhow!("No submit chat found for chat {chat_id}"))?;
 
+        // TODO: verify update
         state
             .db
             .update_app_info(&req.payload.data, &submit_chat.app_info)
             .await?;
+
         check_app_info(context, &req.payload.data, &submit_chat, chat_id).await?;
     } else {
         info!(

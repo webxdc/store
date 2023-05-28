@@ -31,7 +31,7 @@ async fn main() {
 
     match &cli.action {
         BotActions::Import => {
-            info!("importing webxdcs from 'import/'");
+            info!("Importing webxdcs from 'import/'");
             let db = DB::new(&get_db_path()).await;
             let files: Vec<_> = std::fs::read_dir("import/")
                 .unwrap()
@@ -41,7 +41,7 @@ async fn main() {
                 .collect();
 
             if files.is_empty() {
-                println!("no xdcs to add in ./import")
+                println!("No xdcs to add in ./import")
             }
 
             for file in &files {
@@ -54,7 +54,7 @@ async fn main() {
                 {
                     let mut app_info = AppInfo::from_xdc(file).await.unwrap();
                     app_info.active = true;
-                    app_info.author_name = "appstore bot".to_string();
+                    app_info.author_name = "Appstore bot".to_string();
                     app_info.author_email = "appstorebot@testrun.org".to_string();
 
                     let missing = app_info.generate_missing_list();
@@ -89,7 +89,7 @@ async fn main() {
             let db = DB::new(&get_db_path()).await;
             match db.get_config().await.unwrap() {
                 Some(config) => {
-                    println!("You can find png files of the qr codes at bot home dir");
+                    println!("You can find png files of the qr codes at bots home dir");
                     println!("Genisis invite qr:");
                     qr2term::print_qr(config.genesis_qr).unwrap();
                     println!("Bot invite qr:");

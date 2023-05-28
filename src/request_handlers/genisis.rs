@@ -18,7 +18,7 @@ pub async fn handle_message(
 ) -> anyhow::Result<()> {
     let msg = Message::load_from_db(context, msg_id).await?;
     if let Some(text) = msg.get_text() {
-        // only react to messages with right keywoard
+        // only react to messages commands
         if let Some(text) = text.strip_prefix('/') {
             info!("Handling command to bot");
             match <Genesis as CommandFactory>::command().try_get_matches_from(text.split(' ')) {
@@ -27,7 +27,7 @@ pub async fn handle_message(
                     let contact_id = msg.get_from_id();
 
                     if let Some(group) = res.join {
-                        info!("Adding user to group {group:?}");
+                        info!("Adding user {contact_id} to group {group:?}");
                         let chat_id = match group {
                             crate::bot_commands::BotGroup::Publisher => {
                                 state.db.create_publisher(contact_id).await.ok();
@@ -40,7 +40,12 @@ pub async fn handle_message(
                         };
                         let chat = chat::Chat::load_from_db(context, chat_id).await?;
                         if !chat.is_promoted() {
-                            chat::send_text_msg(context, chat_id, "hello".into()).await?;
+                            chat::send_text_msg(
+                                context,
+                                chat_id,
+                                "Welcome to the new group".into(),
+                            )
+                            .await?;
                         }
                         chat::add_contact_to_chat(context, chat_id, contact_id).await?;
                     }

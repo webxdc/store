@@ -24,7 +24,7 @@ pub struct ExtendedWebxdcManifest {
     /// Version of the application.
     pub version: Option<String>,
 
-    /// Version of the application.
+    /// Description of the application.
     pub description: Option<String>,
 }
 
@@ -157,12 +157,12 @@ fn default_thing() -> Thing {
 
 #[derive(Serialize, Deserialize, Clone, Copy, Debug, PartialEq)]
 pub enum ChatType {
+    Shop,
+    Submit,
+    Review,
     Genesis,
     ReviewPool,
     TesterPool,
-    Review,
-    Submit,
-    Shop,
 }
 
 /// A generic webxdc update

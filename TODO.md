@@ -12,6 +12,7 @@
 - [ ] Nice Serialization for app_info::thing
 - [ ] Close submit helper webxdc on submit
 - [ ] Add search function in frontend
+- [ ] Move bot files into dedicated folder
 
 ## Make appstore happy path run:
 1. [x] bot admin configures the bot with QRCode
@@ -26,4 +27,4 @@
 2. [x] The bot creates a new group for review. 
 3. [x] After all requirements have been met, the bot asks the bot wheter he wants to send it to review. 
 4. [x] The Bot creates another group for review with some testers (3) an one publisher.
-5. [ ] After testing is complete, the publisher can pubslih the app to the appstore. 
+5. [ ] After testing is complete, the publisher can publish the app to the appstore. 

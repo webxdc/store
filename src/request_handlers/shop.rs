@@ -23,7 +23,6 @@ use ts_rs::TS;
 #[derive(TS, Deserialize)]
 #[ts(export)]
 #[ts(export_to = "frontend/src/bindings/")]
-
 enum RequestType {
     Update,
     Dowload,
@@ -32,7 +31,6 @@ enum RequestType {
 #[derive(TS, Deserialize)]
 #[ts(export)]
 #[ts(export_to = "frontend/src/bindings/")]
-
 pub struct PublishRequest {
     pub name: String,
     pub description: String,
@@ -43,7 +41,6 @@ pub async fn handle_message(
     state: Arc<State>,
     chat_id: ChatId,
 ) -> anyhow::Result<()> {
-    // Handle normal messages to the bot
     let chat = chat::Chat::load_from_db(context, chat_id).await?;
     if let constants::Chattype::Single = chat.typ {
         let msg = send_webxdc(context, chat_id, "./appstore.xdc", Some(appstore_message())).await?;
@@ -68,7 +65,7 @@ pub async fn handle_webxdc(
     state: Arc<State>,
     msg: Message,
 ) -> anyhow::Result<()> {
-    info!("Handling webxdc message in chat with type shop");
+    info!("Handling webxdc message in shop chat");
 
     let mut app_info = AppInfo::from_xdc(&msg.get_file(context).unwrap()).await?;
     let contact = Contact::load_from_db(context, msg.get_from_id()).await?;
@@ -80,6 +77,7 @@ pub async fn handle_webxdc(
         tb: "appinfo".to_string(),
         id: Id::rand(),
     };
+
     state
         .db
         .create_app_info(&app_info, resource_id.clone())
@@ -87,10 +85,10 @@ pub async fn handle_webxdc(
 
     let chat_name = format!("Submit: {}", app_info.name);
     let chat_id = chat::create_group_chat(context, ProtectionStatus::Protected, &chat_name).await?;
+    state.db.set_chat_type(chat_id, ChatType::Submit).await?;
+
     let creator = msg.get_from_id();
     chat::add_contact_to_chat(context, chat_id, creator).await?;
-
-    state.db.set_chat_type(chat_id, ChatType::Submit).await?;
 
     chat::forward_msgs(context, &[msg.get_id()], chat_id).await?;
     let creator_webxdc = send_webxdc(context, chat_id, "review_helper.xdc", None).await?;
@@ -105,7 +103,6 @@ pub async fn handle_webxdc(
         .await?;
 
     request_handlers::submit::handle_webxdc(context, chat_id, state, msg).await?;
-
     Ok(())
 }
 

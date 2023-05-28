@@ -55,7 +55,6 @@ impl ReviewChat {
             .ok_or(HandlePublishError::NotEnoughPublishers)?;
 
         let testers = state.db.get_testers().await?;
-
         if testers.is_empty() {
             return Err(HandlePublishError::NotEnoughTesters);
         }

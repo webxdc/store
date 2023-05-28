@@ -49,7 +49,7 @@ impl Bot {
         let dbdir = env::current_dir().unwrap().join("deltachat.db");
 
         std::fs::create_dir_all(dbdir.clone())
-            .context("failed to create db folder")
+            .context("Failed to create db folder")
             .unwrap();
 
         let dbfile = dbdir.join("db.sqlite");
@@ -59,9 +59,9 @@ impl Bot {
             .unwrap();
 
         if !context.get_config_bool(Config::Configured).await.unwrap() {
-            info!("start configuring...");
+            info!("Start configuring...");
             configure_from_env(&context).await.unwrap();
-            info!("configuration done");
+            info!("Configuration done");
         }
 
         let db = DB::new(&get_db_path()).await;
@@ -69,10 +69,8 @@ impl Bot {
         let config = match db.get_config().await.unwrap() {
             Some(config) => config,
             None => {
-                info!("No configuration found, start configuring...");
+                info!("No bot configuration found, start configuring...");
                 let config = Self::setup(&context).await.unwrap();
-
-                // save config
                 db.set_config(&config).await.unwrap();
 
                 // set chat types
@@ -94,7 +92,7 @@ impl Bot {
                     GENESIS_QR,
                 )
                 .unwrap();
-                println!("Generated genisis group join QR-code at ./genenis_join_qr.png");
+                println!("Generated genisis group join QR-code at {GENESIS_QR}");
 
                 qrcode_generator::to_png_to_file(
                     &config.invite_qr,
@@ -103,7 +101,7 @@ impl Bot {
                     INVITE_QR,
                 )
                 .unwrap();
-                println!("Generated 1:1 invite QR-code at ./1o1_invite_qr.png");
+                println!("Generated 1:1 invite QR-code at {INVITE_QR}");
 
                 config
             }
@@ -144,8 +142,7 @@ impl Bot {
         })
     }
 
-    /// Start the bot which includes:
-    /// - starting dc-message-receive loop
+    /// Start the bot.
     pub async fn start(&mut self) {
         let events_emitter = self.dc_ctx.get_event_emitter();
         let ctx = self.dc_ctx.clone();
@@ -163,7 +160,7 @@ impl Bot {
         info!("successfully started bot! 🥳");
     }
 
-    /// Handle _all_ dc-events
+    /// Handle dc-events.
     async fn dc_event_handler(
         context: &Context,
         state: Arc<State>,
@@ -194,27 +191,29 @@ impl Bot {
                 Some(chat_type) => {
                     let contacts = chat::get_chat_contacts(context, chat_id).await?;
                     let filtered = contacts.into_iter().filter(|ci| !ci.is_special());
-                    info!("updating contacts for chat {chat_id}");
                     match chat_type {
                         ChatType::Genesis => {
+                            info!("updating genesis contacts");
                             state
                                 .db
                                 .set_genesis_contacts(&filtered.collect::<Vec<_>>())
                                 .await?;
                         }
                         ChatType::ReviewPool => {
+                            info!("updating reviewer contacts");
                             state
                                 .db
                                 .set_tester_contacts(&filtered.collect::<Vec<_>>())
                                 .await?;
                         }
                         ChatType::TesterPool => {
+                            info!("updating tester contacts");
                             state
                                 .db
                                 .set_publisher_contacts(&filtered.collect::<Vec<_>>())
                                 .await?;
                         }
-                        // TODO: handle membership changes in testing and submit group
+                        // TODO: handle membership changes in review and submit group
                         _ => (),
                     };
                 }
@@ -234,7 +233,7 @@ impl Bot {
         Ok(())
     }
 
-    /// Handles chat messages from clients
+    /// Handles chat messages from clients.
     async fn handle_dc_message(
         context: &Context,
         state: Arc<State>,
@@ -245,14 +244,6 @@ impl Bot {
             Ok(Some(chat_type)) => {
                 info!("Handling message with type <{chat_type:?}>");
                 match chat_type {
-                    ChatType::Submit => {
-                        let msg = Message::load_from_db(context, msg_id).await?;
-                        if msg.get_viewtype() == Viewtype::Webxdc {
-                            submit::handle_webxdc(context, chat_id, state, msg).await?;
-                        } else {
-                            submit::handle_message(context, chat_id, state, msg).await?;
-                        }
-                    }
                     ChatType::Shop => {
                         let msg = Message::load_from_db(context, msg_id).await?;
                         if msg.get_viewtype() == Viewtype::Webxdc {
@@ -261,13 +252,21 @@ impl Bot {
                             shop::handle_message(context, state, chat_id).await?;
                         }
                     }
+                    ChatType::Submit => {
+                        let msg = Message::load_from_db(context, msg_id).await?;
+                        if msg.get_viewtype() == Viewtype::Webxdc {
+                            submit::handle_webxdc(context, chat_id, state, msg).await?;
+                        } else {
+                            submit::handle_message(context, chat_id, state, msg).await?;
+                        }
+                    }
+                    ChatType::Review => {
+                        review::handle_message(context, chat_id, state, msg_id).await?;
+                    }
                     ChatType::Genesis => {
                         genisis::handle_message(context, state, chat_id, msg_id).await?
                     }
                     ChatType::ReviewPool | ChatType::TesterPool => (),
-                    ChatType::Review => {
-                        review::handle_message(context, chat_id, state, msg_id).await?;
-                    }
                 }
             }
             Ok(None) => {
@@ -276,13 +275,13 @@ impl Bot {
                 shop::handle_message(context, state, chat_id).await?;
             }
             Err(e) => {
-                warn!("got some error: {}", e);
+                warn!("Problem while retrieving [ChatType]: {}", e);
             }
         }
         Ok(())
     }
 
-    /// Handles chat messages from clients
+    /// Handles webxdc updates from clients.
     async fn handle_dc_webxdc_update(
         context: &Context,
         state: Arc<State>,
@@ -295,7 +294,7 @@ impl Bot {
             .db
             .get_chat_type(chat_id)
             .await?
-            .ok_or(anyhow::anyhow!("No chat for this message"))?;
+            .ok_or(anyhow::anyhow!("No chat for this webxdc update"))?;
 
         match chat_type {
             ChatType::Submit => {

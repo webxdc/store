@@ -1,4 +1,5 @@
 //! Integration fo SurrealDBpub struct DB
+use anyhow::Context;
 use deltachat::{chat::ChatId, contact::ContactId};
 use serde::{Deserialize, Serialize};
 use serde_json::json;
@@ -199,20 +200,24 @@ impl DB {
         &self,
         app_info: &AppInfo,
         resource_id: Thing,
-    ) -> surrealdb::Result<AppInfo> {
+    ) -> anyhow::Result<AppInfo> {
         let mut app_info_json = json!(app_info);
-        app_info_json["serial"] = json!(self.increase_get_serial().await?);
+        let next_serial = self.increase_get_serial().await?;
+        app_info_json
+            .as_object_mut()
+            .context("Couldn't increase serial")?
+            .insert("serial".to_string(), json!(next_serial));
         let res = self.db.create(resource_id).content(app_info_json).await?;
         Ok(res.unwrap())
     }
 
-    pub async fn update_app_info(
-        &self,
-        app_info: &AppInfo,
-        id: &Thing,
-    ) -> surrealdb::Result<AppInfo> {
+    pub async fn update_app_info(&self, app_info: &AppInfo, id: &Thing) -> anyhow::Result<AppInfo> {
         let mut app_info_json = json!(app_info);
-        app_info_json["serial"] = json!(self.increase_get_serial().await?);
+        let next_serial = self.increase_get_serial().await?;
+        app_info_json
+            .as_object_mut()
+            .context("Couldn't increase serial")?
+            .insert("serial".to_string(), json!(next_serial));
         let res = self.db.update(id.clone()).content(app_info_json).await?;
         Ok(res.unwrap())
     }
