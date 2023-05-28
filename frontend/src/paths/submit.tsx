@@ -1,5 +1,5 @@
-import { Component, ComponentProps, Show, createMemo, createSignal } from 'solid-js';
-import { PublishRequest } from './bindings/PublishRequest';
+import { ComponentProps, Show, createSignal } from 'solid-js';
+import { PublishRequest } from '../bindings/PublishRequest';
 
 
 interface Errors {

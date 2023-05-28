@@ -1,9 +1,9 @@
 import { ComponentProps, Show, createSignal, onMount } from 'solid-js';
 import { For } from "solid-js/web";
 import { useStorage } from 'solidjs-use';
-import { ReceivedStatusUpdate } from './webxdc';
+import { ReceivedStatusUpdate } from '../webxdc';
 import { format } from 'date-fns';
-import { AppInfo } from './bindings/AppInfo';
+import { AppInfo } from '../bindings/AppInfo';
 
 function create_item(item: AppInfo) {
     const [isExpanded, setIsExpanded] = createSignal(false);
@@ -63,7 +63,7 @@ interface updateResponse {
 
 type AppInfosById = Record<string, AppInfo>
 
-const App: ComponentProps<any> = (props: any) => {
+const Shop: ComponentProps<any> = (props: any) => {
     const [appInfo, setAppInfo] = useStorage('app-info', {} as AppInfosById)
 
     if (import.meta.env.DEV) {
@@ -82,10 +82,12 @@ const App: ComponentProps<any> = (props: any) => {
     window.webxdc.setUpdateListener((resp: ReceivedStatusUpdate<updateResponse>) => {
         console.log("Received update", resp)
         setlastSerial(resp.serial)
-        //@ts-ignore
-        if (resp.payload.request_type === undefined) {
+
+        // skip events that have a request_type and are hence self-send
+        if (!Object.hasOwn(resp.payload, "request_type")) {
 
             let app_infos: AppInfosById = resp.payload.app_infos.reduce((acc, appinfo) => {
+                // @ts-ignore
                 acc[appinfo.id.id.String] = appinfo
                 return acc
             },
@@ -162,4 +164,4 @@ const App: ComponentProps<any> = (props: any) => {
     );
 };
 
-export default App;
+export default Shop;

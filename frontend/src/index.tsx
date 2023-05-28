@@ -2,8 +2,8 @@
 import { render } from 'solid-js/web';
 
 import './index.sass';
-import AppStore from './appstore';
-import Review from './review'
+import AppStore from './paths/appstore';
+import Review from './paths/review2'
 import "virtual:uno.css"
 import '@unocss/reset/tailwind.css'
 

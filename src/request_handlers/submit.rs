@@ -3,8 +3,11 @@ use std::sync::Arc;
 use crate::{
     bot::State,
     db::DB,
-    request_handlers::review::{HandlePublishError, ReviewChat},
-    utils::send_webxdc,
+    request_handlers::{
+        review::{HandlePublishError, ReviewChat},
+        FrontendRequestWithData,
+    },
+    utils::check_app_info,
 };
 use deltachat::{
     chat::{self, ChatId},
@@ -13,7 +16,6 @@ use deltachat::{
 };
 use log::info;
 use serde::{Deserialize, Serialize};
-use serde_json::json;
 use surrealdb::opt::RecordId;
 
 use super::AppInfo;
@@ -46,7 +48,7 @@ pub async fn handle_message(
 
     if let Some(msg_text) = msg.get_text() {
         if msg_text.starts_with('/') {
-            if msg_text == "/accept-release" {
+            if msg_text == "/publish" {
                 // create review chat
                 if let Err(e) =
                     ReviewChat::from_submit_chat(context, state.clone(), submit_chat).await
@@ -61,6 +63,13 @@ pub async fn handle_message(
                         context,
                         chat_id,
                         "Problem creating your review chat".to_string(),
+                    )
+                    .await?;
+                } else {
+                    chat::send_text_msg(
+                        context,
+                        chat_id,
+                        "I've submitted your app for review".to_string(),
                     )
                     .await?;
                 }
@@ -92,6 +101,7 @@ pub async fn handle_webxdc(
         msg.get_id()
     ))?;
 
+    // TODO: check validity
     app_info.update_from_xdc(file).await?;
 
     state
@@ -99,43 +109,7 @@ pub async fn handle_webxdc(
         .update_app_info(&app_info, &submit_chat.app_info)
         .await?;
 
-    /*
-    TODO: resend if it is different
-    if get_chat_xdc(context, chat_id).await?.is_none() {
-        send_webxdc(context, chat_id, "./review_helper.xdc").await?;
-    } */
-
-    send_webxdc(context, chat_id, "./review_helper.xdc", None).await?;
-
-    let missing = app_info.generate_missing_list();
-
-    if !missing.is_empty() {
-        chat::send_text_msg(
-            context,
-            chat_id,
-            format!("Missing fields: {}", missing.join(", ")),
-        )
-        .await?;
-    } else {
-        chat::send_text_msg(
-            context,
-            chat_id,
-            "I've got all information needed, if you want to publish it, type '/publish' and I will send it into review.".into(),
-        )
-        .await?;
-    }
-
-    context
-        .send_webxdc_status_update_struct(
-            submit_chat.creator_webxdc,
-            deltachat::webxdc::StatusUpdateItem {
-                payload: json! {app_info},
-                ..Default::default()
-            },
-            "",
-        )
-        .await?;
-
+    check_app_info(context, &app_info, &submit_chat, chat_id).await?;
     Ok(())
 }
 
@@ -146,27 +120,30 @@ enum RequestType {
 }
 
 pub async fn handle_status_update(
-    _context: &Context,
-    _state: Arc<State>,
-    _chat_id: ChatId,
-    _msg_id: MsgId,
-    _update: String,
+    context: &Context,
+    state: Arc<State>,
+    chat_id: ChatId,
+    update: String,
 ) -> anyhow::Result<()> {
     // TODO: handle changes on frontend
-    /* if let Ok(req) = serde_json::from_str::<FrontendRequest<String>>(&update) {
-        let review_chat = state
+    info!("Handling app info update ");
+    if let Ok(req) = serde_json::from_str::<FrontendRequestWithData<String, AppInfo>>(&update) {
+        let submit_chat = state
             .db
-            .get_review_chat(chat_id)
+            .get_submit_chat(chat_id)
             .await?
             .ok_or(anyhow::anyhow!("No review chat found for chat {chat_id}"))?;
 
-        let _app_info = review_chat.get_app_info(&state.db).await?;
+        state
+            .db
+            .update_app_info(&req.payload.data, &submit_chat.app_info)
+            .await?;
+        check_app_info(context, &req.payload.data, &submit_chat, chat_id).await?;
     } else {
         info!(
             "Ignoring update: {}",
             &update.get(..100.min(update.len())).unwrap_or_default()
-
         )
-    } */
+    }
     Ok(())
 }
