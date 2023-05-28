@@ -16,22 +16,6 @@ pub mod review;
 pub mod shop;
 pub mod submit;
 
-#[derive(TS, Deserialize, Serialize, Clone, Debug)]
-pub struct AppInfo {
-    pub name: String,                    // manifest
-    pub author_name: String,             // bot
-    pub author_email: Option<String>,    // bot
-    pub source_code_url: Option<String>, // manifest
-    pub image: Option<String>,           // webxdc
-    pub description: Option<String>,     // submit
-    pub xdc_blob_dir: Option<PathBuf>,   // bot
-    pub version: Option<String>,         // manifest
-    #[serde(default = "default_thing")]
-    #[ts(skip)]
-    pub originator: RecordId, // bot
-    pub active: bool,                    // bot
-}
-
 #[derive(Deserialize)]
 pub struct ExtendedWebxdcManifest {
     #[serde(flatten)]
@@ -42,6 +26,22 @@ pub struct ExtendedWebxdcManifest {
 
     /// Version of the application.
     pub description: Option<String>,
+}
+
+#[derive(TS, Deserialize, Serialize, Clone, Debug)]
+pub struct AppInfo {
+    pub name: String,                    // manifest
+    pub author_name: String,             // bot
+    pub author_email: String,            // bot
+    pub source_code_url: Option<String>, // manifest
+    pub image: Option<String>,           // webxdc
+    pub description: Option<String>,     // submit
+    pub xdc_blob_dir: Option<PathBuf>,   // bot
+    pub version: Option<String>,         // manifest
+    #[serde(default = "default_thing")]
+    #[ts(skip)]
+    pub originator: RecordId, // bot
+    pub active: bool,                    // bot
 }
 
 impl AppInfo {
@@ -77,6 +77,7 @@ impl AppInfo {
                 self.description = Some(description)
             }
         }
+        
         self.xdc_blob_dir = Some(file);
 
         let icon = entries
@@ -97,6 +98,13 @@ impl AppInfo {
         if self.name.is_empty() {
             missing.push("name".to_string());
         }
+        if self.author_name.is_empty() {
+            missing.push("author name".to_string());
+        }
+        if self.author_email.is_empty() {
+            missing.push("author email".to_string());
+        }
+
         if self.description.is_none() {
             missing.push("description".to_string());
         }

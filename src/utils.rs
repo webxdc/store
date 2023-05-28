@@ -9,9 +9,13 @@ use deltachat::{
     context::Context,
     message::{Message, MsgId, Viewtype},
 };
+use serde_json::json;
 use std::env;
 
-use crate::DB_PATH;
+use crate::{
+    request_handlers::{submit::SubmitChat, AppInfo},
+    DB_PATH,
+};
 
 pub async fn configure_from_env(ctx: &Context) -> Result<()> {
     let addr = env::var("addr")?;
@@ -89,4 +93,48 @@ pub fn get_db_path() -> String {
         .to_str()
         .unwrap()
         .to_string()
+}
+
+pub async fn check_app_info(
+    context: &Context,
+    app_info: &AppInfo,
+    submit_chat: &SubmitChat,
+    chat_id: ChatId,
+) -> anyhow::Result<()> {
+    // TODO: make this conditional?
+    context
+        .send_webxdc_status_update_struct(
+            submit_chat.creator_webxdc,
+            deltachat::webxdc::StatusUpdateItem {
+                payload: json! {app_info},
+                ..Default::default()
+            },
+            "",
+        )
+        .await?;
+
+    /*
+    TODO: resend if it is different
+    if get_chat_xdc(context, chat_id).await?.is_none() {
+        send_webxdc(context, chat_id, "./review_helper.xdc", None).await?;
+    } */
+
+    let missing = app_info.generate_missing_list();
+
+    if !missing.is_empty() {
+        chat::send_text_msg(
+            context,
+            chat_id,
+            format!("Missing fields: {}", missing.join(", ")),
+        )
+        .await?;
+    } else {
+        chat::send_text_msg(
+            context,
+            chat_id,
+            "I've got all information needed, if you want to publish it, type '/publish' and I will send it into review.".into(),
+        )
+        .await?;
+    }
+    Ok(())
 }

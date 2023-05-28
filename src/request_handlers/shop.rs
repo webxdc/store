@@ -1,12 +1,15 @@
 use super::{AppInfo, FrontendRequest};
 use crate::{
-    bot::State, messages::appstore_message, request_handlers::FrontendRequestWithData,
+    bot::State,
+    messages::appstore_message,
+    request_handlers::{self, submit::SubmitChat, ChatType, FrontendRequestWithData},
     utils::send_webxdc,
 };
 use anyhow::Context as _;
 use deltachat::{
     chat::{self, ChatId, ProtectionStatus},
     constants,
+    contact::Contact,
     context::Context,
     message::{Message, MsgId, Viewtype},
 };
@@ -14,7 +17,7 @@ use log::{info, warn};
 use serde::Deserialize;
 use serde_json::json;
 use std::sync::Arc;
-use surrealdb::sql::Thing;
+use surrealdb::sql::{Id, Thing};
 use ts_rs::TS;
 
 #[derive(TS, Deserialize)]
@@ -60,17 +63,48 @@ pub async fn handle_message(
     Ok(())
 }
 
-pub async fn handle_webxdc(context: &Context, msg: Message) -> anyhow::Result<()> {
+pub async fn handle_webxdc(
+    context: &Context,
+    state: Arc<State>,
+    msg: Message,
+) -> anyhow::Result<()> {
     info!("Handling webxdc message in chat with type shop");
 
-    let app_info = AppInfo::from_xdc(&msg.get_file(context).unwrap()).await?;
+    let mut app_info = AppInfo::from_xdc(&msg.get_file(context).unwrap()).await?;
+    let contact = Contact::load_from_db(context, msg.get_from_id()).await?;
+
+    app_info.author_email = contact.get_addr().to_string();
+    app_info.author_name = contact.get_authname().to_string();
+
+    let resource_id = Thing {
+        tb: "appinfo".to_string(),
+        id: Id::rand(),
+    };
+    state
+        .db
+        .create_app_info(&app_info, resource_id.clone())
+        .await?;
+
     let chat_name = format!("Submit: {}", app_info.name);
     let chat_id = chat::create_group_chat(context, ProtectionStatus::Protected, &chat_name).await?;
-
     let creator = msg.get_from_id();
     chat::add_contact_to_chat(context, chat_id, creator).await?;
 
+    state.db.set_chat_type(chat_id, ChatType::Submit).await?;
+
     chat::forward_msgs(context, &[msg.get_id()], chat_id).await?;
+    let creator_webxdc = send_webxdc(context, chat_id, "review_helper.xdc", None).await?;
+
+    state
+        .db
+        .create_submit(&SubmitChat {
+            creator_chat: chat_id,
+            creator_webxdc,
+            app_info: resource_id,
+        })
+        .await?;
+
+    request_handlers::submit::handle_webxdc(context, chat_id, state, msg).await?;
 
     Ok(())
 }

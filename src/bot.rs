@@ -256,7 +256,7 @@ impl Bot {
                     ChatType::Shop => {
                         let msg = Message::load_from_db(context, msg_id).await?;
                         if msg.get_viewtype() == Viewtype::Webxdc {
-                            shop::handle_webxdc(context, msg).await?;
+                            shop::handle_webxdc(context, state, msg).await?;
                         } else {
                             shop::handle_message(context, state, chat_id).await?;
                         }
@@ -299,7 +299,7 @@ impl Bot {
 
         match chat_type {
             ChatType::Submit => {
-                submit::handle_status_update(context, state, chat_id, msg_id, update).await?
+                submit::handle_status_update(context, state, chat_id, update).await?
             }
             ChatType::Shop => {
                 shop::handle_status_update(context, state, chat_id, msg_id, update).await?

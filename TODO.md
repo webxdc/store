@@ -8,6 +8,13 @@
 - Fix retrieving of receiving chat
 - Better skipping for equal serial
 - App updating
+- Fix error handling in review
+- Optimize initial webxdc loading
+- Fix conditionial building
+- Add receive notification
+- Inline placeholder image
+- Nice Serialization for app_info::thing
+- Close submit helper webxdc on submit
 
 ## Make appstore happy path run:
 1. [x] bot admin configures the bot with QRCode
