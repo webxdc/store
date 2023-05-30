@@ -45,44 +45,38 @@ pub struct Bot {
 }
 
 impl Bot {
-    pub async fn new() -> Self {
-        let dbdir = env::current_dir().unwrap().join("deltachat.db");
+    pub async fn new() -> Result<Self> {
+        let dbdir = env::current_dir()?.join("deltachat.db");
 
-        std::fs::create_dir_all(dbdir.clone())
-            .context("Failed to create db folder")
-            .unwrap();
+        std::fs::create_dir_all(dbdir.clone()).context("Failed to create db folder")?;
 
         let dbfile = dbdir.join("db.sqlite");
         let context = Context::new(dbfile.as_path(), 1, Events::new(), StockStrings::new())
             .await
-            .context("Failed to create context")
-            .unwrap();
+            .context("Failed to create context")?;
 
-        if !context.get_config_bool(Config::Configured).await.unwrap() {
+        if !context.get_config_bool(Config::Configured).await? {
             info!("Start configuring...");
-            configure_from_env(&context).await.unwrap();
+            configure_from_env(&context).await?;
             info!("Configuration done");
         }
 
         let db = DB::new(&get_db_path()).await;
 
-        let config = match db.get_config().await.unwrap() {
+        let config = match db.get_config().await? {
             Some(config) => config,
             None => {
                 info!("No bot configuration found, start configuring...");
-                let config = Self::setup(&context).await.unwrap();
-                db.set_config(&config).await.unwrap();
+                let config = Self::setup(&context).await?;
+                db.set_config(&config).await?;
 
                 // set chat types
                 db.set_chat_type(config.genesis_group, ChatType::Genesis)
-                    .await
-                    .unwrap();
+                    .await?;
                 db.set_chat_type(config.reviewee_group, ChatType::ReviewPool)
-                    .await
-                    .unwrap();
+                    .await?;
                 db.set_chat_type(config.tester_group, ChatType::TesterPool)
-                    .await
-                    .unwrap();
+                    .await?;
 
                 // save qr codes to disk
                 qrcode_generator::to_png_to_file(
@@ -90,8 +84,7 @@ impl Bot {
                     QrCodeEcc::Low,
                     1024,
                     GENESIS_QR,
-                )
-                .unwrap();
+                )?;
                 println!("Generated genisis group join QR-code at {GENESIS_QR}");
 
                 qrcode_generator::to_png_to_file(
@@ -99,18 +92,17 @@ impl Bot {
                     QrCodeEcc::Low,
                     1024,
                     INVITE_QR,
-                )
-                .unwrap();
+                )?;
                 println!("Generated 1:1 invite QR-code at {INVITE_QR}");
 
                 config
             }
         };
 
-        Self {
+        Ok(Self {
             dc_ctx: context,
             state: Arc::new(State { db, config }),
-        }
+        })
     }
 
     async fn setup(context: &Context) -> Result<BotConfig> {
