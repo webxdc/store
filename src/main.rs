@@ -99,7 +99,7 @@ async fn main() {
             }
         }
         BotActions::Start => {
-            let mut bot = Bot::new().await;
+            let mut bot = Bot::new().await.unwrap();
             bot.start().await;
             signal::ctrl_c().await.unwrap();
         }
