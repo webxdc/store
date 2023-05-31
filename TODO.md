@@ -1,9 +1,7 @@
 
 ## Fixes
-- [ ] split review_helper.xdc into
-  - App info preview
-  - Testing preview
-- [ ] Migrate to SEA_QL
+- [ ] split review_helper.xdc for review and submit chats
+- [ ] Remove surrealdb
 - [ ] Figure out testing
 - [ ] App updating
 - [ ] Fix error handling in review
@@ -23,7 +21,8 @@
 
 ## Make reviw happy path run:
 1. [x] User sends webxdc into 1:1 chat with the bot.
-2. [x] The bot creates a new group for review. 
-3. [x] After all requirements have been met, the bot asks the bot wheter he wants to send it to review. 
-4. [x] The Bot creates another group for review with some testers (3) an one publisher.
-5. [ ] After testing is complete, the publisher can publish the app to the appstore. 
+2. [x] The bot creates a new group with the user where he forwards the webxdc to. It also send the helper wbxdc where things like name, description and so on can be seen and edited.
+3. [] When all required fields are filled in, the user can send the webxdc to review.
+4. [x] Upon review request (send from helper xdc), the bot creates a new group with some testers and one publisher.
+5. The testers test the app and checkmark required tests in the helper webxdc.
+6. [x] When all requirements are met, the publisher can publish the app to the appstore.
