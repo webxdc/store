@@ -30,14 +30,40 @@ struct SerialReps {
     serial: usize,
 }
 
-#[derive(Deserialize, Serialize, Clone, Debug, TS)]
-#[ts(export)]
-#[ts(export_to = "frontend/src/bindings/")]
+#[derive(Deserialize, Serialize, Clone, Debug)]
 pub struct AppInfoId {
     #[serde(flatten)]
     pub app_info: AppInfo,
-    #[ts(skip)] // TODO: remove this skip
     pub id: Thing,
+}
+
+#[derive(Deserialize, Serialize, Clone, Debug, TS)]
+#[ts(export)]
+#[ts(export_to = "frontend/src/bindings/")]
+pub struct FrontendAppInfo {
+    pub name: String,                    // manifest
+    pub author_name: String,             // bot
+    pub author_email: String,            // bot
+    pub source_code_url: Option<String>, // manifest
+    pub image: Option<String>,           // webxdc
+    pub description: Option<String>,     // submit
+    pub version: Option<String>,         // manifest
+    pub id: String,
+}
+
+impl From<AppInfoId> for FrontendAppInfo {
+    fn from(app_info: AppInfoId) -> Self {
+        Self {
+            name: app_info.app_info.name,
+            author_name: app_info.app_info.author_name,
+            author_email: app_info.app_info.author_email,
+            source_code_url: app_info.app_info.source_code_url,
+            image: app_info.app_info.image,
+            description: app_info.app_info.description,
+            version: app_info.app_info.version,
+            id: app_info.id.id.to_raw(),
+        }
+    }
 }
 
 pub struct DB {

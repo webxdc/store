@@ -1,20 +1,22 @@
 use super::{AppInfo, FrontendRequest};
 use crate::{
     bot::State,
+    db::{FrontendAppInfo, DB},
     messages::appstore_message,
     request_handlers::{self, submit::SubmitChat, ChatType, FrontendRequestWithData},
     utils::send_webxdc,
 };
-use anyhow::Context as _;
+use anyhow::bail;
 use deltachat::{
     chat::{self, ChatId, ProtectionStatus},
     constants,
     contact::Contact,
     context::Context,
     message::{Message, MsgId, Viewtype},
+    webxdc::StatusUpdateItem,
 };
-use log::{info, warn};
-use serde::Deserialize;
+use log::info;
+use serde::{Deserialize, Serialize};
 use serde_json::json;
 use std::sync::Arc;
 use surrealdb::sql::{Id, Thing};
@@ -36,6 +38,22 @@ pub struct PublishRequest {
     pub description: String,
 }
 
+#[derive(TS, Serialize)]
+#[ts(export)]
+#[ts(export_to = "frontend/src/bindings/")]
+pub struct UpdateResponse {
+    app_infos: Vec<FrontendAppInfo>,
+    serial: usize,
+}
+
+#[derive(TS, Serialize)]
+#[ts(export)]
+#[ts(export_to = "frontend/src/bindings/")]
+pub struct DownloadResponse {
+    okay: bool,
+    id: Option<String>,
+}
+
 pub async fn handle_message(
     context: &Context,
     state: Arc<State>,
@@ -44,18 +62,7 @@ pub async fn handle_message(
     let chat = chat::Chat::load_from_db(context, chat_id).await?;
     if let constants::Chattype::Single = chat.typ {
         let msg = send_webxdc(context, chat_id, "./appstore.xdc", Some(appstore_message())).await?;
-        let curr_serial = state.db.get_last_serial().await?;
-        let apps = state.db.get_active_app_infos().await?;
-        context
-            .send_webxdc_status_update_struct(
-                msg,
-                deltachat::webxdc::StatusUpdateItem {
-                    payload: json! {{"app_infos": apps, "serial": curr_serial}},
-                    ..Default::default()
-                },
-                "",
-            )
-            .await?;
+        send_newest_updates(context, msg, &state.db, 0).await?;
     }
     Ok(())
 }
@@ -121,38 +128,26 @@ pub async fn handle_status_update(
                 let req =
                     serde_json::from_str::<FrontendRequestWithData<RequestType, usize>>(&update)?;
 
-                let apps = state
-                    .db
-                    .get_active_app_infos_since(req.payload.data)
-                    .await?;
+                send_newest_updates(context, msg_id, &state.db, req.payload.data).await?;
+            }
+            RequestType::Dowload => {
+                info!("Handling store download");
+                let result = handle_download_request(context, state, &update, chat_id).await;
+                let resp = DownloadResponse {
+                    okay: result.is_ok(),
+                    id: result.map(|id| id).ok(),
+                };
 
-                let curr_serial = state.db.get_last_serial().await?.context("no serial")?;
                 context
                     .send_webxdc_status_update_struct(
                         msg_id,
-                        deltachat::webxdc::StatusUpdateItem {
-                            payload: json! {{"app_infos": apps, "serial": curr_serial}},
+                        StatusUpdateItem {
+                            payload: json! { resp },
                             ..Default::default()
                         },
                         "",
                     )
                     .await?;
-            }
-            RequestType::Dowload => {
-                info!("Handling store download");
-                let resource =
-                    serde_json::from_str::<FrontendRequestWithData<RequestType, Thing>>(&update)?
-                        .payload
-                        .data;
-
-                let app = state.db.get_app_info(&resource).await?;
-                let mut msg = Message::new(Viewtype::Webxdc);
-                if let Some(file) = app.xdc_blob_dir {
-                    msg.set_file(file.to_str().unwrap(), None);
-                    chat::send_msg(context, chat_id, &mut msg).await.unwrap();
-                } else {
-                    warn!("No path for downloaded app {}", app.name)
-                }
             }
         }
     } else {
@@ -161,5 +156,60 @@ pub async fn handle_status_update(
             &update.get(..100.min(update.len())).unwrap_or_default()
         )
     }
+    Ok(())
+}
+
+async fn handle_download_request(
+    context: &Context,
+    state: Arc<State>,
+    update: &str,
+    chat_id: ChatId,
+) -> anyhow::Result<String> {
+    let resource = serde_json::from_str::<FrontendRequestWithData<RequestType, String>>(&update)?
+        .payload
+        .data;
+
+    let app = state
+        .db
+        .get_app_info(&Thing {
+            tb: "app_info".to_string(),
+            id: Id::String(resource.clone()),
+        })
+        .await?;
+    let mut msg = Message::new(Viewtype::Webxdc);
+    if let Some(file) = app.xdc_blob_dir {
+        msg.set_file(file.to_str().unwrap(), None);
+        chat::send_msg(context, chat_id, &mut msg).await.unwrap();
+    } else {
+        bail!("No path for downloaded app {}", app.name)
+    }
+    Ok(resource)
+}
+
+async fn send_newest_updates(
+    context: &Context,
+    msg_id: MsgId,
+    db: &DB,
+    serial: usize,
+) -> anyhow::Result<()> {
+    let app_infos: Vec<_> = db
+        .get_active_app_infos_since(serial)
+        .await?
+        .into_iter()
+        .map(FrontendAppInfo::from)
+        .collect();
+
+    let serial = 0; //state.db.get_last_serial().await?.context("no serial")?;
+    let resp = UpdateResponse { app_infos, serial };
+    context
+        .send_webxdc_status_update_struct(
+            msg_id,
+            deltachat::webxdc::StatusUpdateItem {
+                payload: json! {resp},
+                ..Default::default()
+            },
+            "",
+        )
+        .await?;
     Ok(())
 }

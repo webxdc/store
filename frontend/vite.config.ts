@@ -11,10 +11,12 @@ export default defineConfig(({ mode }) => {
       closeBundle: () => {
         //@ts-ignore
         const env = loadEnv(mode, process.cwd(), '')
-        if (env.VITE_APPSTORE && mode == 'production') {
-          shell.exec('./create_xdc.sh appstore', { env: { 'VITE_APPSTORE': true } })
-        } else {
-          shell.exec('./create_xdc.sh review_helper')
+        if (mode == 'production') {
+          if (env.VITE_APPSTORE) {
+            shell.exec('./create_xdc.sh appstore', { env: { 'VITE_APPSTORE': true } })
+          } else {
+            shell.exec('./create_xdc.sh review_helper')
+          }
         }
       }
     }],

@@ -7,7 +7,6 @@
 - [ ] Fix error handling in review
 - [ ] Fix conditionial building
 - [ ] Inline placeholder image
-- [ ] Nice Serialization for app_info::thing
 - [ ] Close submit helper webxdc on submit
 - [ ] Move bot files into dedicated folder
 
@@ -17,7 +16,7 @@
 3. [x] bot admin uses the bot's CLI to get the 1:1 contact verification QR of the bot
 4. [x] bot admin share bot's verification-QR with users
 6. [ ] click on download button, get the app in the chat, the download button changes to "downloading.." and
-7. [ ] When the app was delivered, the state changes to "in chat"
+7. [x] When the app was delivered, the state changes to "in chat"
 
 ## Make reviw happy path run:
 1. [x] User sends webxdc into 1:1 chat with the bot.

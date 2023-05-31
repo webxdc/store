@@ -46,7 +46,6 @@ window.webxdc = (() => {
       updates.push(_update)
       window.localStorage.setItem(updatesKey, JSON.stringify(updates))
       _update.max_serial = serial
-      console.log(`[Webxdc] description="${description}", ${JSON.stringify(_update)}`)
       updateListener(_update)
     },
     removeUpdateListener: () => {

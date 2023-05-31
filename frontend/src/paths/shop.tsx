@@ -1,25 +1,45 @@
-import { Component, ComponentProps, Show, createEffect, createMemo, createSignal, onMount } from 'solid-js';
+import { Component, Show, createEffect, createMemo, createSignal } from 'solid-js';
 import { For } from "solid-js/web";
 import { useStorage } from 'solidjs-use';
 import { ReceivedStatusUpdate } from '../webxdc';
 import { format } from 'date-fns';
-import { AppInfo } from '../bindings/AppInfo';
+import { FrontendAppInfo } from '../bindings/FrontendAppInfo';
 import Fuse from 'fuse.js';
+import { DownloadResponse } from '../bindings/DownloadResponse';
+import { UpdateResponse } from '../bindings/UpdateResponse';
+import { createStore, reconcile } from 'solid-js/store';
 
-function create_item(item: AppInfo) {
+enum AppState {
+    Initial,
+    Downloading,
+    Received
+}
+
+interface AppInfoWithState extends FrontendAppInfo {
+    state: AppState
+}
+
+type AppInfosById = Record<string, AppInfoWithState>
+
+
+const fuse_options = {
+    keys: [
+        "name",
+        "author_name"
+    ]
+}
+
+function isDownloadResponse(p: any): p is DownloadResponse {
+    return Object.hasOwn(p, "okay")
+}
+
+function isUpdateResponse(p: any): p is UpdateResponse {
+    return Object.hasOwn(p, "app_infos")
+}
+
+
+function App(item: AppInfoWithState, onDownload: () => void) {
     const [isExpanded, setIsExpanded] = createSignal(false);
-    const [isInstalling, setInstalling] = createSignal(false);
-
-    function onAdd() {
-        setInstalling(true)
-        window.webxdc.sendUpdate({
-            payload: {
-                request_type: 'Dowload',
-                //@ts-ignore
-                data: item.id
-            }
-        }, "")
-    }
 
     return (
         <li class="p-4 pb-1 rounded shadow border w-full">
@@ -29,11 +49,9 @@ function create_item(item: AppInfo) {
                     <h2 class="text-xl font-semibold">{item.name}</h2>
                     <p class="text-gray-600 truncate max-width-text">{item.description}</p>
                 </div>
-                <Show when={!isInstalling()} fallback={
-                    <p class="unimportant">Downloading..</p>
-                }>
-                    <button class="btn justify-self-center" onClick={onAdd}> Add </button>
-                </Show>
+                {item.state == AppState.Initial && <button class="btn justify-self-center" onClick={onDownload}> Add </button>}
+                {item.state == AppState.Downloading && <p class="unimportant"> Downloading.. </p>}
+                {item.state == AppState.Received && <p class="text-amber-400 font-bold"> Received in Chat </p>}
             </div>
             {
                 isExpanded() && (
@@ -56,23 +74,9 @@ function create_item(item: AppInfo) {
     )
 }
 
-interface updateResponse {
-    serial: number
-    app_infos: AppInfo[]
-}
 
-type AppInfosById = Record<string, AppInfo>
-
-
-const fuse_options = {
-    keys: [
-        "name",
-        "author_name"
-    ]
-}
-
-const AppList: Component<{ items: AppInfo[], search: string }> = (props) => {
-    let fuse: Fuse<AppInfo> = new Fuse(props.items, fuse_options);
+const AppList: Component<{ items: AppInfoWithState[], search: string, onDownload: (id: string) => void }> = (props) => {
+    let fuse: Fuse<AppInfoWithState> = new Fuse(props.items, fuse_options);
 
     createEffect(() => {
         fuse = new Fuse(props.items, fuse_options);
@@ -87,61 +91,85 @@ const AppList: Component<{ items: AppInfo[], search: string }> = (props) => {
     })
 
     return (
-        <div>
-            <For each={filtered_items() || props.items}>
-                {
-                    item => create_item(item)
-                }
-            </For>
-        </div>
+        <For each={filtered_items() || props.items}>
+            {
+                item => App(item, () => { props.onDownload(item.id) })
+            }
+        </For>
     );
 };
 
+function isEmpty(obj: any) {
+    for (var prop in obj) {
+        if (obj.hasOwnProperty(prop))
+            return false;
+    }
+    return true;
+}
+
 const Shop: Component<any> = (props: any) => {
-    const [appInfo, setAppInfo] = useStorage('app-info', {} as AppInfosById)
+    const [appInfo, setAppInfo] = createStore({} as AppInfosById)
 
     if (import.meta.env.DEV) {
-        setAppInfo({ hi: { "id": "hi", "active": true, "author_email": "xrxve@testrun.org", "author_name": "administrator", "description": "uidae", "image": "iVBORw0KGgoAAAANSUhEUgAAAIAAAACACAMAAAD04JH5AAAC/VBMVEVaXFlRWM1aV85iVc9nVstuVMxoV8xwVc1xVs51Vsh7VMqCU8t8VcuGU8ZkZmONUsmHVMiOU8qIVcmSU8WYUcePVMuJVsqTVMaZUsijUMSaU8mCWtGdU8OkUcWlUsetUMKmU8iuUcOpU8K1T8aJXM64T8FsbmuvUsSPW9DCTr+wU8a5UcLAT8SUXMy6UsObW87DUMDJTsLMTr59ZdfEUcGlWsufXMqCZdOmW8zIUr7GU8OJZdSQY9bJVL+xW8rMVLq3WcyUZNHKVcDNVbx0d3S7WsjBWMqcY9TOVr2gZNCnY9HKWrzBXcbNW7ixY8/OXLlieunEX8LPXbrSXbV8fnu3Zc3BY8PLYbrPYra7Z8rFZcDSY7LJZrzTZLO9asbUZbS4bMvDasLXZrA0kv7Ha77Saa/Ua7HLbbvXbK3Zba6IioeVf9/Uca7Lc7jXcaqIhudjkfbPdbXZc6xXlfjUdavbdKeOh+SOkI2Ji+WlhNXYeKjceqTVfKmPjePSfbTfe6CSlZHRgLCVj99hnfrcgKKRk+HVg63ggZ6WmZbhg6BsoPiBnOXkhJuYlt/jhKHdhqDWiKuTmeCanZnhh5zai6jlipmZnN3XjqifoZ7ijprkj5XbkaWgn9uipKHmkJedotl0rP3fk6LpkpPjlZjmlZPcl6OmqKWFrfvfmqDqmJCoq6jtmYyIsP7nnJLhnp3qnY23qMmsrquPsvvsn4/koZruoIqvsa6Kt/7ipZzrpIzlp5jvpojoqZS0t7PyqITmrZbvrIWWvv+3ureevf/yroHqsJO6vLnetJ6iv/z1sIO8vrv3sX7otJXztH+pwu3rtpC+wb7ut4z4t3vGwcCtxPzCxMH1u333vHisyv/6vnrGyMX8wHX6xHbKzcn9xnK+zvz8y2681P/Q09DU19TD2f/K1//Y29fL3v7b3tre4N3g49/V5P7d5O3k5uPb6Pzn6ubf7P/r7urm7/7y7ezu8O3x8/Dw9//29v/1+PT1+v34+/f8+v75/f/7/vr9//wPQv4NAAAK9ElEQVR42sXbDXAUZxkA4K/AhL9ASDLA5JoOHDjEgRgBqXbAGGVCbcVI+SmihbZWQYP/VsRitdFWzFQtEPxJW9NqxaNEUM/KKdajOOJartaO1UPYdtXk4uZu8bLd85YeS7Lj97e/t7t3Ry57LwOZScjk4X2//d59dz/Atm133LFjx1337Ny5a9fHYHR+CsXn9uzZs2/fl1A88BCMb8B45JHDKL4L49FHH3sCxlNHYBxDceLnMJ45efLUyVOnnkVx+vSZM2fOnj0H40UUL6M4/w8YFy++AuPVf5L4N9hGBTt1wSeoYF+e4MCBUgSnvQWUADZvKyEHBwrnAAJKEoDNm/NzUKTgMWeBLQdnvQUQYBbstFZBFzzgWIVyCMCm4gS2HBy2CY54VQELXnARgA2bNhmCu/JWokMOvmUTHHmqqBy4CECHXUAInZ2GYJ+eg4ewwHQ5YsGPbYJnnHNgVOE8FlxEgFdBhy740Mc/bY4voPiiKb5si6/B+Lolvq3HoUOH0O/vWeIHNJ588hcv6QII6NiwAQnufnBo5DV/YmTg4T9RwStgPRW8/zMZ1b8Y+eZ5KgC3rEeADZvu/LXqZ/zwr3QdgLZb1q9Hgjv/4Cvg+Ev0YgBtRNBxt9+Al89rgLY2KKgAgGwIYG0byYHfgD/TLQm0UkElAEgAWqngAz4D/ki3ZQggAt8BdFtGgNa1kKADon2xRKgv3d8tqqn+HrG/W4j2snyoV1FjfYyqhns5LhSGnxbDPQlVDnUL5DNjJQOIAAOQ4HYN0C7MjsZ3M91MXOUifcwWNrwkvSQW25tWd6eAqoLUlt7EkkQXw8zm96rSFi4ChPbQYLtcOgALwIoVRGAA5NnRwW4m/LeYysXCTNdguD23JMb1COruLATMzm7pFdoTIZZpT0PA3kRkttweSm0pFfAcbc9gFRXogJSSEuW0JP5PUmVJlNKyCD8jyWJOFZQk+rIg5lKymJWEXFpV4JeT8BtyglIqgN4ggFVQsBIKbvd5ET537hwSvAgBJAcVAGABWL6K5KASgHMYQAS+A36HJ4YXEIAI3uc7gMwsCIAF7gCZJx/wn1JWSCWknCyNF/BbOjWBZirQAZFoLMyGZCHEhbgwo46pfExO8Bzbx7HcoMqGGTnKREUhPW4AERDAchMg1Btiutjk4GAXE+rvVQeVBDs2GGVisb5wPKbGolFByHG9qcT4AVgAWppJDnSAmIa7T1aWZUESRfTvTPOKIqUFURDgP5sTU1lFkYWEPF4Amd/PgpYWkgMNcOX4L73iKP3yUbe/8K+iAWRmAcuQoNkAvP7h8cXzRQJ+Q6cmsAwKWqDAfwARQAAR+A34FZ0cEQBVQQeMjowvMiUAEAEDUA783gkJ4FkKgIL3+A2gAzwFLPMd8DP6CAEsXUwEDgAZ32iSu82xXFZVFCVXRgB5jAKamhZbAXDHj/Mx+JOyMVbK8izLsSKrJONsfzgxxpYPQB8pQgDJgQ7o6+mLdsWSYlJIxXM9YSkcYqIRmY1L3CCTiJcRQAQg2ERyoAN4nhcG07DdKqyk8llW5OPpuMIL8ZyYTnPlA9DHaaCJCjTA1SvO34GrryjlA9AHejADQVwFDXD5sj9XwdP0kSIIBlEKli6uAAALwIIFCNDUdGsFAEgAFi0I4ipogNGrPgHoY1WwcBHMATTc6vNO+DR9rApuoAK/AT85duzET6EA3EAFFQAcO0YAWLDg3QUAyhjpCkoZASdOEAAW6IBkSuDFhIRvexlRkUU+xSVllWUYJh4ZlLixMgHI83UCQAId0NPVG+qKwCFATqiCOBYN8WGmL57jhHAqkmDi470f1wA/ok/4QQMV6AA4ACXiSTaJBjJRVjkpxnNMUmFjbIzLCnFOKVcGiAA0UIEGGP2Pc/yFfvxvmdbA4/RFDwJgwruKvCvOlAtA33aBxoYGnATfAfR9G2hsrBSACEBjgORAA1z9u3e8Xj4AFoAAEegAv3bCx+mrXxAINOIq+A34Pn3nCAFE4DuAvHN8AgGwwG/Ad+hbTwxAAg2gMNG0xEtSis/GJYnPKqKiiFFxAgBEAOYTQeDt+iMalg3FQxE+x0Tj/dHuUFdKzsVTEwHAAlBPBIE1GkDiGY6JRAU1IjJcLMLCDphkhLIDDtJ3z6CeCta4rYGxiVkDB+nbbwgggjU+L8KD9P07AmBBBQBYAGqpoBKAwxhQOxcLNMDo5VEyHV6Gv0YnGAAJoIYK9AwMDAyPZDLDV4YyQ8MDI8OjEwU4YABq50KCDsgMDQ0NDw2pmecHXrtwYWCCThUc30+Pw4C6GkioNwFGM5dGLl3KqKOXMsOZS0MTlYH99EAOqKubh5JQ/zafF+F+ehwGAoigAgB8LAoBsMB3AD0SBOYgAVwHfgO+Sg4lQcAckoMKALAAAkgO3lIBABKAWbOIwHcAPR8HZmLBHN8B99MTemAmFvgOOPoVej4OVFPB9Q+P+vjzrzx4Pz2hB6o1wW0X/BNc+f192jlJCKCCutvuPXrcnzh67336SU0E0HJQd/0btHgjjDeReDOKt6K48aYbb8LxDiPeuY7EzTevW/deHBs3bty6desHcWzfvv0jMD6K45M4Povi88ZJTVA9wyTQGoN2oxgIaLOr9ihJe7Ssvekhbz3x6+/VK+mBHHw0zOGkpv2sKCaAGTNsAtqedUGjXdBkEzTrglZ6KMlNsMsQ6AenIaDaQYAJHoImQ9Ci5WAFOQ7TSg+nGYJtDgL96DbKwIxq5yrUz3euQtBahRZbFWgS9LOieYJOcw4wgJbBENR65yAYtOagWa8CyQE5nWYSoCoYh8c7O005ANNNgpnmHNSbcqA9x9EFaCkuXmwIljsJ1ltz4CwA062CWbYczPfIwdJCAnJalQqcD9DvA9OmO+WgBq/EueaLwZ4D01J0rQI6K7rBfHg8XwCmTnPJgV0QuDZBhyHY4SQAU6dOpYJq28VQa1kH5oWwcBEtQuEqFMwBAkxzFtiuRvPlmL8OlnmsRKvA9l85EMDIwYy8HFirYBYEg/YNoXiBaVsmAJiEPMEch23ZWIvGOrBsSc15grYCAgowlqJVMK/WoTFoSzHo0Jp0wWp7DsyN4R5jWwZVVoGtCjX25mhdikTgvCm2ercmug46dYBTDurccuDeHHXBCtqeXVsTFYApVVUFqlCoObq2phXaiV3aGDY5bcugqipPgMpgbs90W57vti1DgiUHhmCly7ZsWgcoA/lVsDbHmkLt2SZY7rAptuW3JgTYBQFTnHJQbWmOjoK85ris+NZkas8QMGVKleM6qM5fiZbWZMuBpTG4bcv57RlMJgLnKuitqabW4WIw5yAYLLU5kirsBJNdBLYNYZ7jtuyRg2avWxTTpggBk72q4C2wt2fzpmgXrHVsjhigCapcq4AItpskZLC2pibX5rjaozVhwGRLClxb07waSw4CAfsNwrU0RwKwrQMPwdy5HjcI7oK8bVkXgElmgVdjmGPaELQcGJfjQvepieTATQAmTZpkroK9OTrMLPWlTI76UlzpMjkiwCSPHLjNrvVFNkdjbjNmV0trwgCdUGUVTC9ibnOaWTxaE74azQIzYHLBdeAwNQUKCqzTs2lyxAIKsAiqvJtjwdnVdr++vNmrNWkAs2CqW2PwqkKDrTEsLdwc8basAyxLsUBrmldwbgsWPTWZAF6CAjOL4w2C89S00iYwA0oV2CfHvCoUMb93gOvsgGtsz/gGoaF0AbjOTaBfC9OKmxxtA4PH3GZpjv8Hd8p2TPfbtiYAAAAASUVORK5CYII=", "name": "Poll", "source_code_url": "https://github.com/webxdc/webxdc-poll", "version": "1.0.0", "xdc_blob_dir": "/home/sebastian/coding/appstore-bot/deltachat.db/db.sqlite-blobs/poll-3714810120.xdc" } })
+        setAppInfo('hi',
+            {
+                id: "hi",
+                name: "Poll",
+                description: "Poll app where you can create crazy cool polls. This is a very long description for the pepe.",
+                author_name: "Jonas Arndt",
+                author_email: "xxde@you.de",
+                source_code_url: "https://example.com",
+                image: "a",
+                version: "1.11",
+                state: AppState.Initial
+            } as FrontendAppInfo
+        )
     }
-    const appList = createMemo(() => Object.values(appInfo()))
+
     const [lastSerial, setlastSerial] = useStorage('last-serial', 0)
     const [lastUpdateSerial, setlastUpdateSerial] = useStorage('last-update-serial', 0)
     const [lastUpdate, setlastUpdate] = useStorage('last-update', new Date())
     const [isUpdating, setIsUpdating] = createSignal(false)
     const [search, setSearch] = createSignal("")
 
-    if (appInfo() == undefined) {
+    if (appInfo == undefined) {
         setIsUpdating(true)
     }
 
-    window.webxdc.setUpdateListener((resp: ReceivedStatusUpdate<updateResponse>) => {
-        console.log("Received update", resp)
+    window.webxdc.setUpdateListener((resp: ReceivedStatusUpdate<UpdateResponse | DownloadResponse>) => {
+        // console.log("Received update", resp)
         setlastSerial(resp.serial)
 
         // skip events that have a request_type and are hence self-send
         if (!Object.hasOwn(resp.payload, "request_type")) {
+            if (isUpdateResponse(resp.payload)) {
+                console.log('Received Update')
+                let app_infos: AppInfosById = resp.payload.app_infos.reduce((acc, appinfo) => {
+                    acc[appinfo.id] = { ...appinfo, state: AppState.Initial }
+                    return acc
+                },
+                    {} as AppInfosById)
 
-            let app_infos: AppInfosById = resp.payload.app_infos.reduce((acc, appinfo) => {
-                // @ts-ignore
-                acc[appinfo.id.id.String] = appinfo
-                return acc
-            },
-                {} as AppInfosById)
-            console.log(app_infos);
+                if (isEmpty(appInfo)) {
+                    // initially write the newest update to state
+                    setAppInfo(app_infos)
+                } else {
+                    // all but the first update only overwrite existing properties
+                    console.log('Reconceiling updates')
+                    setAppInfo(reconcile(app_infos))
+                }
 
-            // TODO: optimize?
-            if (Object.values(appInfo()).length === 0) {
-                // initially write the newest update to state
-                setAppInfo(app_infos)
-                console.log(appInfo());
+                setlastUpdateSerial(resp.payload.serial)
+                setIsUpdating(false)
+                setlastUpdate(new Date())
 
-            } else {
-                // all but the first update only overwrite existing properties
-                setAppInfo(Object.assign({ ...appInfo() }, resp.payload.app_infos))
+            } else if (isDownloadResponse(resp.payload)) {
+                if (resp.payload.okay) {
+                    // id is set if resp is okay
+                    let id = resp.payload.id!
+                    setAppInfo(id, 'state', AppState.Received)
+                }
             }
-            setlastUpdateSerial(resp.payload.serial)
-            setIsUpdating(false)
-            setlastUpdate(new Date())
         }
     }, lastSerial())
 
@@ -151,6 +179,16 @@ const Shop: Component<any> = (props: any) => {
             payload: {
                 request_type: "Update",
                 data: lastUpdateSerial()
+            }
+        }, "")
+    }
+
+    function handleDownload(id: string) {
+        setAppInfo(id, 'state', AppState.Downloading)
+        window.webxdc.sendUpdate({
+            payload: {
+                request_type: 'Dowload',
+                data: id
             }
         }, "")
     }
@@ -166,7 +204,7 @@ const Shop: Component<any> = (props: any) => {
                 <div class="unimportant p-1 flex items-center gap-2">
                     <Show when={isUpdating()} fallback={
                         <button onclick={update}>
-                            <span>{format(lastUpdate(), 'cccc H:m')}</span>
+                            <span>{format(lastUpdate(), 'cccc HH:mm')}</span>
                         </button>
                     }>
                         Updating..
@@ -183,7 +221,7 @@ const Shop: Component<any> = (props: any) => {
                             <div class="i-carbon-search text-indigo-500" />
                         </button>
                     </li>
-                    <AppList items={appList()} search={search()} ></AppList>
+                    <AppList items={Object.values(appInfo)} search={search()} onDownload={handleDownload} ></AppList>
                     <li class="mt-3">
                         <button onClick={onopen} class="btn w-full">
                             Publish your own app
