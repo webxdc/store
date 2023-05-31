@@ -19,8 +19,8 @@ const SubmitHelper: Component = () => {
             author_name: "Jonas Arndt",
             author_email: "xxde@you.de",
             source_code_url: "https://example.com",
-            image: "a",
             version: "1.11",
+            image: "",
             id: "hi",
         }
         lastAppinfo = mock_info

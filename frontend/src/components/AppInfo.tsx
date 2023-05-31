@@ -1,9 +1,9 @@
 import { Component, Show, createMemo } from 'solid-js';
-import { AppInfo } from '../bindings/AppInfo';
+import { FrontendAppInfo } from '../bindings/FrontendAppInfo';
 
 interface AppInfoPreviewProps {
-    appinfo: AppInfo
-    setAppInfo(appInfo: AppInfo): void;
+    appinfo: FrontendAppInfo
+    setAppInfo(appInfo: FrontendAppInfo): void;
 }
 
 
@@ -16,16 +16,16 @@ const AppInfoPreview: Component<AppInfoPreviewProps> = (props) => {
     };
 
     let errors = createMemo(() => Object.entries(props.appinfo).reduce((acc, [key, v]) => {
-        acc[key as keyof AppInfo] = v === undefined || v === null || v === ''
+        acc[key as keyof FrontendAppInfo] = v === undefined || v === null || v === ''
         return acc
-    }, {} as { [key in keyof AppInfo]: boolean }
+    }, {} as { [key in keyof FrontendAppInfo]: boolean }
     ));
 
     return (
         <form class="flex flex-col p-4 rounded shadow max-width bg-white border">
             <Show when={!errors().image} fallback={
                 <div class="flex flex-col items-center">
-                    <img src="https://via.placeholder.com/150" alt={props.appinfo.name} class="w-20 h-20 rounded-xl" />
+                    <img src="150.png" alt={props.appinfo.name} class="w-20 h-20 rounded-xl" />
                     <p class="text-red">Please add an image.png to your webxdc bundle</p>
                 </div>
             }>

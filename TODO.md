@@ -4,9 +4,8 @@
 - [ ] Remove surrealdb
 - [ ] Figure out testing
 - [ ] App updating
-- [ ] Fix error handling in review
+- [ ] Improve error handling in review
 - [ ] Fix conditionial building
-- [ ] Inline placeholder image
 - [ ] Close submit helper webxdc on submit
 - [ ] Move bot files into dedicated folder
 
