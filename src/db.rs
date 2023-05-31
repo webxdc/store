@@ -220,7 +220,7 @@ impl DB {
         Ok(serial + 1)
     }
 
-    // TODO: take rousource_id as Reference
+    // TODO: take string as resource id
     // TOOD: don't take resource id from
     pub async fn create_app_info(
         &self,

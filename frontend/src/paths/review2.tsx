@@ -52,7 +52,6 @@ const SubmitHelper: Component = () => {
         <div class="c-grid m-4">
             <div class="min-width flex flex-col gap-3">
                 <h1 class="text-2xl text-center font-bold text-indigo-500"> App Metadata</h1>
-                <p> {is_appdata_complete().toString()}</p>
                 <Show when={has_loaded()} fallback={
                     <p>Waiting for setup message...</p>
                 }>

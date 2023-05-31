@@ -1,11 +1,10 @@
 
 ## Fixes
-- [ ] split review_helper.xdc for review and submit chats
+- [ ] Split review_helper.xdc for review and submit chats
 - [ ] Remove surrealdb
 - [ ] Figure out testing
 - [ ] App updating
-- [ ] Improve error handling in review
-- [ ] Fix conditionial building
+- [ ] Fix conditional building
 - [ ] Close submit helper webxdc on submit
 - [ ] Move bot files into dedicated folder
 
@@ -20,7 +19,7 @@
 ## Make reviw happy path run:
 1. [x] User sends webxdc into 1:1 chat with the bot.
 2. [x] The bot creates a new group with the user where he forwards the webxdc to. It also send the helper wbxdc where things like name, description and so on can be seen and edited.
-3. [] When all required fields are filled in, the user can send the webxdc to review.
+3. [ ] When all required fields are filled in, the user can send the webxdc to review.
 4. [x] Upon review request (send from helper xdc), the bot creates a new group with some testers and one publisher.
-5. The testers test the app and checkmark required tests in the helper webxdc.
+5. [ ] The testers test the app and checkmark required tests in the helper webxdc.
 6. [x] When all requirements are met, the publisher can publish the app to the appstore.
