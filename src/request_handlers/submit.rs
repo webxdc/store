@@ -28,7 +28,7 @@ pub struct SubmitChat {
 }
 
 impl SubmitChat {
-    pub async fn get_app_info(&self, db: &DB) -> surrealdb::Result<AppInfo> {
+    pub async fn get_app_info(&self, db: &DB) -> anyhow::Result<AppInfo> {
         db.get_app_info(&self.app_info).await
     }
 }
@@ -95,7 +95,7 @@ pub async fn handle_webxdc(
         .await?
         .ok_or(anyhow::anyhow!("No submit chat found for chat {chat_id}"))?;
 
-    let mut app_info = submit_chat.get_app_info(&state.db).await.unwrap();
+    let mut app_info = submit_chat.get_app_info(&state.db).await?;
     let file = msg.get_file(context).ok_or(anyhow::anyhow!(
         "Webxdc message {} has no file attached",
         msg.get_id()

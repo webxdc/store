@@ -61,7 +61,7 @@ impl Bot {
             info!("Configuration done");
         }
 
-        let db = DB::new(&get_db_path()).await;
+        let db = DB::new(&get_db_path()?).await?;
 
         let config = match db.get_config().await? {
             Some(config) => config,
@@ -118,11 +118,9 @@ impl Bot {
             chat::create_group_chat(context, ProtectionStatus::Protected, "Appstore: Testers")
                 .await?;
 
-        let genesis_qr = securejoin::get_securejoin_qr(context, Some(genesis_group))
-            .await
-            .unwrap();
+        let genesis_qr = securejoin::get_securejoin_qr(context, Some(genesis_group)).await?;
 
-        let invite_qr = securejoin::get_securejoin_qr(context, None).await.unwrap();
+        let invite_qr = securejoin::get_securejoin_qr(context, None).await?;
 
         Ok(BotConfig {
             genesis_qr,

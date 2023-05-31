@@ -59,16 +59,23 @@ impl AppInfo {
         let mut upgraded = false;
         let mut changed = false;
 
-        let reader = ZipFileReader::new(&file).await.unwrap();
+        let reader = ZipFileReader::new(&file).await?;
         let entries = reader.file().entries();
         let manifest = entries
             .iter()
             .enumerate()
-            .find(|(_, entry)| entry.entry().filename().as_str().unwrap() == "manifest.toml")
+            .find(|(_, entry)| {
+                entry
+                    .entry()
+                    .filename()
+                    .as_str()
+                    .map(|name| name == "manifest.toml")
+                    .unwrap_or_default()
+            })
             .map(|a| a.0);
 
         if let Some(index) = manifest {
-            let res = read_string(&reader, index).await.unwrap();
+            let res = read_string(&reader, index).await?;
             let manifest: ExtendedWebxdcManifest = toml::from_str(&res)?;
 
             ne_assign(&mut self.name, manifest.webxdc_manifest.name, &mut changed);
@@ -89,11 +96,18 @@ impl AppInfo {
         let icon = entries
             .iter()
             .enumerate()
-            .find(|(_, entry)| entry.entry().filename().as_str().unwrap() == "icon.png")
+            .find(|(_, entry)| {
+                entry
+                    .entry()
+                    .filename()
+                    .as_str()
+                    .map(|name| name == "icon.png")
+                    .unwrap_or_default()
+            })
             .map(|a| a.0);
 
         if let Some(index) = icon {
-            let res = read_vec(&reader, index).await.unwrap();
+            let res = read_vec(&reader, index).await?;
             ne_assign_option(&mut self.image, Some(encode(&res)), &mut changed);
         }
         Ok((changed, upgraded))

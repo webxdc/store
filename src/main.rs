@@ -7,6 +7,7 @@ mod messages;
 mod request_handlers;
 mod utils;
 
+use anyhow::Context;
 use bot::Bot;
 use clap::Parser;
 use cli::{BotActions, BotCli};
@@ -25,16 +26,15 @@ const GENESIS_QR: &str = "genesis_invite_qr.png";
 const INVITE_QR: &str = "1o1_invite_qr.png";
 
 #[tokio::main]
-async fn main() {
+async fn main() -> anyhow::Result<()> {
     env_logger::init();
     let cli = BotCli::parse();
 
     match &cli.action {
         BotActions::Import => {
             info!("Importing webxdcs from 'import/'");
-            let db = DB::new(&get_db_path()).await;
-            let files: Vec<_> = std::fs::read_dir("import/")
-                .unwrap()
+            let db = DB::new(&get_db_path()?).await?;
+            let files: Vec<_> = std::fs::read_dir("import/")?
                 .filter_map(|e| e.ok())
                 .map(|e| e.path())
                 .filter(|e| e.is_file())
@@ -47,22 +47,28 @@ async fn main() {
             for file in &files {
                 if file
                     .file_name()
-                    .unwrap()
-                    .to_str()
-                    .unwrap()
+                    .map(|a| a.to_str())
+                    .flatten()
+                    .context("Can't get filename for imported file")?
                     .ends_with(".xdc")
                 {
-                    let mut app_info = AppInfo::from_xdc(file).await.unwrap();
+                    let mut app_info = AppInfo::from_xdc(file).await?;
                     app_info.active = true;
                     app_info.author_name = "Appstore bot".to_string();
                     app_info.author_email = "appstorebot@testrun.org".to_string();
 
                     let missing = app_info.generate_missing_list();
                     if missing.is_empty() {
-                        let mut new_path = file.parent().unwrap().parent().unwrap().to_path_buf();
+                        let mut new_path = file
+                            .parent()
+                            .map(|a| a.parent())
+                            .flatten()
+                            .context("path could not be constructed")?
+                            .to_path_buf();
+
                         new_path.push("xdcs");
-                        new_path.push(file.file_name().unwrap());
-                        fs::rename(file, &new_path).await.unwrap();
+                        new_path.push(file.file_name().context("Direntry has no filename")?);
+                        fs::rename(file, &new_path).await?;
                         app_info.xdc_blob_dir = Some(new_path);
 
                         db.create_app_info(
@@ -72,13 +78,12 @@ async fn main() {
                                 id: Id::rand(),
                             },
                         )
-                        .await
-                        .unwrap();
+                        .await?;
                         println!("Added {} to apps", app_info.name);
                     } else {
                         println!(
                             "The app {} is missing some data: {:?}",
-                            file.as_os_str().to_str().unwrap(),
+                            file.as_os_str().to_str().context("Can't convert to str")?,
                             missing
                         )
                     }
@@ -86,22 +91,23 @@ async fn main() {
             }
         }
         BotActions::ShowQr => {
-            let db = DB::new(&get_db_path()).await;
-            match db.get_config().await.unwrap() {
+            let db = DB::new(&get_db_path()?).await?;
+            match db.get_config().await? {
                 Some(config) => {
                     println!("You can find png files of the qr codes at bots home dir");
                     println!("Genisis invite qr:");
-                    qr2term::print_qr(config.genesis_qr).unwrap();
+                    qr2term::print_qr(config.genesis_qr)?;
                     println!("Bot invite qr:");
-                    qr2term::print_qr(config.invite_qr).unwrap();
+                    qr2term::print_qr(config.invite_qr)?;
                 }
                 None => println!("Bot not configured yet, start the bot first."),
             }
         }
         BotActions::Start => {
-            let mut bot = Bot::new().await.unwrap();
+            let mut bot = Bot::new().await?;
             bot.start().await;
-            signal::ctrl_c().await.unwrap();
+            signal::ctrl_c().await?;
         }
     }
+    Ok(())
 }

@@ -6,7 +6,7 @@ use crate::{
     request_handlers::{self, submit::SubmitChat, ChatType, FrontendRequestWithData},
     utils::send_webxdc,
 };
-use anyhow::bail;
+use anyhow::{bail, Context as _};
 use deltachat::{
     chat::{self, ChatId, ProtectionStatus},
     constants,
@@ -74,7 +74,7 @@ pub async fn handle_webxdc(
 ) -> anyhow::Result<()> {
     info!("Handling webxdc message in shop chat");
 
-    let mut app_info = AppInfo::from_xdc(&msg.get_file(context).unwrap()).await?;
+    let mut app_info = AppInfo::from_xdc(&msg.get_file(context).context("Can't get file")?).await?;
     let contact = Contact::load_from_db(context, msg.get_from_id()).await?;
 
     app_info.author_email = contact.get_addr().to_string();
@@ -178,8 +178,8 @@ async fn handle_download_request(
         .await?;
     let mut msg = Message::new(Viewtype::Webxdc);
     if let Some(file) = app.xdc_blob_dir {
-        msg.set_file(file.to_str().unwrap(), None);
-        chat::send_msg(context, chat_id, &mut msg).await.unwrap();
+        msg.set_file(file.to_str().context("Can't covert file to str")?, None);
+        chat::send_msg(context, chat_id, &mut msg).await?;
     } else {
         bail!("No path for downloaded app {}", app.name)
     }
