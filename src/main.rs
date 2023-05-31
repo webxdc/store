@@ -1,4 +1,4 @@
-#![warn(clippy::all, clippy::indexing_slicing)]
+#![warn(clippy::all, clippy::indexing_slicing, clippy::unwrap_used)]
 mod bot;
 mod bot_commands;
 mod cli;
@@ -47,8 +47,7 @@ async fn main() -> anyhow::Result<()> {
             for file in &files {
                 if file
                     .file_name()
-                    .map(|a| a.to_str())
-                    .flatten()
+                    .and_then(|a| a.to_str())
                     .context("Can't get filename for imported file")?
                     .ends_with(".xdc")
                 {
@@ -61,8 +60,7 @@ async fn main() -> anyhow::Result<()> {
                     if missing.is_empty() {
                         let mut new_path = file
                             .parent()
-                            .map(|a| a.parent())
-                            .flatten()
+                            .and_then(|a| a.parent())
                             .context("path could not be constructed")?
                             .to_path_buf();
 

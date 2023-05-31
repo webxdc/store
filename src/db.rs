@@ -198,7 +198,7 @@ impl DB {
     pub async fn set_config(&self, config: &BotConfig) -> anyhow::Result<BotConfig> {
         let _t: Option<BotConfig> = self.db.delete(("config", "config")).await.ok().flatten();
         let res = self.db.create(("config", "config")).content(config).await?;
-        Ok(res.context("Can't find bot config")?)
+        res.context("Can't find bot config")
     }
 
     pub async fn get_config(&self) -> surrealdb::Result<Option<BotConfig>> {
@@ -230,7 +230,7 @@ impl DB {
             .context("Couldn't increase serial")?
             .insert("serial".to_string(), json!(next_serial));
         let res = self.db.create(resource_id).content(app_info_json).await?;
-        Ok(res.context("Can't get appinfo")?)
+        res.context("Can't get appinfo")
     }
 
     pub async fn update_app_info(&self, app_info: &AppInfo, id: &Thing) -> anyhow::Result<AppInfo> {
@@ -241,7 +241,7 @@ impl DB {
             .context("Couldn't increase serial")?
             .insert("serial".to_string(), json!(next_serial));
         let res = self.db.update(id.clone()).content(app_info_json).await?;
-        Ok(res.context("Can't get appinfo")?)
+        res.context("Can't get appinfo")
     }
 
     pub async fn publish_app(&self, id: &Thing) -> anyhow::Result<AppInfo> {
@@ -250,12 +250,12 @@ impl DB {
             .update(id.clone())
             .merge(json!({"active": true}))
             .await?;
-        Ok(res.context("Can't serialize appinfo")?)
+        res.context("Can't serialize appinfo")
     }
 
     pub async fn get_app_info(&self, resource_id: &Thing) -> anyhow::Result<AppInfo> {
         let res = self.db.select(resource_id.clone()).await?;
-        Ok(res.context("Can't serialize appinfo")?)
+        res.context("Can't serialize appinfo")
     }
 
     pub async fn get_active_app_infos(&self) -> surrealdb::Result<Vec<AppInfoId>> {
@@ -284,6 +284,6 @@ impl DB {
     pub async fn get_last_serial(&self) -> anyhow::Result<usize> {
         let mut result = self.db.query("SELECT serial FROM config:config").await?;
         let _t: Option<usize> = result.take((0, "serial"))?;
-        Ok(_t.context("Can't deserialize serial")?)
+        _t.context("Can't deserialize serial")
     }
 }
