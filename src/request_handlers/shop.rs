@@ -135,7 +135,7 @@ pub async fn handle_status_update(
                 let result = handle_download_request(context, state, &update, chat_id).await;
                 let resp = DownloadResponse {
                     okay: result.is_ok(),
-                    id: result.map(|id| id).ok(),
+                    id: result.ok(),
                 };
 
                 context
@@ -165,7 +165,7 @@ async fn handle_download_request(
     update: &str,
     chat_id: ChatId,
 ) -> anyhow::Result<String> {
-    let resource = serde_json::from_str::<FrontendRequestWithData<RequestType, String>>(&update)?
+    let resource = serde_json::from_str::<FrontendRequestWithData<RequestType, String>>(update)?
         .payload
         .data;
 
