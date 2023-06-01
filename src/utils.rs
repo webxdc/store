@@ -74,13 +74,13 @@ pub async fn read_vec(reader: &ZipFileReader, index: usize) -> anyhow::Result<Ve
     Ok(data)
 }
 
-pub fn get_db_path() -> String {
-    env::current_dir()
-        .unwrap()
-        .join(DB_PATH)
-        .to_str()
-        .unwrap()
-        .to_string()
+pub fn get_db_path() -> anyhow::Result<String> {
+    env::current_dir().map(|a| {
+        a.join(DB_PATH)
+            .to_str()
+            .map(|a| a.to_string())
+            .context("No file")
+    })?
 }
 
 pub async fn check_app_info(

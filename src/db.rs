@@ -72,10 +72,10 @@ pub struct DB {
 
 #[allow(unused)]
 impl DB {
-    pub async fn new(store: &str) -> Self {
-        let db = Surreal::new::<File>(store).await.unwrap();
-        db.use_ns("bot").use_db("bot").await.unwrap();
-        Self { db }
+    pub async fn new(store: &str) -> anyhow::Result<Self> {
+        let db = Surreal::new::<File>(store).await?;
+        db.use_ns("bot").use_db("bot").await?;
+        Ok(Self { db })
     }
 
     pub async fn get_review_chat(&self, chat_id: ChatId) -> surrealdb::Result<Option<ReviewChat>> {
@@ -86,13 +86,13 @@ impl DB {
         self.db.select(("chat", chat_id.to_u32().to_string())).await
     }
 
-    pub async fn create_submit(&self, chat: &SubmitChat) -> surrealdb::Result<SubmitChat> {
-        let res = self
+    pub async fn create_submit(&self, chat: &SubmitChat) -> anyhow::Result<()> {
+        let res: Option<SubmitChat> = self
             .db
             .create(("chat", chat.creator_chat.to_u32().to_string()))
             .content(chat)
             .await?;
-        Ok(res.unwrap())
+        Ok(())
     }
 
     pub async fn upgrade_to_review_chat(&self, chat: &ReviewChat) -> surrealdb::Result<()> {
@@ -109,12 +109,11 @@ impl DB {
         chat_id: ChatId,
         chat_type: ChatType,
     ) -> surrealdb::Result<()> {
-        let _t: DBChatType = self
+        let _t: Option<DBChatType> = self
             .db
             .create(("chattype", chat_id.to_u32().to_string()))
             .content(DBChatType { chat_type })
-            .await?
-            .unwrap();
+            .await?;
         Ok(())
     }
 
@@ -127,12 +126,11 @@ impl DB {
     }
 
     pub async fn add_contact_to_genesis(&self, contact_id: ContactId) -> surrealdb::Result<()> {
-        let _t: DBContactId = self
+        let _t: Option<DBContactId> = self
             .db
             .create(("genesis", contact_id.to_u32().to_string()))
             .content(DBContactId { contact_id })
-            .await?
-            .unwrap();
+            .await?;
         Ok(())
     }
 
@@ -145,12 +143,11 @@ impl DB {
     }
 
     pub async fn create_publisher(&self, contact_id: ContactId) -> surrealdb::Result<()> {
-        let _t: DBContactId = self
+        let _t: Option<DBContactId> = self
             .db
             .create(("publisher", contact_id.to_u32().to_string()))
             .content(DBContactId { contact_id })
-            .await?
-            .unwrap();
+            .await?;
         Ok(())
     }
 
@@ -167,17 +164,16 @@ impl DB {
             .db
             .query("SELECT contact_id FROM publisher LIMIT 1")
             .await?;
-        let contact_id: Vec<ContactId> = result.take((0, "contact_id")).unwrap();
+        let contact_id: Vec<ContactId> = result.take((0, "contact_id"))?;
         Ok(contact_id.get(0).copied())
     }
 
     pub async fn create_tester(&self, contact_id: ContactId) -> surrealdb::Result<()> {
-        let _t: DBContactId = self
+        let _t: Option<DBContactId> = self
             .db
             .create(("testers", contact_id.to_u32().to_string()))
             .content(DBContactId { contact_id })
-            .await?
-            .unwrap();
+            .await?;
         Ok(())
     }
 
@@ -195,14 +191,14 @@ impl DB {
             .query("SELECT contact_id FROM testers LIMIT 3")
             .await?;
 
-        let testers = result.take::<Vec<ContactId>>((0, "contact_id")).unwrap();
+        let testers = result.take::<Vec<ContactId>>((0, "contact_id"))?;
         Ok(testers)
     }
 
-    pub async fn set_config(&self, config: &BotConfig) -> surrealdb::Result<BotConfig> {
+    pub async fn set_config(&self, config: &BotConfig) -> anyhow::Result<BotConfig> {
         let _t: Option<BotConfig> = self.db.delete(("config", "config")).await.ok().flatten();
         let res = self.db.create(("config", "config")).content(config).await?;
-        Ok(res.unwrap())
+        res.context("Can't find bot config")
     }
 
     pub async fn get_config(&self) -> surrealdb::Result<Option<BotConfig>> {
@@ -210,8 +206,8 @@ impl DB {
         Ok(res)
     }
 
-    pub async fn increase_get_serial(&self) -> surrealdb::Result<usize> {
-        let serial = self.get_last_serial().await?.unwrap();
+    pub async fn increase_get_serial(&self) -> anyhow::Result<usize> {
+        let serial = self.get_last_serial().await?;
         let _serial: Option<SerialReps> = self
             .db
             .update(("config", "config"))
@@ -234,7 +230,7 @@ impl DB {
             .context("Couldn't increase serial")?
             .insert("serial".to_string(), json!(next_serial));
         let res = self.db.create(resource_id).content(app_info_json).await?;
-        Ok(res.unwrap())
+        res.context("Can't get appinfo")
     }
 
     pub async fn update_app_info(&self, app_info: &AppInfo, id: &Thing) -> anyhow::Result<AppInfo> {
@@ -245,21 +241,21 @@ impl DB {
             .context("Couldn't increase serial")?
             .insert("serial".to_string(), json!(next_serial));
         let res = self.db.update(id.clone()).content(app_info_json).await?;
-        Ok(res.unwrap())
+        res.context("Can't get appinfo")
     }
 
-    pub async fn publish_app(&self, id: &Thing) -> surrealdb::Result<AppInfo> {
+    pub async fn publish_app(&self, id: &Thing) -> anyhow::Result<AppInfo> {
         let res = self
             .db
             .update(id.clone())
             .merge(json!({"active": true}))
             .await?;
-        Ok(res.unwrap())
+        res.context("Can't serialize appinfo")
     }
 
-    pub async fn get_app_info(&self, resource_id: &Thing) -> surrealdb::Result<AppInfo> {
+    pub async fn get_app_info(&self, resource_id: &Thing) -> anyhow::Result<AppInfo> {
         let res = self.db.select(resource_id.clone()).await?;
-        Ok(res.unwrap())
+        res.context("Can't serialize appinfo")
     }
 
     pub async fn get_active_app_infos(&self) -> surrealdb::Result<Vec<AppInfoId>> {
@@ -285,8 +281,9 @@ impl DB {
         Ok(testers)
     }
 
-    pub async fn get_last_serial(&self) -> surrealdb::Result<Option<usize>> {
+    pub async fn get_last_serial(&self) -> anyhow::Result<usize> {
         let mut result = self.db.query("SELECT serial FROM config:config").await?;
-        result.take((0, "serial"))
+        let _t: Option<usize> = result.take((0, "serial"))?;
+        _t.context("Can't deserialize serial")
     }
 }

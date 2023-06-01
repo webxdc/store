@@ -106,7 +106,7 @@ impl ReviewChat {
         Ok(review_chat)
     }
 
-    pub async fn get_app_info(&self, db: &DB) -> surrealdb::Result<AppInfo> {
+    pub async fn get_app_info(&self, db: &DB) -> anyhow::Result<AppInfo> {
         db.get_app_info(&self.app_info).await
     }
 }
@@ -129,7 +129,7 @@ pub async fn handle_message(
 
             let app_info = review_chat.get_app_info(&state.db).await?;
             if app_info.is_complete() {
-                state.db.publish_app(&review_chat.app_info).await.unwrap();
+                state.db.publish_app(&review_chat.app_info).await?;
                 chat::send_text_msg(context, chat_id, "App published".into()).await?;
             } else {
                 let missing = app_info.generate_missing_list();
