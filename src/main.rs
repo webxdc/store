@@ -7,6 +7,9 @@ mod messages;
 mod request_handlers;
 mod utils;
 
+use std::fs;
+use std::path::PathBuf;
+
 use anyhow::Context;
 use bot::Bot;
 use clap::Parser;
@@ -14,7 +17,6 @@ use cli::{BotActions, BotCli};
 use log::info;
 use surrealdb::sql::Id;
 use surrealdb::sql::Thing;
-use tokio::fs;
 use tokio::signal;
 use utils::get_db_path;
 
@@ -22,10 +24,10 @@ use crate::db::DB;
 use crate::request_handlers::AppInfo;
 
 const DB_PATH: &str = "bot.db";
-const GENESIS_QR: &str = "genesis_invite_qr.png";
-const INVITE_QR: &str = "1o1_invite_qr.png";
-const SHOP_NAME: &str = "appstore.xdc";
-const SUBMIT_HELPER: &str = "review_helper.xdc";
+const GENESIS_QR: &str = "./bot-data/genesis_invite_qr.png";
+const INVITE_QR: &str = "./bot-data/1o1_invite_qr.png";
+const SHOP_XDC: &str = "./bot-data/appstore.xdc";
+const SUBMIT_HELPER_XDC: &str = "./bot-data/review_helper.xdc";
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
@@ -36,7 +38,15 @@ async fn main() -> anyhow::Result<()> {
         BotActions::Import => {
             info!("Importing webxdcs from 'import/'");
             let db = DB::new(&get_db_path()?).await?;
-            let files: Vec<_> = std::fs::read_dir("import/")?
+            let dir_entry = match std::fs::read_dir("import/") {
+                Ok(dir) => dir,
+                Err(_) => {
+                    fs::create_dir("import/").ok();
+                    fs::read_dir("import/")?
+                }
+            };
+
+            let files: Vec<_> = dir_entry
                 .filter_map(|e| e.ok())
                 .map(|e| e.path())
                 .filter(|e| e.is_file())
@@ -44,6 +54,13 @@ async fn main() -> anyhow::Result<()> {
 
             if files.is_empty() {
                 println!("No xdcs to add in ./import")
+            }
+
+            if !PathBuf::from("./bot-data/xdcs")
+                .try_exists()
+                .unwrap_or_default()
+            {
+                fs::create_dir("./bot-data/xdcs")?;
             }
 
             for file in &files {
@@ -63,12 +80,13 @@ async fn main() -> anyhow::Result<()> {
                         let mut new_path = file
                             .parent()
                             .and_then(|a| a.parent())
-                            .context("path could not be constructed")?
+                            .context("Path could not be constructed")?
                             .to_path_buf();
 
-                        new_path.push("xdcs");
+                        new_path.push("bot-data/xdcs");
                         new_path.push(file.file_name().context("Direntry has no filename")?);
-                        fs::rename(file, &new_path).await?;
+
+                        fs::rename(file, &new_path)?;
                         app_info.xdc_blob_dir = Some(new_path);
 
                         db.create_app_info(
@@ -79,7 +97,7 @@ async fn main() -> anyhow::Result<()> {
                             },
                         )
                         .await?;
-                        println!("Added {} to apps", app_info.name);
+                        println!("Added {:?}({}) to apps", file, app_info.name);
                     } else {
                         println!(
                             "The app {} is missing some data: {:?}",

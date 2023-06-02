@@ -12,14 +12,14 @@ use deltachat::{
 use log::{debug, error, info, trace, warn};
 use qrcode_generator::QrCodeEcc;
 use serde::{Deserialize, Serialize};
-use std::{env, path::PathBuf, sync::Arc};
+use std::{env, fs, path::PathBuf, sync::Arc};
 
 use crate::{
     db::DB,
     messages::appstore_message,
     request_handlers::{genisis, review, shop, submit, ChatType},
     utils::{configure_from_env, get_db_path, send_webxdc},
-    GENESIS_QR, INVITE_QR, SHOP_NAME, SUBMIT_HELPER,
+    GENESIS_QR, INVITE_QR, SHOP_XDC, SUBMIT_HELPER_XDC,
 };
 
 #[derive(Serialize, Deserialize)]
@@ -107,6 +107,8 @@ impl Bot {
 
     /// Creates special groups and returns the complete bot config.
     async fn setup(context: &Context) -> Result<BotConfig> {
+        fs::create_dir("bot-data")?;
+
         let genesis_group =
             chat::create_group_chat(context, ProtectionStatus::Protected, "Appstore: Genesis")
                 .await?;
@@ -139,7 +141,7 @@ impl Bot {
         let ctx = self.dc_ctx.clone();
         let state = self.state.clone();
 
-        let frontend_files = [SHOP_NAME, SUBMIT_HELPER];
+        let frontend_files = [SHOP_XDC, SUBMIT_HELPER_XDC];
         let required_files_present = frontend_files
             .into_iter()
             .all(|path| PathBuf::from(path).try_exists().unwrap_or_default());
@@ -221,8 +223,7 @@ impl Bot {
                         "Chat {chat_id} is not in the database, adding it as chat with type shop"
                     );
                     state.db.set_chat_type(chat_id, ChatType::Shop).await?;
-                    send_webxdc(context, chat_id, "./appstore.xdc", Some(appstore_message()))
-                        .await?;
+                    send_webxdc(context, chat_id, SHOP_XDC, Some(appstore_message())).await?;
                 }
             },
             other => {

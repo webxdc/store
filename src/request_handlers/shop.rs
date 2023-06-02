@@ -5,6 +5,7 @@ use crate::{
     messages::appstore_message,
     request_handlers::{self, submit::SubmitChat, ChatType, FrontendRequestWithData},
     utils::send_webxdc,
+    SHOP_XDC, SUBMIT_HELPER_XDC,
 };
 use anyhow::{bail, Context as _};
 use deltachat::{
@@ -61,7 +62,7 @@ pub async fn handle_message(
 ) -> anyhow::Result<()> {
     let chat = chat::Chat::load_from_db(context, chat_id).await?;
     if let constants::Chattype::Single = chat.typ {
-        let msg = send_webxdc(context, chat_id, "./appstore.xdc", Some(appstore_message())).await?;
+        let msg = send_webxdc(context, chat_id, SHOP_XDC, Some(appstore_message())).await?;
         send_newest_updates(context, msg, &state.db, 0).await?;
     }
     Ok(())
@@ -98,7 +99,7 @@ pub async fn handle_webxdc(
     chat::add_contact_to_chat(context, chat_id, creator).await?;
 
     chat::forward_msgs(context, &[msg.get_id()], chat_id).await?;
-    let creator_webxdc = send_webxdc(context, chat_id, "review_helper.xdc", None).await?;
+    let creator_webxdc = send_webxdc(context, chat_id, SUBMIT_HELPER_XDC, None).await?;
 
     state
         .db
