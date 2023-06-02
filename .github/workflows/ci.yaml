@@ -18,3 +18,22 @@ jobs:
         run: cargo clippy --workspace --all-targets --all-features -- -D warnings
       - name: check
         run: cargo check --workspace --all-targets --all-features
+
+  python_tests:
+    name: Python tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - name: Build the frontend
+        run: |
+          npm i
+          npm run build
+        working-directory: frontend
+      - name: Build the bot
+        run: cargo build
+      - name: Install tox
+        run: pip install tox
+      - name: Run the tests
+        env:
+          DCC_NEW_TMP_EMAIL: ${{ secrets.DCC_NEW_TMP_EMAIL }}
+        run: tox

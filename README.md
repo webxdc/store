@@ -60,3 +60,19 @@ The used database is surrealdb. You can run a local serve like this
 surreal start --log trace --user root file://bot.db
 ```
 and use some client like `Insomnia` to query the sql backend `localhost:8000/sql`.
+
+### Testing
+
+Tests are using [pytest](https://pytest.org/).
+
+To run the tests, first build the bot in debug mode `cargo build`.
+This command produces `target/debug/github-bot` binary.
+
+To run the tests, you need to install [tox](https://tox.wiki/)
+and set `DCC_NEW_TMP_EMAIL` environment variable with the account creation URL.
+
+Running `tox` will run the tests.
+
+To develop the tests, create a development environment with `tox -e py --devenv env`
+and activate it with `. env/bin/activate`.
+Then run `pytest`.
