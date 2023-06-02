@@ -27,7 +27,8 @@ const DB_PATH: &str = "bot.db";
 const GENESIS_QR: &str = "./bot-data/genesis_invite_qr.png";
 const INVITE_QR: &str = "./bot-data/1o1_invite_qr.png";
 const SHOP_XDC: &str = "./bot-data/appstore.xdc";
-const SUBMIT_HELPER_XDC: &str = "./bot-data/review_helper.xdc";
+const SUBMIT_HELPER_XDC: &str = "./bot-data/submit-helper.xdc";
+const _REVIEW_HELPER_XDC: &str = "./bot-data/review-helper.xdc";
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {

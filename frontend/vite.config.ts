@@ -2,24 +2,26 @@ import { defineConfig, loadEnv } from 'vite';
 import solidPlugin from 'vite-plugin-solid';
 import unocssPlugin from "unocss/vite"
 //@ts-ignore
-import shell from "shelljs"
+import { resolve } from 'path'
 
 export default defineConfig(({ mode }) => {
+  //@ts-ignore
+  const env = loadEnv(mode, process.cwd(), '')
+  const app_name = env.VITE_APP || 'shop'
+
   return {
-    plugins: [solidPlugin(), unocssPlugin(), {
-      name: 'bundle_xdc',
-      closeBundle: () => {
-        //@ts-ignore
-        const env = loadEnv(mode, process.cwd(), '')
-        if (mode == 'production') {
-          if (env.VITE_APPSTORE) {
-            shell.exec('./create_xdc.sh appstore', { env: { 'VITE_APPSTORE': true } })
-          } else {
-            shell.exec('./create_xdc.sh review_helper')
-          }
+    plugins: [solidPlugin(), unocssPlugin()],
+    build: {
+      rollupOptions: {
+        input: {
+          //@ts-ignore
+          shop: resolve(__dirname, `./${app_name}.html`),
+        },
+        output: {
+          dir: 'dist/' + app_name
         }
-      }
-    }],
+      },
+    },
     server: {
       port: 3000,
     }

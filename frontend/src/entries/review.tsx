@@ -3,6 +3,12 @@ import { FrontendAppInfo } from '../bindings/FrontendAppInfo';
 import { useStorage } from 'solidjs-use';
 import { ReceivedStatusUpdate } from '../webxdc';
 import AppInfoPreview from '../components/AppInfo';
+import mock from '../mock'
+import { render } from 'solid-js/web';
+import '../index.sass';
+import "virtual:uno.css"
+import '@unocss/reset/tailwind.css'
+
 
 interface TestStatus {
     android: boolean;
@@ -31,7 +37,7 @@ const ReviewState: Component<ReviewStateProps> = (props) => {
             </label>
             <label class="flex items-center">
                 <input class="mb-2" type="checkbox" name='ios' checked={props.testStatus.ios} onClick={handleInputChange} />
-                <span class="ml-2">Works on iOS</span>
+                <span class="ml-2">Works on IOS</span>
             </label>
             <label class="flex items-center">
                 <input class="mb-2" type="checkbox" name='desktop' checked={props.testStatus.desktop} onClick={handleInputChange} />
@@ -41,34 +47,23 @@ const ReviewState: Component<ReviewStateProps> = (props) => {
     );
 };
 
-const AppDetail: Component = () => {
+const Review: Component = () => {
     const [appInfo, setAppInfo] = useStorage('app-info', {} as FrontendAppInfo)
     const [testStatus, setTestStatus] = useStorage('test-status', { android: false, ios: false, desktop: false })
     const [lastSerial, setlastSerial] = useStorage('last-serial', 0)
-    let lastAppinfo: FrontendAppInfo = {} as FrontendAppInfo
 
     window.webxdc.setUpdateListener((resp: ReceivedStatusUpdate<FrontendAppInfo>) => {
         setlastSerial(resp.serial)
 
         // skip events that have a request_type and are hence self-send
         if (!Object.hasOwn(resp.payload, "request_type")) {
-            lastAppinfo = resp.payload
-            setAppInfo(resp.payload)
             console.log("Received app info", appInfo())
+            setAppInfo(resp.payload)
         }
     }, lastSerial())
 
     if (import.meta.env.DEV) {
-        setAppInfo({
-            name: "Poll",
-            description: "Poll app where you can create crazy cool polls. This is a very long description for the pepe.",
-            author_name: "Jonas Arndt",
-            author_email: "xxde@you.de",
-            source_code_url: "https://example.com",
-            image: "a",
-            version: "1.11",
-            id: "hi",
-        });
+        setAppInfo(mock)
     }
 
     const is_appdata_complete = createMemo(() => Object.values(appInfo()).reduce((init, v) => init && !(v === undefined || v === null || v === ''), true))
@@ -76,6 +71,7 @@ const AppDetail: Component = () => {
     const is_complete = createMemo(() => is_appdata_complete() && is_testing_complete())
 
     function submit() {
+
     }
 
     return (
@@ -110,5 +106,7 @@ const AppDetail: Component = () => {
     )
 };
 
-export default AppDetail;
+const root = document.getElementById('root');
+render(() => <Review />, root!);
+
 

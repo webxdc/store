@@ -3,8 +3,13 @@ import { FrontendAppInfo } from '../bindings/FrontendAppInfo';
 import { useStorage } from 'solidjs-use';
 import { ReceivedStatusUpdate } from '../webxdc';
 import AppInfoPreview from '../components/AppInfo';
+import mock from '../mock'
+import { render } from 'solid-js/web';
+import '../index.sass';
+import "virtual:uno.css"
+import '@unocss/reset/tailwind.css'
 
-const SubmitHelper: Component = () => {
+const Submit: Component = () => {
     const [appInfo, setAppInfo] = useStorage('app-info', {} as FrontendAppInfo)
     const [lastSerial, setlastSerial] = useStorage('last-serial', 0)
     const is_appdata_complete = createMemo(() => Object.values(appInfo()).reduce((init, v) => init && !(v === undefined || v === null || v === ''), true))
@@ -13,18 +18,8 @@ const SubmitHelper: Component = () => {
     const has_loaded = createMemo(() => Object.hasOwn(appInfo(), "version"))
 
     if (import.meta.env.DEV) {
-        const mock_info = {
-            name: "Poll",
-            description: "Poll app where you can create crazy cool polls. This is a very long description for the pepe.",
-            author_name: "Jonas Arndt",
-            author_email: "xxde@you.de",
-            source_code_url: "https://example.com",
-            version: "1.11",
-            image: "",
-            id: "hi",
-        }
-        lastAppinfo = mock_info
-        setAppInfo(mock_info);
+        lastAppinfo = mock
+        setAppInfo(mock);
     }
 
     window.webxdc.setUpdateListener((resp: ReceivedStatusUpdate<FrontendAppInfo>) => {
@@ -40,6 +35,7 @@ const SubmitHelper: Component = () => {
     }, lastSerial())
 
     function submit() {
+        lastAppinfo = appInfo()
         window.webxdc.sendUpdate({
             payload: {
                 request_type: "",
@@ -63,5 +59,5 @@ const SubmitHelper: Component = () => {
     )
 };
 
-export default SubmitHelper;
-
+const root = document.getElementById('root');
+render(() => <Submit />, root!);
