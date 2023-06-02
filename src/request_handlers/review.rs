@@ -2,7 +2,11 @@ use std::sync::Arc;
 use thiserror::Error;
 
 use crate::{
-    bot::State, db::DB, messages::creat_review_group_init_message, utils::get_contact_name,
+    bot::State,
+    db::DB,
+    messages::creat_review_group_init_message,
+    utils::{get_contact_name, send_app_info, send_webxdc},
+    REVIEW_HELPER_XDC,
 };
 use deltachat::{
     chat::{self, ChatId, ProtectionStatus},
@@ -18,6 +22,8 @@ use super::{submit::SubmitChat, AppInfo};
 
 #[derive(Serialize, Deserialize)]
 pub struct ReviewChat {
+    pub review_helper: MsgId,
+    pub submit_helper: MsgId,
     pub review_chat: ChatId,
     pub creator_chat: ChatId,
     pub publisher: ContactId,
@@ -89,18 +95,24 @@ impl ReviewChat {
         )
         .await?;
 
+        let submit_helper = send_webxdc(context, chat_id, REVIEW_HELPER_XDC, None).await?;
+        send_app_info(context, &app_info, submit_helper).await?;
+
         let review_chat = ReviewChat {
             review_chat: chat_id,
             creator_chat: submit_chat.creator_chat,
             publisher,
             testers: testers.clone(),
             app_info: submit_chat.app_info,
+            review_helper: submit_chat.creator_webxdc,
+            submit_helper,
         };
+
         state.db.upgrade_to_review_chat(&review_chat).await?;
 
         state
             .db
-            .set_chat_type(chat_id, super::ChatType::Submit)
+            .set_chat_type(chat_id, super::ChatType::Review)
             .await?;
 
         Ok(review_chat)

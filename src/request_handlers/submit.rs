@@ -7,7 +7,7 @@ use crate::{
         review::{HandlePublishError, ReviewChat},
         FrontendRequestWithData,
     },
-    utils::check_app_info,
+    utils::send_app_info,
 };
 use deltachat::{
     chat::{self, ChatId},
@@ -62,14 +62,14 @@ pub async fn handle_message(
                     chat::send_text_msg(
                         context,
                         chat_id,
-                        "Problem creating your review chat".to_string(),
+                        "Problem creating your review chat.".to_string(),
                     )
                     .await?;
                 } else {
                     chat::send_text_msg(
                         context,
                         chat_id,
-                        "I've submitted your app for review".to_string(),
+                        "I've submitted your app for review!".to_string(),
                     )
                     .await?;
                 }
@@ -101,10 +101,10 @@ pub async fn handle_webxdc(
         msg.get_id()
     ))?;
 
-    // TODO: verify update
+    // TODO: Verify update
     let (changed, upgraded) = app_info.update_from_xdc(file).await?;
     if upgraded {
-        // TODO: handle upgrade
+        // TODO: Handle upgrade
     } else if changed {
         state
             .db
@@ -142,6 +142,34 @@ pub async fn handle_status_update(
             "Ignoring update: {}",
             &update.get(..100.min(update.len())).unwrap_or_default()
         )
+    }
+    Ok(())
+}
+
+/// Checkes if all fields for appinfo are presents and sends a message about the outcome to chat_id.
+pub async fn check_app_info(
+    context: &Context,
+    app_info: &AppInfo,
+    submit_chat: &SubmitChat,
+    chat_id: ChatId,
+) -> anyhow::Result<()> {
+    send_app_info(context, app_info, submit_chat.creator_webxdc).await?;
+
+    let missing = app_info.generate_missing_list();
+    if !missing.is_empty() {
+        chat::send_text_msg(
+            context,
+            chat_id,
+            format!("Missing fields: {}", missing.join(", ")),
+        )
+        .await?;
+    } else {
+        chat::send_text_msg(
+            context,
+            chat_id,
+            "I've got all information needed, if you want to publish it, type '/publish' and I will send it into review.".into(),
+        )
+        .await?;
     }
     Ok(())
 }

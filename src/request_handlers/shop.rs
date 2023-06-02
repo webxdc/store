@@ -1,10 +1,10 @@
 use super::{AppInfo, FrontendRequest};
 use crate::{
     bot::State,
-    db::{FrontendAppInfo, DB},
+    db::FrontendAppInfo,
     messages::appstore_message,
     request_handlers::{self, submit::SubmitChat, ChatType, FrontendRequestWithData},
-    utils::send_webxdc,
+    utils::{send_newest_updates, send_webxdc},
     SHOP_XDC, SUBMIT_HELPER_XDC,
 };
 use anyhow::{bail, Context as _};
@@ -43,8 +43,8 @@ pub struct PublishRequest {
 #[ts(export)]
 #[ts(export_to = "frontend/src/bindings/")]
 pub struct UpdateResponse {
-    app_infos: Vec<FrontendAppInfo>,
-    serial: usize,
+    pub app_infos: Vec<FrontendAppInfo>,
+    pub serial: usize,
 }
 
 #[derive(TS, Serialize)]
@@ -80,6 +80,9 @@ pub async fn handle_webxdc(
 
     app_info.author_email = contact.get_addr().to_string();
     app_info.author_name = contact.get_authname().to_string();
+
+    // HACK: Make name differ from whats in the webxdc so that update will be send
+    app_info.name.push('a');
 
     let resource_id = Thing {
         tb: "appinfo".to_string(),
@@ -184,32 +187,4 @@ async fn handle_download_request(
         bail!("Appinfo {} has no xdc_blob_dir", app.name)
     }
     Ok(resource)
-}
-
-async fn send_newest_updates(
-    context: &Context,
-    msg_id: MsgId,
-    db: &DB,
-    serial: usize,
-) -> anyhow::Result<()> {
-    let app_infos: Vec<_> = db
-        .get_active_app_infos_since(serial)
-        .await?
-        .into_iter()
-        .map(FrontendAppInfo::from)
-        .collect();
-
-    let serial = 0; //state.db.get_last_serial().await?.context("no serial")?;
-    let resp = UpdateResponse { app_infos, serial };
-    context
-        .send_webxdc_status_update_struct(
-            msg_id,
-            deltachat::webxdc::StatusUpdateItem {
-                payload: json! {resp},
-                ..Default::default()
-            },
-            "",
-        )
-        .await?;
-    Ok(())
 }

@@ -13,7 +13,8 @@ use serde_json::json;
 use std::env;
 
 use crate::{
-    request_handlers::{submit::SubmitChat, AppInfo},
+    db::{FrontendAppInfo, DB},
+    request_handlers::{shop::UpdateResponse, AppInfo},
     DB_PATH,
 };
 
@@ -42,6 +43,34 @@ pub async fn send_webxdc(
     }
     webxdc_msg.set_file(path, None);
     chat::send_msg(context, chat_id, &mut webxdc_msg).await
+}
+
+pub async fn send_newest_updates(
+    context: &Context,
+    msg_id: MsgId,
+    db: &DB,
+    serial: usize,
+) -> anyhow::Result<()> {
+    let app_infos: Vec<_> = db
+        .get_active_app_infos_since(serial)
+        .await?
+        .into_iter()
+        .map(FrontendAppInfo::from)
+        .collect();
+
+    let serial = db.get_last_serial().await?;
+    let resp = UpdateResponse { app_infos, serial };
+    context
+        .send_webxdc_status_update_struct(
+            msg_id,
+            deltachat::webxdc::StatusUpdateItem {
+                payload: json! {resp},
+                ..Default::default()
+            },
+            "",
+        )
+        .await?;
+    Ok(())
 }
 
 /// Get the contact Id of the other user in an 1:1 chat.
@@ -83,41 +112,22 @@ pub fn get_db_path() -> anyhow::Result<String> {
     })?
 }
 
-pub async fn check_app_info(
+/// Send an app_info to the frontend
+pub async fn send_app_info(
     context: &Context,
     app_info: &AppInfo,
-    submit_chat: &SubmitChat,
-    chat_id: ChatId,
+    msg_id: MsgId,
 ) -> anyhow::Result<()> {
     context
         .send_webxdc_status_update_struct(
-            submit_chat.creator_webxdc,
+            msg_id,
             deltachat::webxdc::StatusUpdateItem {
                 payload: json! {app_info},
                 ..Default::default()
             },
             "",
         )
-        .await?;
-
-    let missing = app_info.generate_missing_list();
-
-    if !missing.is_empty() {
-        chat::send_text_msg(
-            context,
-            chat_id,
-            format!("Missing fields: {}", missing.join(", ")),
-        )
-        .await?;
-    } else {
-        chat::send_text_msg(
-            context,
-            chat_id,
-            "I've got all information needed, if you want to publish it, type '/publish' and I will send it into review.".into(),
-        )
-        .await?;
-    }
-    Ok(())
+        .await
 }
 
 /// Updates a value and update changed accordingly.
