@@ -24,6 +24,8 @@ use crate::request_handlers::AppInfo;
 const DB_PATH: &str = "bot.db";
 const GENESIS_QR: &str = "genesis_invite_qr.png";
 const INVITE_QR: &str = "1o1_invite_qr.png";
+const SHOP_NAME: &str = "appstore.xdc";
+const SUBMIT_HELPER: &str = "review_helper.xdc";
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {

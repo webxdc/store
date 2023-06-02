@@ -12,14 +12,14 @@ use deltachat::{
 use log::{debug, error, info, trace, warn};
 use qrcode_generator::QrCodeEcc;
 use serde::{Deserialize, Serialize};
-use std::{env, sync::Arc};
+use std::{env, path::PathBuf, sync::Arc};
 
 use crate::{
     db::DB,
     messages::appstore_message,
     request_handlers::{genisis, review, shop, submit, ChatType},
     utils::{configure_from_env, get_db_path, send_webxdc},
-    GENESIS_QR, INVITE_QR,
+    GENESIS_QR, INVITE_QR, SHOP_NAME, SUBMIT_HELPER,
 };
 
 #[derive(Serialize, Deserialize)]
@@ -47,7 +47,6 @@ pub struct Bot {
 impl Bot {
     pub async fn new() -> Result<Self> {
         let dbdir = env::current_dir()?.join("deltachat.db");
-
         std::fs::create_dir_all(dbdir.clone()).context("Failed to create db folder")?;
 
         let dbfile = dbdir.join("db.sqlite");
@@ -61,12 +60,14 @@ impl Bot {
             info!("Configuration done");
         }
 
-        let db = DB::new(&get_db_path()?).await?;
+        let db = DB::new(&get_db_path()?)
+            .await
+            .context("Failed to create db")?;
 
         let config = match db.get_config().await? {
             Some(config) => config,
             None => {
-                info!("No bot configuration found, start configuring...");
+                info!("Bot hasn't been configured yet, start configuring...");
                 let config = Self::setup(&context).await?;
                 db.set_config(&config).await?;
 
@@ -86,7 +87,6 @@ impl Bot {
                     GENESIS_QR,
                 )?;
                 println!("Generated genisis group join QR-code at {GENESIS_QR}");
-
                 qrcode_generator::to_png_to_file(
                     &config.invite_qr,
                     QrCodeEcc::Low,
@@ -105,6 +105,7 @@ impl Bot {
         })
     }
 
+    /// Creates special groups and returns the complete bot config.
     async fn setup(context: &Context) -> Result<BotConfig> {
         let genesis_group =
             chat::create_group_chat(context, ProtectionStatus::Protected, "Appstore: Genesis")
@@ -138,6 +139,15 @@ impl Bot {
         let ctx = self.dc_ctx.clone();
         let state = self.state.clone();
 
+        let frontend_files = [SHOP_NAME, SUBMIT_HELPER];
+        let required_files_present = frontend_files
+            .into_iter()
+            .all(|path| PathBuf::from(path).try_exists().unwrap_or_default());
+
+        if !required_files_present {
+            panic!("It seems like the frontend hasn't been build yet! Look at the readme for further instructions.")
+        }
+
         tokio::spawn(async move {
             while let Some(event) = events_emitter.recv().await {
                 if let Err(e) = Self::dc_event_handler(&ctx, state.clone(), event.typ).await {
@@ -146,7 +156,6 @@ impl Bot {
             }
         });
         self.dc_ctx.start_io().await;
-
         info!("successfully started bot! 🥳");
     }
 

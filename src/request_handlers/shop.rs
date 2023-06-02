@@ -124,7 +124,6 @@ pub async fn handle_status_update(
         match req.payload.request_type {
             RequestType::Update => {
                 info!("Handling store update request");
-
                 let req =
                     serde_json::from_str::<FrontendRequestWithData<RequestType, usize>>(&update)?;
 
@@ -181,7 +180,7 @@ async fn handle_download_request(
         msg.set_file(file.to_str().context("Can't covert file to str")?, None);
         chat::send_msg(context, chat_id, &mut msg).await?;
     } else {
-        bail!("No path for downloaded app {}", app.name)
+        bail!("Appinfo {} has no xdc_blob_dir", app.name)
     }
     Ok(resource)
 }
