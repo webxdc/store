@@ -25,8 +25,7 @@ jobs:
     steps:
       - uses: actions/checkout@v3
       - uses: pnpm/action-setup@v2
-        with: 
-          cwd: 'frontend'
+        working-directory: frontend
       - name: Use Node.js
         uses: actions/setup-node@v3
         with:
