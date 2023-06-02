@@ -9,7 +9,6 @@ import '../index.sass';
 import "virtual:uno.css"
 import '@unocss/reset/tailwind.css'
 
-
 interface TestStatus {
     android: boolean;
     ios: boolean;
@@ -52,6 +51,11 @@ const Review: Component = () => {
     const [testStatus, setTestStatus] = useStorage('test-status', { android: false, ios: false, desktop: false })
     const [lastSerial, setlastSerial] = useStorage('last-serial', 0)
 
+    if (import.meta.env.DEV) {
+        setAppInfo(mock)
+    }
+
+
     window.webxdc.setUpdateListener((resp: ReceivedStatusUpdate<FrontendAppInfo>) => {
         setlastSerial(resp.serial)
 
@@ -62,31 +66,28 @@ const Review: Component = () => {
         }
     }, lastSerial())
 
-    if (import.meta.env.DEV) {
-        setAppInfo(mock)
-    }
-
     const is_appdata_complete = createMemo(() => Object.values(appInfo()).reduce((init, v) => init && !(v === undefined || v === null || v === ''), true))
     const is_testing_complete = createMemo(() => testStatus().android && testStatus().ios && testStatus().desktop)
     const is_complete = createMemo(() => is_appdata_complete() && is_testing_complete())
 
-    function submit() {
-
+    function submit(e: any) {
+        e.preventDefault()
+        window.webxdc.sendUpdate({
+            payload: {}
+        }, "")
     }
 
     return (
         <div class="c-grid m-4">
             <div class="min-width flex flex-col gap-3">
-                <h1 class="text-2xl text-center font-bold text-indigo-500"> App Publishing status</h1>
+                <h1 class="text-2xl text-center font-bold text-indigo-500"> App Publishing Status</h1>
                 <Show when={appInfo() !== undefined} fallback={
                     <p>Waiting for setup message...</p>
                 }>
                     <AppInfoPreview appinfo={appInfo()} setAppInfo={setAppInfo} />
-                    <p class="text-gray-500 font-italic">Testing Status</p>
-                    <div>
-                        <ReviewState testStatus={testStatus()} setTestStatus={setTestStatus} />
-                    </div>
-                    <p class="text-gray-500 font-italic">
+                    <p class="unimportant">Testing Status</p>
+                    <ReviewState testStatus={testStatus()} setTestStatus={setTestStatus} />
+                    <p class="unimportant">
                         <Show when={!is_complete()} fallback={
                             <p>Ready for publishing!</p>
                         }>
@@ -98,8 +99,8 @@ const Review: Component = () => {
                             </Show>
                         </Show>
                     </p>
-                    <button class="btn font-semibold text-indigo-500 w-full" classList={{ "bg-gray-100 border-gray-500": !is_complete() }}
-                        disabled={is_complete()} onClick={submit}>Submit</button>
+                    <input type="Submit" class="btn font-semibold cursor-pointer w-full" classList={{ "bg-gray-100 border-gray-500 text-gray-700": !is_complete(), "text-indigo-500": is_complete() }}
+                        disabled={!is_complete()} onClick={submit}>Submit</input>
                 </Show>
             </div>
         </div>
