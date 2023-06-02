@@ -1,12 +1,10 @@
 
 ## Fixes
-- [ ] Split review_helper.xdc for review and submit chats
 - [ ] Remove surrealdb
-- [ ] Figure out testing
+- [ ] Add testing
 - [ ] App updating
-- [ ] Fix conditional building
 - [ ] Close submit helper webxdc on submit
-- [ ] Move bot files into dedicated folder
+- [ ] Document Bot
 
 ## Make appstore happy path run:
 1. [x] bot admin configures the bot with QRCode
@@ -22,4 +20,4 @@
 3. [x] When all required fields are filled in, the user can send the webxdc to review.
 4. [x] Upon review request (send from helper xdc), the bot creates a new group with some testers and one publisher.
 5. [ ] The testers test the app and checkmark required tests in the helper webxdc.
-6. [x] When all requirements are met, the publisher can publish the app to the appstore.
+6. [ ] When all requirements are met, the publisher can publish the app to the appstore.
