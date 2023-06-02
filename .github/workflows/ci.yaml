@@ -24,10 +24,16 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
+      - uses: pnpm/action-setup@v2
+      - name: Use Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: ${{ matrix.node-version }}
+          cache: 'pnpm'
       - name: Build the frontend
         run: |
-          npm i
-          npm run build
+          pnpm i
+          pnpm run build
         working-directory: frontend
       - name: Build the bot
         run: cargo build
