@@ -24,18 +24,10 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
-      - uses: pnpm/action-setup@v2
-        with:
-          run-install.cwd: 'frontend'
-          
-      - name: Use Node.js
-        uses: actions/setup-node@v3
-        with:
-          cache: 'pnpm'
       - name: Build the frontend
         run: |
-          pnpm i
-          pnpm run build
+          npx pnpm i
+          npx pnpm run build
         working-directory: frontend
       - name: Build the bot
         run: cargo build
