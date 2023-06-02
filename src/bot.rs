@@ -145,7 +145,7 @@ impl Bot {
             .all(|path| PathBuf::from(path).try_exists().unwrap_or_default());
 
         if !required_files_present {
-            panic!("It seems like the frontend hasn't been build yet! Look at the readme for further instructions.")
+            println!("It seems like the frontend hasn't been build yet! Look at the readme for further instructions.")
         }
 
         tokio::spawn(async move {
