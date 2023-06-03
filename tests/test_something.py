@@ -13,8 +13,8 @@ class BotProcess:
         self.addr = addr
         self.path = path
 
-        # Copy appstore.xdc to the bot working directory.
-        shutil.copy("./appstore.xdc", path)
+        # Copy bot-data to the bot working directory.
+        shutil.copytree("bot-data", path / "bot-data")
         self.process = Popen(
             [Path.cwd() / "target/debug/github-bot", "start"],
             cwd=path,
