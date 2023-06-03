@@ -1,4 +1,5 @@
 #!/bin/sh
+mkdir -p ../bot-data
 cd dist
 
 echo "Building appstore.xdc"
