@@ -283,7 +283,7 @@ impl DB {
 
     pub async fn get_last_serial(&self) -> anyhow::Result<usize> {
         let mut result = self.db.query("SELECT serial FROM config:config").await?;
-        let _t: Option<usize> = result.take((0, "serial"))?;
-        _t.context("Can't deserialize serial")
+        let t: Option<usize> = result.take((0, "serial"))?;
+        Ok(t.unwrap_or_default())
     }
 }
