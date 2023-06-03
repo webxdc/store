@@ -85,14 +85,16 @@ impl Bot {
                     QrCodeEcc::Low,
                     1024,
                     GENESIS_QR,
-                ).context("failed to generate genesis QR")?;
+                )
+                .context("failed to generate genesis QR")?;
                 println!("Generated genisis group join QR-code at {GENESIS_QR}");
                 qrcode_generator::to_png_to_file(
                     &config.invite_qr,
                     QrCodeEcc::Low,
                     1024,
                     INVITE_QR,
-                ).context("failed to generate invite QR")?;
+                )
+                .context("failed to generate invite QR")?;
                 println!("Generated 1:1 invite QR-code at {INVITE_QR}");
 
                 config
