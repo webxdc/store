@@ -1,9 +1,9 @@
-from subprocess import Popen
-from pathlib import Path
-from dataclasses import dataclass
 import shutil
+from pathlib import Path
+from subprocess import Popen
 
 import pytest
+
 
 class BotProcess:
     addr: str
@@ -23,6 +23,7 @@ class BotProcess:
 
     def __del__(self):
         self.process.terminate()
+
 
 @pytest.fixture
 def storebot(acfactory, tmp_path):
