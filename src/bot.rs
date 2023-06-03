@@ -56,9 +56,9 @@ impl Bot {
             .context("Failed to create context")?;
 
         if !context.get_config_bool(Config::Configured).await? {
-            info!("Start configuring...");
+            info!("DC: Start configuring...");
             configure_from_env(&context).await?;
-            info!("Configuration done");
+            info!("DC: Configuration done");
         }
 
         let db_path = PathBuf::from(

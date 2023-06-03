@@ -8,6 +8,7 @@ import { render } from 'solid-js/web';
 import '../index.sass';
 import "virtual:uno.css"
 import '@unocss/reset/tailwind.css'
+import { SubmitRequest } from '../bindings/SubmitRequest';
 
 const Submit: Component = () => {
     const [appInfo, setAppInfo] = useStorage('app-info', {} as AppInfo)
@@ -37,10 +38,7 @@ const Submit: Component = () => {
     function submit() {
         lastAppinfo = appInfo()
         window.webxdc.sendUpdate({
-            payload: {
-                request_type: "",
-                data: appInfo()
-            }
+            payload: { Submit: { app_info: appInfo() } } as SubmitRequest
         }, "")
     }
 

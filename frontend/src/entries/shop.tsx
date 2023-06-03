@@ -6,6 +6,7 @@ import { format } from 'date-fns';
 import Fuse from 'fuse.js';
 import { DownloadResponse } from '../bindings/DownloadResponse';
 import { UpdateResponse } from '../bindings/UpdateResponse';
+import { ShopRequest } from '../bindings/ShopRequest'
 import { createStore, reconcile } from 'solid-js/store';
 import mock from '../mock'
 import { AppInfoWithState, AppState, AppInfosById } from '../types';
@@ -164,23 +165,17 @@ const Shop: Component = () => {
         }
     }, lastSerial())
 
-    async function update() {
+    async function handleUpdate() {
         setIsUpdating(true)
         window.webxdc.sendUpdate({
-            payload: {
-                request_type: "Update",
-                data: lastUpdateSerial()
-            }
+            payload: { Update: { serial: BigInt(lastUpdateSerial()) } } as ShopRequest
         }, "")
     }
 
-    function handleDownload(id: bigint) {
-        setAppInfo(Number(id), 'state', AppState.Downloading)
+    function handleDownload(app_id: bigint) {
+        setAppInfo(Number(app_id), 'state', AppState.Downloading)
         window.webxdc.sendUpdate({
-            payload: {
-                request_type: 'Dowload',
-                data: id
-            }
+            payload: { Download: { app_id } } as ShopRequest
         }, "")
     }
 
@@ -191,7 +186,7 @@ const Shop: Component = () => {
                     <h1 class="text-2xl font-bold">Webxdc Appstore</h1>
                     <div class="unimportant p-1 flex items-center gap-2">
                         <Show when={isUpdating()} fallback={
-                            <button onclick={update}>
+                            <button onclick={handleUpdate}>
                                 <span>{format(lastUpdate(), 'cccc HH:mm')}</span>
                             </button>
                         }>

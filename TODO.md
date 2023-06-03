@@ -3,7 +3,8 @@
 - [ ] Add testing
 - [ ] App updating
 - [ ] Close submit helper webxdc on submit
-- [ ] Document Bot
+- [ ] Document Frondend better
+- [ ] Don't reshow submit button in submit chat
 
 ## Make appstore happy path run:
 1. [x] bot admin configures the bot with QRCode
