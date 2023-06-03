@@ -1,4 +1,5 @@
 import shutil
+import subprocess
 from pathlib import Path
 from subprocess import Popen
 
@@ -13,8 +14,6 @@ class BotProcess:
         self.addr = addr
         self.path = path
 
-        # Copy bot-data to the bot working directory.
-        shutil.copytree("bot-data", path / "bot-data")
         self.process = Popen(
             [Path.cwd() / "target/debug/github-bot", "start"],
             cwd=path,
@@ -26,10 +25,36 @@ class BotProcess:
 
 
 @pytest.fixture
-def storebot(acfactory, tmp_path):
+def bot_path(tmp_path):
+    # Copy bot-data to the bot working directory.
+    shutil.copytree("bot-data", tmp_path / "bot-data")
+
+    return tmp_path
+
+
+@pytest.fixture
+def storebot(acfactory, bot_path):
+    """Store bot without any apps."""
     config = acfactory.get_next_liveconfig()
 
-    return BotProcess(config["addr"], config["mail_pw"], tmp_path)
+    return BotProcess(config["addr"], config["mail_pw"], bot_path)
+
+
+@pytest.fixture
+def storebot_example(acfactory, bot_path):
+    """Store bot with imported example apps."""
+    config = acfactory.get_next_liveconfig()
+
+    shutil.copytree("example-xdcs", bot_path / "import")
+    (bot_path / "import" / "README.md").unlink()
+    res = subprocess.run(
+        [Path.cwd() / "target/debug/github-bot", "import"],
+        cwd=bot_path,
+        env={"RUST_LOG": "github_bot=trace"},
+    )
+    res.check_returncode()
+
+    return BotProcess(config["addr"], config["mail_pw"], bot_path)
 
 
 def test_welcome_message(acfactory, storebot):
@@ -73,3 +98,11 @@ def test_update(acfactory, storebot):
     assert len(status_updates) == 3
     payload = status_updates[-1]["payload"]
     assert payload == {"app_infos": [], "serial": 0}
+
+
+def test_import(acfactory, storebot_example):
+    """Test that import works."""
+    # Do nothing except for initializing `storebot_example` fixture.
+    # If the test started, it means the bot
+    # with imported apps has been created successfuly.
+    pass
