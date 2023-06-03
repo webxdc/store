@@ -68,7 +68,7 @@ impl Bot {
             Some(config) => config,
             None => {
                 info!("Bot hasn't been configured yet, start configuring...");
-                let config = Self::setup(&context).await?;
+                let config = Self::setup(&context).await.context("failed to setup bot")?;
                 db.set_config(&config).await?;
 
                 // set chat types
@@ -85,14 +85,14 @@ impl Bot {
                     QrCodeEcc::Low,
                     1024,
                     GENESIS_QR,
-                )?;
+                ).context("failed to generate genesis QR")?;
                 println!("Generated genisis group join QR-code at {GENESIS_QR}");
                 qrcode_generator::to_png_to_file(
                     &config.invite_qr,
                     QrCodeEcc::Low,
                     1024,
                     INVITE_QR,
-                )?;
+                ).context("failed to generate invite QR")?;
                 println!("Generated 1:1 invite QR-code at {INVITE_QR}");
 
                 config
