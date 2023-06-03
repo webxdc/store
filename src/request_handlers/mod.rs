@@ -165,20 +165,3 @@ pub enum ChatType {
 pub struct WebxdcStatusUpdate<T> {
     payload: T,
 }
-
-#[derive(Deserialize)]
-struct Request<T> {
-    request_type: T,
-}
-
-#[derive(TS, Deserialize)]
-#[ts(export)]
-#[ts(export_to = "frontend/src/bindings/")]
-#[allow(unused)]
-struct RequestWithData<T, R> {
-    request_type: T,
-    data: R,
-}
-
-type FrontendRequest<T> = WebxdcStatusUpdate<Request<T>>;
-type FrontendRequestWithData<T, R> = WebxdcStatusUpdate<RequestWithData<T, R>>;

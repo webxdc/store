@@ -1,10 +1,10 @@
-use super::{AppInfo, FrontendRequest};
+use super::{AppInfo, WebxdcStatusUpdate};
 use crate::{
     bot::State,
     db,
     messages::appstore_message,
-    request_handlers::{self, submit::SubmitChat, ChatType, FrontendRequestWithData},
-    utils::{send_newest_updates, send_webxdc},
+    request_handlers::{self, submit::SubmitChat, ChatType},
+    utils::{send_app_info, send_newest_updates, send_webxdc},
     SHOP_XDC, SUBMIT_HELPER_XDC,
 };
 use anyhow::{bail, Context as _};
@@ -22,20 +22,18 @@ use serde_json::json;
 use std::sync::Arc;
 use ts_rs::TS;
 
-#[derive(TS, Deserialize)]
+#[derive(Deserialize, TS)]
 #[ts(export)]
 #[ts(export_to = "frontend/src/bindings/")]
-enum RequestType {
-    Update,
-    Dowload,
-}
-
-#[derive(TS, Deserialize)]
-#[ts(export)]
-#[ts(export_to = "frontend/src/bindings/")]
-pub struct PublishRequest {
-    pub name: String,
-    pub description: String,
+enum ShopRequest {
+    Update {
+        /// Requested update sequence number.
+        serial: i64,
+    },
+    Download {
+        /// ID of the requested application.
+        app_id: i64,
+    },
 }
 
 #[derive(TS, Serialize)]
@@ -92,6 +90,7 @@ pub async fn handle_webxdc(
 
     chat::forward_msgs(context, &[msg.get_id()], chat_id).await?;
     let creator_webxdc = send_webxdc(context, chat_id, SUBMIT_HELPER_XDC, None).await?;
+    send_app_info(context, app_info.clone(), creator_webxdc).await?;
 
     db::create_submit_chat(
         conn,
@@ -114,29 +113,21 @@ pub async fn handle_status_update(
     msg_id: MsgId,
     update: String,
 ) -> anyhow::Result<()> {
-    if let Ok(req) = serde_json::from_str::<FrontendRequest<RequestType>>(&update) {
-        match req.payload.request_type {
-            RequestType::Update => {
+    if let Ok(req) = serde_json::from_str::<WebxdcStatusUpdate<ShopRequest>>(&update) {
+        match req.payload {
+            ShopRequest::Update { serial } => {
                 info!("Handling store update request");
-                let req =
-                    serde_json::from_str::<FrontendRequestWithData<RequestType, i64>>(&update)?;
-
-                send_newest_updates(
-                    context,
-                    msg_id,
-                    &mut *state.db.acquire().await?,
-                    req.payload.data,
-                )
-                .await?;
+                send_newest_updates(context, msg_id, &mut *state.db.acquire().await?, serial)
+                    .await?;
             }
-            RequestType::Dowload => {
+            ShopRequest::Download { app_id } => {
                 info!("Handling store download");
-                let result = handle_download_request(context, state, &update, chat_id).await;
+                let result = handle_download_request(context, state, app_id, chat_id).await;
+
                 let resp = DownloadResponse {
                     okay: result.is_ok(),
                     id: result.ok(),
                 };
-
                 context
                     .send_webxdc_status_update_struct(
                         msg_id,
@@ -161,14 +152,10 @@ pub async fn handle_status_update(
 async fn handle_download_request(
     context: &Context,
     state: Arc<State>,
-    update: &str,
+    app_id: i64,
     chat_id: ChatId,
 ) -> anyhow::Result<i64> {
-    let resource = serde_json::from_str::<FrontendRequestWithData<RequestType, i64>>(update)?
-        .payload
-        .data;
-
-    let app = db::get_app_info(&mut *state.db.acquire().await?, resource).await?;
+    let app = db::get_app_info(&mut *state.db.acquire().await?, app_id).await?;
     let mut msg = Message::new(Viewtype::Webxdc);
     if let Some(file) = app.xdc_blob_dir {
         msg.set_file(file.to_str().context("Can't covert file to str")?, None);
@@ -176,5 +163,5 @@ async fn handle_download_request(
     } else {
         bail!("Appinfo {} has no xdc_blob_dir", app.name)
     }
-    Ok(resource)
+    Ok(app_id)
 }

@@ -104,7 +104,7 @@ pub async fn read_vec(reader: &ZipFileReader, index: usize) -> anyhow::Result<Ve
 /// Send an app_info to the frontend
 pub async fn send_app_info(
     context: &Context,
-    app_info: &AppInfo,
+    app_info: AppInfo,
     msg_id: MsgId,
 ) -> anyhow::Result<()> {
     context
