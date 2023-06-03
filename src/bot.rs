@@ -12,7 +12,7 @@ use deltachat::{
 use log::{debug, error, info, trace, warn};
 use qrcode_generator::QrCodeEcc;
 use serde::{Deserialize, Serialize};
-use std::{env, fs, path::PathBuf, sync::Arc};
+use std::{env, path::PathBuf, sync::Arc};
 
 use crate::{
     db::DB,
@@ -107,8 +107,6 @@ impl Bot {
 
     /// Creates special groups and returns the complete bot config.
     async fn setup(context: &Context) -> Result<BotConfig> {
-        fs::create_dir("bot-data")?;
-
         let genesis_group =
             chat::create_group_chat(context, ProtectionStatus::Protected, "Appstore: Genesis")
                 .await?;
