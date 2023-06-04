@@ -12,6 +12,7 @@ export default defineConfig(({ mode }) => {
   return {
     plugins: [solidPlugin(), unocssPlugin()],
     build: {
+      target: ["es2020", "edge88", "firefox78", "chrome74", "safari14"],
       rollupOptions: {
         input: {
           //@ts-ignore
