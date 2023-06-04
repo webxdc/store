@@ -206,14 +206,22 @@ impl DB {
         Ok(res)
     }
 
+    /// Tries to increase update serial number.
+    ///
+    /// Returns the next serial number that should be used
+    /// for the next update.
+    ///
+    /// If the bot is not configured yet, always returns 1.
     pub async fn increase_get_serial(&self) -> anyhow::Result<usize> {
-        let serial = self.get_last_serial().await?;
-        let _serial: Option<SerialReps> = self
-            .db
-            .update(("config", "config"))
-            .merge(json!({ "serial": serial + 1 }))
-            .await?;
-        Ok(serial + 1)
+        if let Some(config) = self.get_config().await? {
+            let serial = config.serial + 1;
+            let config = BotConfig { serial, ..config };
+            self.set_config(&config).await?;
+            Ok(serial)
+        } else {
+            // Bot is not configured yet.
+            Ok(1)
+        }
     }
 
     // TODO: take string as resource id
