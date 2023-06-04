@@ -102,7 +102,19 @@ def test_update(acfactory, storebot):
 
 def test_import(acfactory, storebot_example):
     """Test that import works."""
-    # Do nothing except for initializing `storebot_example` fixture.
-    # If the test started, it means the bot
-    # with imported apps has been created successfuly.
-    pass
+    (ac1,) = acfactory.get_online_accounts(1)
+
+    bot_contact = ac1.create_contact(storebot_example.addr)
+    bot_chat = bot_contact.create_chat()
+    bot_chat.send_text("hi!")
+
+    msg_in = ac1.wait_next_incoming_message()
+    ac1._evtracker.get_matching("DC_EVENT_WEBXDC_STATUS_UPDATE")
+    assert msg_in.text == "Welcome to the appstore bot!"
+
+    assert msg_in.is_webxdc()
+    status_updates = msg_in.get_status_updates()
+    assert len(status_updates) == 1
+    payload = status_updates[0]["payload"]
+    app_infos = payload["app_infos"]
+    assert len(app_infos) == 4
