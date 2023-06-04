@@ -20,7 +20,6 @@ use log::info;
 use serde::{Deserialize, Serialize};
 use serde_json::json;
 use std::sync::Arc;
-use surrealdb::sql::{Id, Thing};
 use ts_rs::TS;
 
 #[derive(TS, Deserialize)]
@@ -80,19 +79,9 @@ pub async fn handle_webxdc(
 
     app_info.author_email = contact.get_addr().to_string();
     app_info.author_name = contact.get_authname().to_string();
+    app_info.id = 0;
 
-    // HACK: Make name differ from whats in the webxdc so that update will be send
-    app_info.name.push('a');
-
-    let resource_id = Thing {
-        tb: "appinfo".to_string(),
-        id: Id::rand(),
-    };
-
-    state
-        .db
-        .create_app_info(&app_info, resource_id.clone())
-        .await?;
+    state.db.create_app_info(&app_info).await?;
 
     let chat_name = format!("Submit: {}", app_info.name);
     let chat_id = chat::create_group_chat(context, ProtectionStatus::Protected, &chat_name).await?;
@@ -106,9 +95,9 @@ pub async fn handle_webxdc(
 
     state
         .db
-        .create_submit(&SubmitChat {
+        .create_submit_chat(&SubmitChat {
             creator_chat: chat_id,
-            creator_webxdc,
+            submit_helper: creator_webxdc,
             app_info: resource_id,
         })
         .await?;
@@ -172,13 +161,7 @@ async fn handle_download_request(
         .payload
         .data;
 
-    let app = state
-        .db
-        .get_app_info(&Thing {
-            tb: "app_info".to_string(),
-            id: Id::String(resource.clone()),
-        })
-        .await?;
+    let app = state.db.get_app_info(resource.parse()?).await?;
     let mut msg = Message::new(Viewtype::Webxdc);
     if let Some(file) = app.xdc_blob_dir {
         msg.set_file(file.to_str().context("Can't covert file to str")?, None);

@@ -3,7 +3,7 @@ use thiserror::Error;
 
 use crate::{
     bot::State,
-    db::DB,
+    db::{RecordId, DB},
     messages::creat_review_group_init_message,
     utils::{get_contact_name, send_app_info, send_webxdc},
     REVIEW_HELPER_XDC,
@@ -16,18 +16,24 @@ use deltachat::{
 };
 use log::info;
 use serde::{Deserialize, Serialize};
-use surrealdb::opt::RecordId;
 
 use super::{submit::SubmitChat, AppInfo};
 
 #[derive(Serialize, Deserialize)]
 pub struct ReviewChat {
+    // Xdc helper references.
     pub review_helper: MsgId,
     pub submit_helper: MsgId,
+
+    // Chat references.
     pub review_chat: ChatId,
     pub creator_chat: ChatId,
+
+    // Special roles.
     pub publisher: ContactId,
     pub testers: Vec<ContactId>,
+
+    // Reference to AppInfo in [DB].
     pub app_info: RecordId,
 }
 
@@ -37,8 +43,6 @@ pub enum HandlePublishError {
     NotEnoughTesters,
     #[error("Not enough reviewee in pool")]
     NotEnoughPublishers,
-    #[error(transparent)]
-    SurrealDb(#[from] surrealdb::Error),
     #[error(transparent)]
     Other(#[from] anyhow::Error),
 }
@@ -104,7 +108,7 @@ impl ReviewChat {
             publisher,
             testers: testers.clone(),
             app_info: submit_chat.app_info,
-            review_helper: submit_chat.creator_webxdc,
+            review_helper: submit_chat.submit_helper,
             submit_helper,
         };
 

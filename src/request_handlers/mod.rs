@@ -1,14 +1,13 @@
 //! Handlers for the different messages the bot receives
-use crate::utils::{ne_assign, ne_assign_option, read_string, read_vec};
+use crate::{
+    db::RecordId,
+    utils::{ne_assign, ne_assign_option, read_string, read_vec},
+};
 use async_zip::tokio::read::fs::ZipFileReader;
 use base64::encode;
 use deltachat::webxdc::WebxdcManifest;
 use serde::{Deserialize, Serialize};
 use std::path::{Path, PathBuf};
-use surrealdb::{
-    opt::RecordId,
-    sql::{Id, Thing},
-};
 use ts_rs::TS;
 
 pub mod genisis;
@@ -28,8 +27,9 @@ pub struct ExtendedWebxdcManifest {
     pub description: Option<String>,
 }
 
-#[derive(TS, Deserialize, Serialize, Clone, Debug)]
+#[derive(TS, Deserialize, Serialize, Clone, Debug, Default)]
 pub struct AppInfo {
+    pub id: RecordId,
     pub name: String,                    // manifest
     pub author_name: String,             // bot
     pub author_email: String,            // bot
@@ -38,9 +38,7 @@ pub struct AppInfo {
     pub description: Option<String>,     // submit
     pub xdc_blob_dir: Option<PathBuf>,   // bot
     pub version: Option<String>,         // manifest
-    #[serde(default = "default_thing")]
-    #[ts(skip)]
-    pub originator: RecordId, // bot
+    pub originator: RecordId,            // bot
     pub active: bool,                    // bot
 }
 
@@ -142,30 +140,6 @@ impl AppInfo {
 
     pub fn is_complete(&self) -> bool {
         self.generate_missing_list().is_empty()
-    }
-}
-
-impl Default for AppInfo {
-    fn default() -> Self {
-        Self {
-            name: Default::default(),
-            author_name: Default::default(),
-            author_email: Default::default(),
-            source_code_url: Default::default(),
-            image: Default::default(),
-            description: Default::default(),
-            xdc_blob_dir: Default::default(),
-            version: Default::default(),
-            active: Default::default(),
-            originator: default_thing(),
-        }
-    }
-}
-
-fn default_thing() -> Thing {
-    Thing {
-        tb: "hi".to_string(),
-        id: Id::rand(),
     }
 }
 

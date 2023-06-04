@@ -15,12 +15,9 @@ use bot::Bot;
 use clap::Parser;
 use cli::{BotActions, BotCli};
 use log::info;
-use surrealdb::sql::Id;
-use surrealdb::sql::Thing;
 use tokio::signal;
 use utils::get_db_path;
 
-use crate::db::DB;
 use crate::request_handlers::AppInfo;
 
 const DB_PATH: &str = "bot.db";
@@ -38,7 +35,6 @@ async fn main() -> anyhow::Result<()> {
     match &cli.action {
         BotActions::Import => {
             info!("Importing webxdcs from 'import/'");
-            let db = DB::new(&get_db_path()?).await?;
             let dir_entry = match std::fs::read_dir("import/") {
                 Ok(dir) => dir,
                 Err(_) => {
@@ -90,14 +86,7 @@ async fn main() -> anyhow::Result<()> {
                         fs::rename(file, &new_path)?;
                         app_info.xdc_blob_dir = Some(new_path);
 
-                        db.create_app_info(
-                            &app_info,
-                            Thing {
-                                tb: "app_info".to_string(),
-                                id: Id::rand(),
-                            },
-                        )
-                        .await?;
+                        db.create_app_info(&app_info, 0).await?;
                         println!("Added {:?}({}) to apps", file, app_info.name);
                     } else {
                         println!(
@@ -110,10 +99,8 @@ async fn main() -> anyhow::Result<()> {
             }
         }
         BotActions::ShowQr => {
-            let db = DB::new(&get_db_path()?).await?;
             match db.get_config().await? {
                 Some(config) => {
-                    println!("You can find png files of the qr codes at bots home dir");
                     println!("Genisis invite qr:");
                     qr2term::print_qr(config.genesis_qr)?;
                     println!("Bot invite qr:");
