@@ -1,41 +1,22 @@
-//! Integration fo SurrealDBpub struct DB
-use anyhow::Context;
+//! Bot Database
+//! It consists of these tables:
+//! - Users (Stores reviewers, publishers, genesis members etc.)
+//! - AppInfos (Stores the app infos)
+//! - Chats (Stores information about the review and submit chats)
+//! - ChatTypes (Acts as a map between ChatId and ChatType)
+//!
+//! A chat entry will be created when submitting a webxdc and holds a [SubmitChat].
+//! When the app is send to review, it will turn into a [ReviewChat].
+
 use deltachat::{chat::ChatId, contact::ContactId};
+use rusqlite::Connection;
 use serde::{Deserialize, Serialize};
-use serde_json::json;
-use surrealdb::{
-    engine::local::{Db, File},
-    sql::Thing,
-    Surreal,
-};
 use ts_rs::TS;
 
 use crate::{
     bot::BotConfig,
     request_handlers::{review::ReviewChat, submit::SubmitChat, AppInfo, ChatType},
 };
-
-#[derive(Serialize, Deserialize)]
-struct DBChatType {
-    chat_type: ChatType,
-}
-
-#[derive(Serialize, Deserialize)]
-struct DBContactId {
-    contact_id: ContactId,
-}
-
-#[derive(Serialize, Deserialize)]
-struct SerialReps {
-    serial: usize,
-}
-
-#[derive(Deserialize, Serialize, Clone, Debug)]
-pub struct AppInfoId {
-    #[serde(flatten)]
-    pub app_info: AppInfo,
-    pub id: Thing,
-}
 
 #[derive(Deserialize, Serialize, Clone, Debug, TS)]
 #[ts(export)]
@@ -51,247 +32,110 @@ pub struct FrontendAppInfo {
     pub id: String,
 }
 
-impl From<AppInfoId> for FrontendAppInfo {
-    fn from(app_info: AppInfoId) -> Self {
-        Self {
-            name: app_info.app_info.name,
-            author_name: app_info.app_info.author_name,
-            author_email: app_info.app_info.author_email,
-            source_code_url: app_info.app_info.source_code_url,
-            image: app_info.app_info.image,
-            description: app_info.app_info.description,
-            version: app_info.app_info.version,
-            id: app_info.id.id.to_raw(),
-        }
-    }
+pub type RecordId = u64;
+
+pub async fn set_config(c: Connection, config: &BotConfig) -> anyhow::Result<BotConfig> {
+    todo!()
 }
 
-pub struct DB {
-    db: Surreal<Db>,
+pub async fn get_config(c: Connection) -> anyhow::Result<BotConfig> {
+    todo!()
 }
 
-#[allow(unused)]
-impl DB {
-    pub async fn new(store: &str) -> anyhow::Result<Self> {
-        let db = Surreal::new::<File>(store).await?;
-        db.use_ns("bot").use_db("bot").await?;
-        Ok(Self { db })
-    }
+pub async fn get_review_chat(c: Connection, chat_id: ChatId) -> anyhow::Result<ReviewChat> {
+    todo!()
+}
 
-    pub async fn get_review_chat(&self, chat_id: ChatId) -> surrealdb::Result<Option<ReviewChat>> {
-        self.db.select(("chat", chat_id.to_u32().to_string())).await
-    }
+pub async fn get_submit_chat(c: Connection, chat_id: ChatId) -> anyhow::Result<Option<SubmitChat>> {
+    todo!()
+}
 
-    pub async fn get_submit_chat(&self, chat_id: ChatId) -> surrealdb::Result<Option<SubmitChat>> {
-        self.db.select(("chat", chat_id.to_u32().to_string())).await
-    }
+pub async fn create_submit_chat(c: Connection, chat: &SubmitChat) -> anyhow::Result<()> {
+    todo!();
+}
 
-    pub async fn create_submit(&self, chat: &SubmitChat) -> anyhow::Result<()> {
-        let res: Option<SubmitChat> = self
-            .db
-            .create(("chat", chat.creator_chat.to_u32().to_string()))
-            .content(chat)
-            .await?;
-        Ok(())
-    }
+pub async fn upgrade_to_review_chat(c: Connection, chat: &ReviewChat) -> anyhow::Result<()> {
+    todo!();
+}
 
-    pub async fn upgrade_to_review_chat(&self, chat: &ReviewChat) -> surrealdb::Result<()> {
-        let res: Option<ReviewChat> = self
-            .db
-            .update(("chat", chat.creator_chat.to_u32().to_string()))
-            .content(chat)
-            .await?;
-        Ok(())
-    }
+pub async fn set_chat_type(
+    c: Connection,
+    chat_id: ChatId,
+    chat_type: ChatType,
+) -> anyhow::Result<()> {
+    todo!();
+}
 
-    pub async fn set_chat_type(
-        &self,
-        chat_id: ChatId,
-        chat_type: ChatType,
-    ) -> surrealdb::Result<()> {
-        let _t: Option<DBChatType> = self
-            .db
-            .create(("chattype", chat_id.to_u32().to_string()))
-            .content(DBChatType { chat_type })
-            .await?;
-        Ok(())
-    }
+pub async fn get_chat_type(c: Connection, chat_id: ChatId) -> anyhow::Result<ChatType> {
+    todo!();
+}
 
-    pub async fn get_chat_type(&self, chat_id: ChatId) -> surrealdb::Result<Option<ChatType>> {
-        let c: Result<Option<DBChatType>, _> = self
-            .db
-            .select(("chattype", chat_id.to_u32().to_string()))
-            .await;
-        c.map(|a| a.map(|a| a.chat_type))
-    }
+pub async fn add_genesis(c: Connection, contact_id: ContactId) -> anyhow::Result<()> {
+    todo!();
+}
 
-    pub async fn add_contact_to_genesis(&self, contact_id: ContactId) -> surrealdb::Result<()> {
-        let _t: Option<DBContactId> = self
-            .db
-            .create(("genesis", contact_id.to_u32().to_string()))
-            .content(DBContactId { contact_id })
-            .await?;
-        Ok(())
-    }
+pub async fn set_genesis_contacts(c: Connection, contacts: &[ContactId]) -> anyhow::Result<()> {
+    todo!();
+}
 
-    pub async fn set_genesis_contacts(&self, contacts: &[ContactId]) -> surrealdb::Result<()> {
-        let _t: Vec<DBContactId> = self.db.delete("genesis").await?;
-        for contact_id in contacts {
-            self.add_contact_to_genesis(*contact_id).await?;
-        }
-        Ok(())
-    }
+pub async fn add_publisher(c: Connection, contact_id: ContactId) -> anyhow::Result<()> {
+    todo!();
+}
 
-    pub async fn create_publisher(&self, contact_id: ContactId) -> surrealdb::Result<()> {
-        let _t: Option<DBContactId> = self
-            .db
-            .create(("publisher", contact_id.to_u32().to_string()))
-            .content(DBContactId { contact_id })
-            .await?;
-        Ok(())
-    }
+pub async fn set_publishers(c: Connection, contacts: &[ContactId]) -> anyhow::Result<()> {
+    todo!();
+}
 
-    pub async fn set_publisher_contacts(&self, contacts: &[ContactId]) -> surrealdb::Result<()> {
-        let _t: Vec<DBContactId> = self.db.delete("publisher").await?;
-        for contact_id in contacts {
-            self.create_publisher(*contact_id).await?;
-        }
-        Ok(())
-    }
+pub async fn get_random_publisher(c: Connection) -> anyhow::Result<ContactId> {
+    todo!()
+}
 
-    pub async fn get_publisher(&self) -> surrealdb::Result<Option<ContactId>> {
-        let mut result = self
-            .db
-            .query("SELECT contact_id FROM publisher LIMIT 1")
-            .await?;
-        let contact_id: Vec<ContactId> = result.take((0, "contact_id"))?;
-        Ok(contact_id.get(0).copied())
-    }
+pub async fn add_tester(c: Connection, contact_id: ContactId) -> anyhow::Result<()> {
+    todo!()
+}
 
-    pub async fn create_tester(&self, contact_id: ContactId) -> surrealdb::Result<()> {
-        let _t: Option<DBContactId> = self
-            .db
-            .create(("testers", contact_id.to_u32().to_string()))
-            .content(DBContactId { contact_id })
-            .await?;
-        Ok(())
-    }
+pub async fn set_testers(c: Connection, contacts: &[ContactId]) -> anyhow::Result<()> {
+    todo!()
+}
 
-    pub async fn set_tester_contacts(&self, contacts: &[ContactId]) -> surrealdb::Result<()> {
-        let _t: Vec<DBContactId> = self.db.delete("testers").await?;
-        for contact_id in contacts {
-            self.create_tester(*contact_id).await?;
-        }
-        Ok(())
-    }
+pub async fn get_random_testers(c: Connection) -> anyhow::Result<Vec<ContactId>> {
+    todo!()
+}
 
-    pub async fn get_testers(&self) -> surrealdb::Result<Vec<ContactId>> {
-        let mut result = self
-            .db
-            .query("SELECT contact_id FROM testers LIMIT 3")
-            .await?;
+pub async fn increase_get_serial(c: Connection) -> anyhow::Result<usize> {
+    todo!()
+}
 
-        let testers = result.take::<Vec<ContactId>>((0, "contact_id"))?;
-        Ok(testers)
-    }
+// TODO: take string as resource id
+// TOOD: don't take resource id from
+pub async fn create_app_info(c: Connection, app_info: &AppInfo) -> anyhow::Result<AppInfo> {
+    //let next_serial = self.increase_get_serial().await?;
+    todo!()
+}
 
-    pub async fn set_config(&self, config: &BotConfig) -> anyhow::Result<BotConfig> {
-        let _t: Option<BotConfig> = self.db.delete(("config", "config")).await.ok().flatten();
-        let res = self.db.create(("config", "config")).content(config).await?;
-        res.context("Can't find bot config")
-    }
+pub async fn update_app_info(c: Connection, app_info: &AppInfo) -> anyhow::Result<AppInfo> {
+    todo!()
+}
 
-    pub async fn get_config(&self) -> surrealdb::Result<Option<BotConfig>> {
-        let res = self.db.select(("config", "config")).await?;
-        Ok(res)
-    }
+pub async fn publish_app_info(c: Connection, id: RecordId) -> anyhow::Result<AppInfo> {
+    todo!()
+}
 
-    /// Tries to increase update serial number.
-    ///
-    /// Returns the next serial number that should be used
-    /// for the next update.
-    ///
-    /// If the bot is not configured yet, always returns 1.
-    pub async fn increase_get_serial(&self) -> anyhow::Result<usize> {
-        if let Some(config) = self.get_config().await? {
-            let serial = config.serial + 1;
-            let config = BotConfig { serial, ..config };
-            self.set_config(&config).await?;
-            Ok(serial)
-        } else {
-            // Bot is not configured yet.
-            Ok(1)
-        }
-    }
+pub async fn get_app_info(c: Connection, resource_id: RecordId) -> anyhow::Result<AppInfo> {
+    todo!()
+}
 
-    // TODO: take string as resource id
-    // TOOD: don't take resource id from
-    pub async fn create_app_info(
-        &self,
-        app_info: &AppInfo,
-        resource_id: Thing,
-    ) -> anyhow::Result<AppInfo> {
-        let mut app_info_json = json!(app_info);
-        let next_serial = self.increase_get_serial().await?;
-        app_info_json
-            .as_object_mut()
-            .context("Couldn't increase serial")?
-            .insert("serial".to_string(), json!(next_serial));
-        let res = self.db.create(resource_id).content(app_info_json).await?;
-        res.context("Can't get appinfo")
-    }
+pub async fn get_active_app_infos(c: Connection) -> anyhow::Result<Vec<AppInfo>> {
+    todo!()
+}
 
-    pub async fn update_app_info(&self, app_info: &AppInfo, id: &Thing) -> anyhow::Result<AppInfo> {
-        let mut app_info_json = json!(app_info);
-        let next_serial = self.increase_get_serial().await?;
-        app_info_json
-            .as_object_mut()
-            .context("Couldn't increase serial")?
-            .insert("serial".to_string(), json!(next_serial));
-        let res = self.db.update(id.clone()).content(app_info_json).await?;
-        res.context("Can't get appinfo")
-    }
+pub async fn get_active_app_infos_since(
+    c: Connection,
+    serial: usize,
+) -> anyhow::Result<Vec<AppInfo>> {
+    todo!()
+}
 
-    pub async fn publish_app(&self, id: &Thing) -> anyhow::Result<AppInfo> {
-        let res = self
-            .db
-            .update(id.clone())
-            .merge(json!({"active": true}))
-            .await?;
-        res.context("Can't serialize appinfo")
-    }
-
-    pub async fn get_app_info(&self, resource_id: &Thing) -> anyhow::Result<AppInfo> {
-        let res = self.db.select(resource_id.clone()).await?;
-        res.context("Can't serialize appinfo")
-    }
-
-    pub async fn get_active_app_infos(&self) -> surrealdb::Result<Vec<AppInfoId>> {
-        let mut result = self
-            .db
-            .query("select * from app_info where active = true")
-            .await?;
-        let testers = result.take::<Vec<AppInfoId>>(0)?;
-        Ok(testers)
-    }
-
-    pub async fn get_active_app_infos_since(
-        &self,
-        serial: usize,
-    ) -> surrealdb::Result<Vec<AppInfoId>> {
-        let mut result = self
-            .db
-            .query(format!(
-                "select * from app_info where active AND serial > {serial}"
-            ))
-            .await?;
-        let testers = result.take::<Vec<AppInfoId>>(0)?;
-        Ok(testers)
-    }
-
-    pub async fn get_last_serial(&self) -> anyhow::Result<usize> {
-        let mut result = self.db.query("SELECT serial FROM config:config").await?;
-        let t: Option<usize> = result.take((0, "serial"))?;
-        Ok(t.unwrap_or_default())
-    }
+pub async fn get_last_serial(c: Connection) -> anyhow::Result<usize> {
+    todo!()
 }

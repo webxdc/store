@@ -2,7 +2,7 @@ use std::sync::Arc;
 
 use crate::{
     bot::State,
-    db::DB,
+    db::RecordId,
     request_handlers::{
         review::{HandlePublishError, ReviewChat},
         FrontendRequestWithData,
@@ -16,14 +16,13 @@ use deltachat::{
 };
 use log::info;
 use serde::{Deserialize, Serialize};
-use surrealdb::opt::RecordId;
 
 use super::AppInfo;
 
 #[derive(Serialize, Deserialize)]
 pub struct SubmitChat {
     pub creator_chat: ChatId,
-    pub creator_webxdc: MsgId,
+    pub submit_helper: MsgId,
     pub app_info: RecordId,
 }
 
@@ -153,7 +152,7 @@ pub async fn check_app_info(
     submit_chat: &SubmitChat,
     chat_id: ChatId,
 ) -> anyhow::Result<()> {
-    send_app_info(context, app_info, submit_chat.creator_webxdc).await?;
+    send_app_info(context, app_info, submit_chat.submit_helper).await?;
 
     let missing = app_info.generate_missing_list();
     if !missing.is_empty() {
