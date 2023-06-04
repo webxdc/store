@@ -79,6 +79,7 @@ pub async fn handle_webxdc(
 
     app_info.author_email = contact.get_addr().to_string();
     app_info.author_name = contact.get_authname().to_string();
+    app_info.id = 0;
 
     db::create_app_info(conn, &mut app_info).await?;
 
