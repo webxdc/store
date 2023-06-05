@@ -75,6 +75,16 @@ function AppInfoModal(item: AppInfoWithState, onDownload: () => void) {
 }
 
 
+const PublishButton: Component = () => {
+    const [isOpen, setIsOpen] = createSignal(false)
+
+    return (
+        <button onClick={() => setIsOpen(true)} class="btn w-full">
+            {isOpen() ? "You can send me your webxdc in our 1:1 chat and I will help you publish it." : "Publish your own app"}
+        </button>
+    )
+}
+
 const AppList: Component<{ items: AppInfoWithState[], search: string, onDownload: (id: string) => void }> = (props) => {
     let fuse: Fuse<AppInfoWithState> = new Fuse(props.items, fuse_options);
 
@@ -100,7 +110,7 @@ const AppList: Component<{ items: AppInfoWithState[], search: string, onDownload
 };
 
 
-const Shop: Component<any> = (props: any) => {
+const Shop: Component = () => {
     const [appInfo, setAppInfo] = createStore({} as AppInfosById)
     const [lastSerial, setlastSerial] = useStorage('last-serial', 0)
     const [lastUpdateSerial, setlastUpdateSerial] = useStorage('last-update-serial', 0)
@@ -200,9 +210,7 @@ const Shop: Component<any> = (props: any) => {
                         </li>
                         <AppList items={Object.values(appInfo)} search={search()} onDownload={handleDownload} ></AppList>
                         <li class="mt-3">
-                            <button onClick={props.onopen} class="btn w-full">
-                                Publish your own app
-                            </button>
+                            <PublishButton></PublishButton>
                         </li>
                     </ul>
                 </div>

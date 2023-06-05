@@ -22,13 +22,13 @@ export default defineConfig({
       warn: true,
     }),
     presetTypography(),
-    presetWebFonts({
+    /* presetWebFonts({
       fonts: {
         sans: 'DM Sans',
         serif: 'DM Serif Display',
         mono: 'DM Mono',
       },
-    }),
+    }), */
   ],
   extractors: [
     extractorSplit,
