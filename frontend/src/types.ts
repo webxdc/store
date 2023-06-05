@@ -1,4 +1,4 @@
-import { FrontendAppInfo } from "./bindings/FrontendAppInfo"
+import { AppInfo } from "./bindings/AppInfo"
 
 
 export enum AppState {
@@ -7,8 +7,8 @@ export enum AppState {
     Received
 }
 
-export interface AppInfoWithState extends FrontendAppInfo {
+export interface AppInfoWithState extends AppInfo {
     state: AppState
 }
 
-export type AppInfosById = Record<string, AppInfoWithState>
+export type AppInfosById = Record<number, AppInfoWithState>

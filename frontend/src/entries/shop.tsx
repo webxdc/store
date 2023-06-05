@@ -120,7 +120,7 @@ const Shop: Component = () => {
 
 
     if (import.meta.env.DEV) {
-        setAppInfo(mock.id, mock)
+        setAppInfo(Number(mock.id), mock)
     }
 
     if (appInfo == undefined) {
@@ -135,7 +135,8 @@ const Shop: Component = () => {
             if (isUpdateResponse(resp.payload)) {
                 console.log('Received Update')
                 let app_infos: AppInfosById = resp.payload.app_infos.reduce((acc, appinfo) => {
-                    acc[appinfo.id] = { ...appinfo, state: AppState.Initial }
+                    let index = Number(appinfo.id)
+                    acc[index] = { ...appinfo, state: AppState.Initial }
                     return acc
                 },
                     {} as AppInfosById)
@@ -149,7 +150,7 @@ const Shop: Component = () => {
                     setAppInfo(reconcile(app_infos))
                 }
 
-                setlastUpdateSerial(resp.payload.serial)
+                setlastUpdateSerial(Number(resp.payload.serial))
                 setIsUpdating(false)
                 setlastUpdate(new Date())
 
@@ -157,7 +158,7 @@ const Shop: Component = () => {
                 if (resp.payload.okay) {
                     // id is set if resp is okay
                     let id = resp.payload.id!
-                    setAppInfo(id, 'state', AppState.Received)
+                    setAppInfo(Number(id), 'state', AppState.Received)
                 }
             }
         }
@@ -173,8 +174,8 @@ const Shop: Component = () => {
         }, "")
     }
 
-    function handleDownload(id: string) {
-        setAppInfo(id, 'state', AppState.Downloading)
+    function handleDownload(id: bigint) {
+        setAppInfo(Number(id), 'state', AppState.Downloading)
         window.webxdc.sendUpdate({
             payload: {
                 request_type: 'Dowload',

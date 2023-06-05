@@ -1,9 +1,9 @@
 import { Component, Show, createMemo } from 'solid-js';
-import { FrontendAppInfo } from '../bindings/FrontendAppInfo';
+import { AppInfo } from '../bindings/AppInfo';
 
 interface AppInfoPreviewProps {
-    appinfo: FrontendAppInfo
-    setAppInfo(appInfo: FrontendAppInfo): void;
+    appinfo: AppInfo
+    setAppInfo(appInfo: AppInfo): void;
 }
 
 
@@ -16,9 +16,9 @@ const AppInfoPreview: Component<AppInfoPreviewProps> = (props) => {
     };
 
     let errors = createMemo(() => Object.entries(props.appinfo).reduce((acc, [key, v]) => {
-        acc[key as keyof FrontendAppInfo] = v === undefined || v === null || v === ''
+        acc[key as keyof AppInfo] = v === undefined || v === null || v === ''
         return acc
-    }, {} as { [key in keyof FrontendAppInfo]: boolean }
+    }, {} as { [key in keyof AppInfo]: boolean }
     ));
 
     return (

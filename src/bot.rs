@@ -69,7 +69,7 @@ impl Bot {
             Err(_) => {
                 info!("Bot hasn't been configured yet, start configuring...");
                 let config = Self::setup(&context).await.context("failed to setup bot")?;
-                let conn = &mut *state.db.acquire().await?;
+                let conn = &mut *db.acquire().await?;
                 db::set_config(&mut *db.acquire().await?, &config).await?;
 
                 // set chat types

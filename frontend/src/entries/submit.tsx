@@ -1,5 +1,5 @@
 import { Component, Show, createMemo } from 'solid-js';
-import { FrontendAppInfo } from '../bindings/FrontendAppInfo';
+import { AppInfo } from '../bindings/AppInfo';
 import { useStorage } from 'solidjs-use';
 import { ReceivedStatusUpdate } from '../webxdc';
 import AppInfoPreview from '../components/AppInfo';
@@ -10,10 +10,10 @@ import "virtual:uno.css"
 import '@unocss/reset/tailwind.css'
 
 const Submit: Component = () => {
-    const [appInfo, setAppInfo] = useStorage('app-info', {} as FrontendAppInfo)
+    const [appInfo, setAppInfo] = useStorage('app-info', {} as AppInfo)
     const [lastSerial, setlastSerial] = useStorage('last-serial', 0)
     const is_appdata_complete = createMemo(() => Object.values(appInfo()).reduce((init, v) => init && !(v === undefined || v === null || v === ''), true))
-    let lastAppinfo: FrontendAppInfo = {} as FrontendAppInfo
+    let lastAppinfo: AppInfo = {} as AppInfo
     const is_different = createMemo(() => JSON.stringify(appInfo()) !== JSON.stringify(lastAppinfo))
     const has_loaded = createMemo(() => Object.hasOwn(appInfo(), "version"))
 
@@ -22,7 +22,7 @@ const Submit: Component = () => {
         setAppInfo(mock);
     }
 
-    window.webxdc.setUpdateListener((resp: ReceivedStatusUpdate<FrontendAppInfo>) => {
+    window.webxdc.setUpdateListener((resp: ReceivedStatusUpdate<AppInfo>) => {
         setlastSerial(resp.serial)
         // skip events that have a request_type and are hence self-send
         if (!Object.hasOwn(resp.payload, "request_type")) {

@@ -51,7 +51,7 @@ pub struct UpdateResponse {
 #[ts(export_to = "frontend/src/bindings/")]
 pub struct DownloadResponse {
     okay: bool,
-    id: Option<String>,
+    id: Option<i64>,
 }
 
 pub async fn handle_message(
@@ -79,9 +79,8 @@ pub async fn handle_webxdc(
 
     app_info.author_email = contact.get_addr().to_string();
     app_info.author_name = contact.get_authname().to_string();
-    app_info.id = 0;
 
-    db::create_app_info(conn, &app_info).await?;
+    db::create_app_info(conn, &mut app_info).await?;
 
     let chat_name = format!("Submit: {}", app_info.name);
     let chat_id = chat::create_group_chat(context, ProtectionStatus::Protected, &chat_name).await?;
@@ -98,7 +97,7 @@ pub async fn handle_webxdc(
         &SubmitChat {
             submit_chat: chat_id,
             submit_helper: creator_webxdc,
-            app_info: 69,
+            app_info: app_info.id,
         },
     )
     .await?;
@@ -163,12 +162,12 @@ async fn handle_download_request(
     state: Arc<State>,
     update: &str,
     chat_id: ChatId,
-) -> anyhow::Result<String> {
-    let resource = serde_json::from_str::<FrontendRequestWithData<RequestType, String>>(update)?
+) -> anyhow::Result<i64> {
+    let resource = serde_json::from_str::<FrontendRequestWithData<RequestType, i64>>(update)?
         .payload
         .data;
 
-    let app = db::get_app_info(&mut *state.db.acquire().await?, resource.parse()?).await?;
+    let app = db::get_app_info(&mut *state.db.acquire().await?, resource).await?;
     let mut msg = Message::new(Viewtype::Webxdc);
     if let Some(file) = app.xdc_blob_dir {
         msg.set_file(file.to_str().context("Can't covert file to str")?, None);
