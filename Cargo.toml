@@ -5,7 +5,7 @@ authors = ["DeltaChatBot Contributers<https://github.com/deltachat-bot>"]
 edition = "2021"
 
 [dependencies]
-deltachat = { git = "https://github.com/deltachat/deltachat-core-rust.git", branch="sk/new_apis"}
+deltachat = { path="../deltachat-core-rust"}
 tokio = { version = "^1.21", features = ["rt-multi-thread", "macros", "signal"]}
 clap = {version="^4.0", features=["derive", "cargo"]}
 anyhow = "^1.0"
