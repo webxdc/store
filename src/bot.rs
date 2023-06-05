@@ -12,29 +12,30 @@ use deltachat::{
 use log::{debug, error, info, trace, warn};
 use qrcode_generator::QrCodeEcc;
 use serde::{Deserialize, Serialize};
+use sqlx::SqlitePool;
 use std::{env, path::PathBuf, sync::Arc};
 
 use crate::{
-    db::DB,
+    db::{self, MIGRATOR},
     messages::appstore_message,
     request_handlers::{genisis, review, shop, submit, ChatType},
-    utils::{configure_from_env, get_db_path, send_webxdc},
-    GENESIS_QR, INVITE_QR, SHOP_XDC, SUBMIT_HELPER_XDC,
+    utils::{configure_from_env, send_webxdc},
+    DB_URL, GENESIS_QR, INVITE_QR, SHOP_XDC, SUBMIT_HELPER_XDC,
 };
 
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, PartialEq, Debug, Default)]
 pub struct BotConfig {
     pub genesis_qr: String,
     pub invite_qr: String,
     pub tester_group: ChatId,
     pub reviewee_group: ChatId,
     pub genesis_group: ChatId,
-    pub serial: usize,
+    pub serial: i64,
 }
 
 /// Github Bot state
 pub struct State {
-    pub db: DB,
+    pub db: SqlitePool,
     pub config: BotConfig,
 }
 
@@ -60,24 +61,21 @@ impl Bot {
             info!("Configuration done");
         }
 
-        let db = DB::new(&get_db_path()?)
-            .await
-            .context("Failed to create db")?;
+        let db = SqlitePool::connect(DB_URL).await.unwrap();
+        MIGRATOR.run(&db).await?;
 
-        let config = match db.get_config().await? {
-            Some(config) => config,
-            None => {
+        let config = match db::get_config(&mut *db.acquire().await?).await {
+            Ok(config) => config,
+            Err(_) => {
                 info!("Bot hasn't been configured yet, start configuring...");
                 let config = Self::setup(&context).await.context("failed to setup bot")?;
-                db.set_config(&config).await?;
+                let conn = &mut *state.db.acquire().await?;
+                db::set_config(&mut *db.acquire().await?, &config).await?;
 
                 // set chat types
-                db.set_chat_type(config.genesis_group, ChatType::Genesis)
-                    .await?;
-                db.set_chat_type(config.reviewee_group, ChatType::ReviewPool)
-                    .await?;
-                db.set_chat_type(config.tester_group, ChatType::TesterPool)
-                    .await?;
+                db::set_chat_type(conn, config.genesis_group, ChatType::Genesis).await?;
+                db::set_chat_type(conn, config.reviewee_group, ChatType::ReviewPool).await?;
+                db::set_chat_type(conn, config.tester_group, ChatType::TesterPool).await?;
 
                 // save qr codes to disk
                 qrcode_generator::to_png_to_file(
@@ -96,7 +94,6 @@ impl Bot {
                 )
                 .context("failed to generate invite QR")?;
                 println!("Generated 1:1 invite QR-code at {INVITE_QR}");
-
                 config
             }
         };
@@ -188,44 +185,39 @@ impl Bot {
 
                 Self::handle_dc_webxdc_update(context, state, msg_id, update_string).await?
             }
-            EventType::ChatModified(chat_id) => match state.db.get_chat_type(chat_id).await? {
-                Some(chat_type) => {
-                    let contacts = chat::get_chat_contacts(context, chat_id).await?;
-                    let filtered = contacts.into_iter().filter(|ci| !ci.is_special());
-                    match chat_type {
-                        ChatType::Genesis => {
-                            info!("updating genesis contacts");
-                            state
-                                .db
-                                .set_genesis_contacts(&filtered.collect::<Vec<_>>())
-                                .await?;
-                        }
-                        ChatType::ReviewPool => {
-                            info!("updating reviewer contacts");
-                            state
-                                .db
-                                .set_tester_contacts(&filtered.collect::<Vec<_>>())
-                                .await?;
-                        }
-                        ChatType::TesterPool => {
-                            info!("updating tester contacts");
-                            state
-                                .db
-                                .set_publisher_contacts(&filtered.collect::<Vec<_>>())
-                                .await?;
-                        }
-                        // TODO: handle membership changes in review and submit group
-                        _ => (),
-                    };
-                }
-                None => {
-                    info!(
+            EventType::ChatModified(chat_id) => {
+                let conn = &mut *state.db.acquire().await?;
+                match db::get_chat_type(conn, chat_id).await {
+                    Ok(chat_type) => {
+                        let contacts = chat::get_chat_contacts(context, chat_id).await?;
+                        let filtered = contacts.into_iter().filter(|ci| !ci.is_special());
+                        match chat_type {
+                            ChatType::Genesis => {
+                                info!("updating genesis contacts");
+                                db::set_genesis_members(conn, &filtered.collect::<Vec<_>>())
+                                    .await?;
+                            }
+                            ChatType::ReviewPool => {
+                                info!("updating reviewer contacts");
+                                db::set_publishers(conn, &filtered.collect::<Vec<_>>()).await?;
+                            }
+                            ChatType::TesterPool => {
+                                info!("updating tester contacts");
+                                db::set_testers(conn, &filtered.collect::<Vec<_>>()).await?;
+                            }
+                            // TODO: handle membership changes in review and submit group
+                            _ => (),
+                        };
+                    }
+                    Err(_e) => {
+                        info!(
                         "Chat {chat_id} is not in the database, adding it as chat with type shop"
                     );
-                    state.db.set_chat_type(chat_id, ChatType::Shop).await?;
-                    send_webxdc(context, chat_id, SHOP_XDC, Some(appstore_message())).await?;
+                        db::set_chat_type(conn, chat_id, ChatType::Shop).await?;
+                        send_webxdc(context, chat_id, SHOP_XDC, Some(appstore_message())).await?;
+                    }
                 }
-            },
+            }
             other => {
                 debug!("DC: [unhandled event] {other:?}");
             }
@@ -240,8 +232,8 @@ impl Bot {
         chat_id: ChatId,
         msg_id: MsgId,
     ) -> Result<()> {
-        match state.db.get_chat_type(chat_id).await {
-            Ok(Some(chat_type)) => {
+        match db::get_chat_type(&mut *state.db.acquire().await?, chat_id).await {
+            Ok(chat_type) => {
                 info!("Handling message with type <{chat_type:?}>");
                 match chat_type {
                     ChatType::Shop => {
@@ -269,14 +261,15 @@ impl Bot {
                     ChatType::ReviewPool | ChatType::TesterPool => (),
                 }
             }
-            Ok(None) => {
-                info!("creating new 1:1 chat with type Shop");
-                state.db.set_chat_type(chat_id, ChatType::Shop).await?;
-                shop::handle_message(context, state, chat_id).await?;
-            }
-            Err(e) => {
-                warn!("Problem while retrieving [ChatType]: {}", e);
-            }
+            Err(e) => match e {
+                sqlx::Error::RowNotFound => {
+                    info!("creating new 1:1 chat with type Shop");
+                    db::set_chat_type(&mut *state.db.acquire().await?, chat_id, ChatType::Shop)
+                        .await?;
+                    shop::handle_message(context, state, chat_id).await?;
+                }
+                _ => warn!("Problem while retrieving [ChatType]: {}", e),
+            },
         }
         Ok(())
     }
@@ -290,11 +283,7 @@ impl Bot {
     ) -> anyhow::Result<()> {
         let msg = Message::load_from_db(context, msg_id).await?;
         let chat_id = msg.get_chat_id();
-        let chat_type = state
-            .db
-            .get_chat_type(chat_id)
-            .await?
-            .ok_or(anyhow::anyhow!("No chat for this webxdc update"))?;
+        let chat_type = db::get_chat_type(&mut *state.db.acquire().await?, chat_id).await?;
 
         match chat_type {
             ChatType::Submit => {

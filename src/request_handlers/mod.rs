@@ -7,6 +7,7 @@ use async_zip::tokio::read::fs::ZipFileReader;
 use base64::encode;
 use deltachat::webxdc::WebxdcManifest;
 use serde::{Deserialize, Serialize};
+use sqlx::Type;
 use std::path::{Path, PathBuf};
 use ts_rs::TS;
 
@@ -27,7 +28,7 @@ pub struct ExtendedWebxdcManifest {
     pub description: Option<String>,
 }
 
-#[derive(TS, Deserialize, Serialize, Clone, Debug, Default)]
+#[derive(TS, Deserialize, Serialize, Clone, Debug, Default, PartialEq)]
 pub struct AppInfo {
     pub id: RecordId,
     pub name: String,                    // manifest
@@ -143,7 +144,8 @@ impl AppInfo {
     }
 }
 
-#[derive(Serialize, Deserialize, Clone, Copy, Debug, PartialEq)]
+#[derive(Serialize, Deserialize, Type, Clone, Copy, Debug, PartialEq)]
+
 pub enum ChatType {
     Shop,
     Submit,

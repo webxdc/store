@@ -1,7 +1,7 @@
 use super::{AppInfo, FrontendRequest};
 use crate::{
     bot::State,
-    db::FrontendAppInfo,
+    db,
     messages::appstore_message,
     request_handlers::{self, submit::SubmitChat, ChatType, FrontendRequestWithData},
     utils::{send_newest_updates, send_webxdc},
@@ -42,8 +42,8 @@ pub struct PublishRequest {
 #[ts(export)]
 #[ts(export_to = "frontend/src/bindings/")]
 pub struct UpdateResponse {
-    pub app_infos: Vec<FrontendAppInfo>,
-    pub serial: usize,
+    pub app_infos: Vec<AppInfo>,
+    pub serial: i64,
 }
 
 #[derive(TS, Serialize)]
@@ -62,7 +62,7 @@ pub async fn handle_message(
     let chat = chat::Chat::load_from_db(context, chat_id).await?;
     if let constants::Chattype::Single = chat.typ {
         let msg = send_webxdc(context, chat_id, SHOP_XDC, Some(appstore_message())).await?;
-        send_newest_updates(context, msg, &state.db, 0).await?;
+        send_newest_updates(context, msg, &mut *state.db.acquire().await?, 0).await?;
     }
     Ok(())
 }
@@ -73,7 +73,7 @@ pub async fn handle_webxdc(
     msg: Message,
 ) -> anyhow::Result<()> {
     info!("Handling webxdc message in shop chat");
-
+    let conn = &mut *state.db.acquire().await?;
     let mut app_info = AppInfo::from_xdc(&msg.get_file(context).context("Can't get file")?).await?;
     let contact = Contact::load_from_db(context, msg.get_from_id()).await?;
 
@@ -81,11 +81,11 @@ pub async fn handle_webxdc(
     app_info.author_name = contact.get_authname().to_string();
     app_info.id = 0;
 
-    state.db.create_app_info(&app_info).await?;
+    db::create_app_info(conn, &app_info).await?;
 
     let chat_name = format!("Submit: {}", app_info.name);
     let chat_id = chat::create_group_chat(context, ProtectionStatus::Protected, &chat_name).await?;
-    state.db.set_chat_type(chat_id, ChatType::Submit).await?;
+    db::set_chat_type(conn, chat_id, ChatType::Submit).await?;
 
     let creator = msg.get_from_id();
     chat::add_contact_to_chat(context, chat_id, creator).await?;
@@ -93,14 +93,15 @@ pub async fn handle_webxdc(
     chat::forward_msgs(context, &[msg.get_id()], chat_id).await?;
     let creator_webxdc = send_webxdc(context, chat_id, SUBMIT_HELPER_XDC, None).await?;
 
-    state
-        .db
-        .create_submit_chat(&SubmitChat {
-            creator_chat: chat_id,
+    db::create_submit_chat(
+        conn,
+        &SubmitChat {
+            submit_chat: chat_id,
             submit_helper: creator_webxdc,
-            app_info: resource_id,
-        })
-        .await?;
+            app_info: 69,
+        },
+    )
+    .await?;
 
     request_handlers::submit::handle_webxdc(context, chat_id, state, msg).await?;
     Ok(())
@@ -118,9 +119,15 @@ pub async fn handle_status_update(
             RequestType::Update => {
                 info!("Handling store update request");
                 let req =
-                    serde_json::from_str::<FrontendRequestWithData<RequestType, usize>>(&update)?;
+                    serde_json::from_str::<FrontendRequestWithData<RequestType, i64>>(&update)?;
 
-                send_newest_updates(context, msg_id, &state.db, req.payload.data).await?;
+                send_newest_updates(
+                    context,
+                    msg_id,
+                    &mut *state.db.acquire().await?,
+                    req.payload.data,
+                )
+                .await?;
             }
             RequestType::Dowload => {
                 info!("Handling store download");
@@ -161,7 +168,7 @@ async fn handle_download_request(
         .payload
         .data;
 
-    let app = state.db.get_app_info(resource.parse()?).await?;
+    let app = db::get_app_info(&mut *state.db.acquire().await?, resource.parse()?).await?;
     let mut msg = Message::new(Viewtype::Webxdc);
     if let Some(file) = app.xdc_blob_dir {
         msg.set_file(file.to_str().context("Can't covert file to str")?, None);

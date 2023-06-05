@@ -10,12 +10,12 @@ use deltachat::{
     message::{Message, MsgId, Viewtype},
 };
 use serde_json::json;
+use sqlx::SqliteConnection;
 use std::env;
 
 use crate::{
-    db::{FrontendAppInfo, DB},
+    db,
     request_handlers::{shop::UpdateResponse, AppInfo},
-    DB_PATH,
 };
 
 pub async fn configure_from_env(ctx: &Context) -> Result<()> {
@@ -48,17 +48,15 @@ pub async fn send_webxdc(
 pub async fn send_newest_updates(
     context: &Context,
     msg_id: MsgId,
-    db: &DB,
-    serial: usize,
+    db: &mut SqliteConnection,
+    serial: i64,
 ) -> anyhow::Result<()> {
-    let app_infos: Vec<_> = db
-        .get_active_app_infos_since(serial)
+    let app_infos: Vec<_> = db::get_active_app_infos_since(db, serial)
         .await?
         .into_iter()
-        .map(FrontendAppInfo::from)
         .collect();
 
-    let serial = db.get_last_serial().await?;
+    let serial = db::get_last_serial(db).await?;
     let resp = UpdateResponse { app_infos, serial };
     context
         .send_webxdc_status_update_struct(
@@ -101,15 +99,6 @@ pub async fn read_vec(reader: &ZipFileReader, index: usize) -> anyhow::Result<Ve
     let mut data = Vec::new();
     entry.read_to_end_checked(&mut data).await?;
     Ok(data)
-}
-
-pub fn get_db_path() -> anyhow::Result<String> {
-    env::current_dir().map(|a| {
-        a.join(DB_PATH)
-            .to_str()
-            .map(|a| a.to_string())
-            .context("No file")
-    })?
 }
 
 /// Send an app_info to the frontend
