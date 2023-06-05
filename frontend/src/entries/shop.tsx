@@ -85,7 +85,7 @@ const PublishButton: Component = () => {
     )
 }
 
-const AppList: Component<{ items: AppInfoWithState[], search: string, onDownload: (id: string) => void }> = (props) => {
+const AppList: Component<{ items: AppInfoWithState[], search: string, onDownload: (id: bigint) => void }> = (props) => {
     let fuse: Fuse<AppInfoWithState> = new Fuse(props.items, fuse_options);
 
     createEffect(() => {
