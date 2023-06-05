@@ -5,21 +5,21 @@ authors = ["DeltaChatBot Contributers<https://github.com/deltachat-bot>"]
 edition = "2021"
 
 [dependencies]
-deltachat = { git = "https://github.com/deltachat/deltachat-core-rust.git", branch="sk/new_apis"}
+deltachat = { path="../deltachat-core-rust"}
 tokio = { version = "^1.21", features = ["rt-multi-thread", "macros", "signal"]}
 clap = {version="^4.0", features=["derive", "cargo"]}
 anyhow = "^1.0"
 thiserror="^1.0"
 serde = "^1.0"
 serde_json = "^1.0"
-toml = "*"
+toml = "0.7.4"
 log = "^0.4"
 env_logger = "0.10.0"
 itertools = "^0.10"
-ts-rs = "*"
-rand = "*"
+ts-rs = "6.2.1"
+rand = "0.8.5"
 async_zip = {version="0.0.15", features=["full"]}
 base64-compat = "1.0.0"
 qrcode-generator = "4.1.8"
-qr2term = "*"
-sqlx = "*"
+qr2term = "0.3.1"
+sqlx = { git = "https://github.com/launchbadge/sqlx.git", features = [ "runtime-tokio", "migrate", "sqlite" ] }
