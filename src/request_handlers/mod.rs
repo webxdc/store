@@ -29,6 +29,8 @@ pub struct ExtendedWebxdcManifest {
 }
 
 #[derive(TS, Deserialize, Serialize, Clone, Debug, Default, PartialEq)]
+#[ts(export)]
+#[ts(export_to = "frontend/src/bindings/")]
 pub struct AppInfo {
     pub id: RecordId,
     pub name: String,                    // manifest
@@ -37,10 +39,13 @@ pub struct AppInfo {
     pub source_code_url: Option<String>, // manifest
     pub image: Option<String>,           // webxdc
     pub description: Option<String>,     // submit
-    pub xdc_blob_dir: Option<PathBuf>,   // bot
+    #[serde(skip)]
+    pub xdc_blob_dir: Option<PathBuf>, // bot
     pub version: Option<String>,         // manifest
-    pub originator: RecordId,            // bot
-    pub active: bool,                    // bot
+    #[serde(skip)]
+    pub originator: RecordId, // bot
+    #[serde(skip)]
+    pub active: bool,  // bot
 }
 
 impl AppInfo {

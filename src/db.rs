@@ -20,13 +20,13 @@ use crate::{
 
 pub static MIGRATOR: Migrator = sqlx::migrate!();
 
-pub type RecordId = i32;
+pub type RecordId = i64;
 
 pub async fn set_config(c: &mut SqliteConnection, config: &BotConfig) -> anyhow::Result<()> {
     let tester_group = config.tester_group.to_u32();
     let reviewee_group = config.reviewee_group.to_u32();
     let genesis_group = config.genesis_group.to_u32();
-    let serial = i32::try_from(config.serial).unwrap().to_string();
+    let serial = i64::try_from(config.serial).unwrap().to_string();
     sqlx::query!(
         "INSERT INTO config (genesis_qr, invite_qr, tester_group, reviewee_group, genesis_group, serial) VALUES (?, ?, ?, ?, ?, ?)",
         config.genesis_qr,
@@ -247,9 +247,12 @@ pub async fn increase_get_serial(c: &mut SqliteConnection) -> sqlx::Result<u32> 
     Ok(serial as u32)
 }
 
-pub async fn create_app_info(c: &mut SqliteConnection, app_info: &AppInfo) -> anyhow::Result<()> {
+pub async fn create_app_info(
+    c: &mut SqliteConnection,
+    app_info: &mut AppInfo,
+) -> anyhow::Result<()> {
     let next_serial = increase_get_serial(c).await?;
-    sqlx::query("INSERT INTO app_infos (name, description, version, image, author_name, author_email, xdc_blob_dir, active, originator, source_code_url, serial, id) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)")
+    let res = sqlx::query("INSERT INTO app_infos (name, description, version, image, author_name, author_email, xdc_blob_dir, active, originator, source_code_url, serial) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)")
         .bind(app_info.name.as_str())
         .bind(&app_info.description)
         .bind(&app_info.version)
@@ -264,6 +267,7 @@ pub async fn create_app_info(c: &mut SqliteConnection, app_info: &AppInfo) -> an
         .bind(app_info.id)
         .execute(c)
         .await?;
+    app_info.id = res.last_insert_rowid();
     Ok(())
 }
 
@@ -302,7 +306,7 @@ pub async fn get_app_info(
         .await
         .map(|a| {
             Ok(AppInfo {
-                id: a.id as i32,
+                id: a.id as i64,
                 name: a.name,
                 description: a.description,
                 version: a.version,
@@ -311,7 +315,7 @@ pub async fn get_app_info(
                 author_email: a.author_email,
                 xdc_blob_dir: a.xdc_blob_dir.map(|a| PathBuf::from(a)),
                 active: a.active,
-                originator: a.originator as i32,
+                originator: a.originator as i64,
                 source_code_url: a.source_code_url,
             })
         })?
@@ -325,7 +329,7 @@ pub async fn _get_active_app_infos(c: &mut SqliteConnection) -> sqlx::Result<Vec
             Ok(rows
                 .into_iter()
                 .map(|a| AppInfo {
-                    id: a.id as i32,
+                    id: a.id as i64,
                     name: a.name,
                     description: a.description,
                     version: a.version,
@@ -334,7 +338,7 @@ pub async fn _get_active_app_infos(c: &mut SqliteConnection) -> sqlx::Result<Vec
                     author_email: a.author_email,
                     xdc_blob_dir: a.xdc_blob_dir.map(|a| PathBuf::from(a)),
                     active: a.active,
-                    originator: a.originator as i32,
+                    originator: a.originator as i64,
                     source_code_url: a.source_code_url,
                 })
                 .collect())
@@ -355,7 +359,7 @@ pub async fn get_active_app_infos_since(
         Ok(rows
             .into_iter()
             .map(|a| AppInfo {
-                id: a.id as i32,
+                id: a.id as i64,
                 name: a.name,
                 description: a.description,
                 version: a.version,
@@ -364,7 +368,7 @@ pub async fn get_active_app_infos_since(
                 author_email: a.author_email,
                 xdc_blob_dir: a.xdc_blob_dir.map(|a| PathBuf::from(a)),
                 active: a.active,
-                originator: a.originator as i32,
+                originator: a.originator as i64,
                 source_code_url: a.source_code_url,
             })
             .collect())
@@ -531,8 +535,8 @@ mod tests {
         MIGRATOR.run(&mut conn).await.unwrap();
 
         set_config(&mut conn, &BotConfig::default()).await.unwrap();
-        let app_info = AppInfo::default();
-        create_app_info(&mut conn, &app_info).await.unwrap();
+        let mut app_info = AppInfo::default();
+        create_app_info(&mut conn, &mut app_info).await.unwrap();
         let loaded_app_info = get_app_info(&mut conn, app_info.id).await.unwrap();
         assert_eq!(app_info, loaded_app_info);
     }

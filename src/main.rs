@@ -86,7 +86,7 @@ async fn main() -> anyhow::Result<()> {
                         fs::rename(file, &new_path)?;
                         app_info.xdc_blob_dir = Some(new_path);
                         let db = SqlitePool::connect(DB_URL).await.unwrap();
-                        db::create_app_info(&mut *db.acquire().await?, &app_info).await?;
+                        db::create_app_info(&mut *db.acquire().await?, &mut app_info).await?;
                         println!("Added {:?}({}) to apps", file, app_info.name);
                     } else {
                         println!(

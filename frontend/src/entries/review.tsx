@@ -1,5 +1,5 @@
 import { Component, Show, createMemo } from 'solid-js';
-import { FrontendAppInfo } from '../bindings/FrontendAppInfo';
+import { AppInfo } from '../bindings/AppInfo';
 import { useStorage } from 'solidjs-use';
 import { ReceivedStatusUpdate } from '../webxdc';
 import AppInfoPreview from '../components/AppInfo';
@@ -47,7 +47,7 @@ const ReviewState: Component<ReviewStateProps> = (props) => {
 };
 
 const Review: Component = () => {
-    const [appInfo, setAppInfo] = useStorage('app-info', {} as FrontendAppInfo)
+    const [appInfo, setAppInfo] = useStorage('app-info', {} as AppInfo)
     const [testStatus, setTestStatus] = useStorage('test-status', { android: false, ios: false, desktop: false })
     const [lastSerial, setlastSerial] = useStorage('last-serial', 0)
 
@@ -56,7 +56,7 @@ const Review: Component = () => {
     }
 
 
-    window.webxdc.setUpdateListener((resp: ReceivedStatusUpdate<FrontendAppInfo>) => {
+    window.webxdc.setUpdateListener((resp: ReceivedStatusUpdate<AppInfo>) => {
         setlastSerial(resp.serial)
 
         // skip events that have a request_type and are hence self-send
