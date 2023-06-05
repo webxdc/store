@@ -8,7 +8,7 @@ use deltachat::{
 };
 use log::info;
 
-use crate::{bot::State, bot_commands::Genesis};
+use crate::{bot::State, bot_commands::Genesis, db};
 
 pub async fn handle_message(
     context: &Context,
@@ -17,6 +17,8 @@ pub async fn handle_message(
     msg_id: MsgId,
 ) -> anyhow::Result<()> {
     let msg = Message::load_from_db(context, msg_id).await?;
+    let conn = &mut *state.db.acquire().await?;
+
     if let Some(text) = msg.get_text() {
         // only react to messages commands
         if let Some(text) = text.strip_prefix('/') {
@@ -30,11 +32,11 @@ pub async fn handle_message(
                         info!("Adding user {contact_id} to group {group:?}");
                         let chat_id = match group {
                             crate::bot_commands::BotGroup::Publisher => {
-                                state.db.create_publisher(contact_id).await.ok();
+                                db::add_publisher(conn, contact_id).await.ok();
                                 state.config.reviewee_group
                             }
                             crate::bot_commands::BotGroup::Tester => {
-                                state.db.create_tester(contact_id).await.ok();
+                                db::add_tester(conn, contact_id).await.ok();
                                 state.config.tester_group
                             }
                         };

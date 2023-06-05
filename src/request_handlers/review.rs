@@ -1,9 +1,10 @@
+use sqlx::SqliteConnection;
 use std::sync::Arc;
 use thiserror::Error;
 
 use crate::{
     bot::State,
-    db::{RecordId, DB},
+    db::{self, RecordId},
     messages::creat_review_group_init_message,
     utils::{get_contact_name, send_app_info, send_webxdc},
     REVIEW_HELPER_XDC,
@@ -19,7 +20,7 @@ use serde::{Deserialize, Serialize};
 
 use super::{submit::SubmitChat, AppInfo};
 
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, Default, Debug, PartialEq)]
 pub struct ReviewChat {
     // Xdc helper references.
     pub review_helper: MsgId,
@@ -27,7 +28,7 @@ pub struct ReviewChat {
 
     // Chat references.
     pub review_chat: ChatId,
-    pub creator_chat: ChatId,
+    pub submit_chat: ChatId,
 
     // Special roles.
     pub publisher: ContactId,
@@ -45,6 +46,8 @@ pub enum HandlePublishError {
     NotEnoughPublishers,
     #[error(transparent)]
     Other(#[from] anyhow::Error),
+    #[error(transparent)]
+    Sqlx(#[from] sqlx::Error),
 }
 
 impl ReviewChat {
@@ -56,15 +59,15 @@ impl ReviewChat {
         //testers: &[ContactId],
         //publisher: ContactId,
     ) -> Result<Self, HandlePublishError> {
-        let app_info = submit_chat.get_app_info(&state.db).await?;
+        let app_info = submit_chat
+            .get_app_info(&mut *state.db.acquire().await?)
+            .await?;
+        let conn = &mut *state.db.acquire().await?;
+        let publisher = db::get_random_publisher(conn)
+            .await
+            .map_err(|_e| HandlePublishError::NotEnoughPublishers)?;
 
-        let publisher = state
-            .db
-            .get_publisher()
-            .await?
-            .ok_or(HandlePublishError::NotEnoughPublishers)?;
-
-        let testers = state.db.get_testers().await?;
+        let testers = db::get_random_testers(conn, 3).await?;
         if testers.is_empty() {
             return Err(HandlePublishError::NotEnoughTesters);
         }
@@ -104,7 +107,7 @@ impl ReviewChat {
 
         let review_chat = ReviewChat {
             review_chat: chat_id,
-            creator_chat: submit_chat.creator_chat,
+            submit_chat: submit_chat.submit_chat,
             publisher,
             testers: testers.clone(),
             app_info: submit_chat.app_info,
@@ -112,18 +115,15 @@ impl ReviewChat {
             submit_helper,
         };
 
-        state.db.upgrade_to_review_chat(&review_chat).await?;
+        db::upgrade_to_review_chat(conn, &review_chat).await?;
 
-        state
-            .db
-            .set_chat_type(chat_id, super::ChatType::Review)
-            .await?;
+        db::set_chat_type(conn, chat_id, super::ChatType::Review).await?;
 
         Ok(review_chat)
     }
 
-    pub async fn get_app_info(&self, db: &DB) -> anyhow::Result<AppInfo> {
-        db.get_app_info(&self.app_info).await
+    pub async fn get_app_info(&self, conn: &mut SqliteConnection) -> anyhow::Result<AppInfo> {
+        db::get_app_info(conn, self.app_info).await
     }
 }
 
@@ -137,15 +137,11 @@ pub async fn handle_message(
     let msg = Message::load_from_db(context, message_id).await?;
     if let Some(msg_text) = msg.get_text() {
         if msg_text == "/release" {
-            let review_chat = state
-                .db
-                .get_review_chat(chat_id)
-                .await?
-                .ok_or(anyhow::anyhow!("No review chat found for chat {chat_id}"))?;
-
-            let app_info = review_chat.get_app_info(&state.db).await?;
+            let conn = &mut *state.db.acquire().await?;
+            let review_chat = db::get_review_chat(conn, chat_id).await?;
+            let app_info = review_chat.get_app_info(conn).await?;
             if app_info.is_complete() {
-                state.db.publish_app(&review_chat.app_info).await?;
+                db::publish_app_info(conn, review_chat.app_info).await?;
                 chat::send_text_msg(context, chat_id, "App published".into()).await?;
             } else {
                 let missing = app_info.generate_missing_list();

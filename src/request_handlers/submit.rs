@@ -2,7 +2,7 @@ use std::sync::Arc;
 
 use crate::{
     bot::State,
-    db::RecordId,
+    db::{self, RecordId},
     request_handlers::{
         review::{HandlePublishError, ReviewChat},
         FrontendRequestWithData,
@@ -16,19 +16,20 @@ use deltachat::{
 };
 use log::info;
 use serde::{Deserialize, Serialize};
+use sqlx::SqliteConnection;
 
 use super::AppInfo;
 
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, Debug, PartialEq, Default)]
 pub struct SubmitChat {
-    pub creator_chat: ChatId,
+    pub submit_chat: ChatId,
     pub submit_helper: MsgId,
     pub app_info: RecordId,
 }
 
 impl SubmitChat {
-    pub async fn get_app_info(&self, db: &DB) -> anyhow::Result<AppInfo> {
-        db.get_app_info(&self.app_info).await
+    pub async fn get_app_info(&self, conn: &mut SqliteConnection) -> anyhow::Result<AppInfo> {
+        db::get_app_info(conn, self.app_info).await
     }
 }
 
@@ -39,11 +40,8 @@ pub async fn handle_message(
     msg: Message,
 ) -> anyhow::Result<()> {
     info!("Handling message in submit-chat");
-    let submit_chat: SubmitChat = state
-        .db
-        .get_submit_chat(chat_id)
-        .await?
-        .expect("Submit chat should exist");
+    let submit_chat: SubmitChat =
+        db::get_submit_chat(&mut *state.db.acquire().await?, chat_id).await?;
 
     if let Some(msg_text) = msg.get_text() {
         if msg_text.starts_with('/') {
@@ -88,13 +86,12 @@ pub async fn handle_webxdc(
 ) -> anyhow::Result<()> {
     info!("Handling webxdc submission");
 
-    let submit_chat = state
-        .db
-        .get_submit_chat(chat_id)
-        .await?
-        .ok_or(anyhow::anyhow!("No submit chat found for chat {chat_id}"))?;
+    let submit_chat: SubmitChat =
+        db::get_submit_chat(&mut *state.db.acquire().await?, chat_id).await?;
 
-    let mut app_info = submit_chat.get_app_info(&state.db).await?;
+    let mut app_info = submit_chat
+        .get_app_info(&mut *state.db.acquire().await?)
+        .await?;
     let file = msg.get_file(context).ok_or(anyhow::anyhow!(
         "Webxdc message {} has no file attached",
         msg.get_id()
@@ -105,10 +102,7 @@ pub async fn handle_webxdc(
     if upgraded {
         // TODO: Handle upgrade
     } else if changed {
-        state
-            .db
-            .update_app_info(&app_info, &submit_chat.app_info)
-            .await?;
+        db::update_app_info(&mut *state.db.acquire().await?, &app_info).await?;
 
         check_app_info(context, &app_info, &submit_chat, chat_id).await?;
     }
@@ -123,19 +117,13 @@ pub async fn handle_status_update(
 ) -> anyhow::Result<()> {
     info!("Handling [AppInfo] update");
     if let Ok(req) = serde_json::from_str::<FrontendRequestWithData<String, AppInfo>>(&update) {
-        let submit_chat = state
-            .db
-            .get_submit_chat(chat_id)
-            .await?
-            .ok_or(anyhow::anyhow!("No submit chat found for chat {chat_id}"))?;
+        let conn = &mut *state.db.acquire().await?;
+        let submit_chat = db::get_submit_chat(conn, chat_id).await?;
 
         // TODO: verify update
-        state
-            .db
-            .update_app_info(&req.payload.data, &submit_chat.app_info)
-            .await?;
-
+        db::update_app_info(conn, &req.payload.data).await?;
         check_app_info(context, &req.payload.data, &submit_chat, chat_id).await?;
+        
     } else {
         info!(
             "Ignoring update: {}",

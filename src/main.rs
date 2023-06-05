@@ -15,12 +15,12 @@ use bot::Bot;
 use clap::Parser;
 use cli::{BotActions, BotCli};
 use log::info;
+use sqlx::SqlitePool;
 use tokio::signal;
-use utils::get_db_path;
 
 use crate::request_handlers::AppInfo;
 
-const DB_PATH: &str = "bot.db";
+const DB_URL: &str = "sqlite://bot-db/bot.db";
 const GENESIS_QR: &str = "./bot-data/genesis_invite_qr.png";
 const INVITE_QR: &str = "./bot-data/1o1_invite_qr.png";
 const SHOP_XDC: &str = "./bot-data/appstore.xdc";
@@ -85,8 +85,8 @@ async fn main() -> anyhow::Result<()> {
 
                         fs::rename(file, &new_path)?;
                         app_info.xdc_blob_dir = Some(new_path);
-
-                        db.create_app_info(&app_info, 0).await?;
+                        let db = SqlitePool::connect(DB_URL).await.unwrap();
+                        db::create_app_info(&mut *db.acquire().await?, &app_info).await?;
                         println!("Added {:?}({}) to apps", file, app_info.name);
                     } else {
                         println!(
@@ -99,14 +99,16 @@ async fn main() -> anyhow::Result<()> {
             }
         }
         BotActions::ShowQr => {
-            match db.get_config().await? {
-                Some(config) => {
+            let db = SqlitePool::connect(DB_URL).await.unwrap();
+
+            match db::get_config(&mut *db.acquire().await?).await {
+                Ok(config) => {
                     println!("Genisis invite qr:");
                     qr2term::print_qr(config.genesis_qr)?;
                     println!("Bot invite qr:");
                     qr2term::print_qr(config.invite_qr)?;
                 }
-                None => println!("Bot not configured yet, start the bot first."),
+                Err(_) => println!("Bot not configured yet, start the bot first."),
             }
         }
         BotActions::Start => {
