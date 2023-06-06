@@ -14,6 +14,7 @@
 
 use std::path::PathBuf;
 
+use anyhow::Context;
 use deltachat::{chat::ChatId, contact::ContactId, message::MsgId};
 use sqlx::{migrate::Migrator, Connection, FromRow, Row, SqliteConnection};
 
@@ -291,6 +292,11 @@ pub async fn create_app_info(
     app_info: &mut AppInfo,
 ) -> anyhow::Result<()> {
     let next_serial = increase_get_serial(c).await?;
+    let blob_dir = if let Some(dir) = &app_info.xdc_blob_dir {
+        Some(dir.to_str().context("Can't convert to str")?)
+    } else {
+        None
+    };
     let res = sqlx::query("INSERT INTO app_infos (name, description, version, image, author_name, author_email, xdc_blob_dir, active, originator, source_code_url, serial) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)")
         .bind(app_info.name.as_str())
         .bind(&app_info.description)
@@ -298,7 +304,7 @@ pub async fn create_app_info(
         .bind(&app_info.image)
         .bind(&app_info.author_name)
         .bind(&app_info.author_email)
-        .bind(app_info.xdc_blob_dir.as_deref().map(|a| a.to_str().unwrap()))
+        .bind(blob_dir)
         .bind(app_info.active)
         .bind(app_info.originator)
         .bind(&app_info.source_code_url)
@@ -310,7 +316,12 @@ pub async fn create_app_info(
     Ok(())
 }
 
-pub async fn update_app_info(c: &mut SqliteConnection, app_info: &AppInfo) -> sqlx::Result<()> {
+pub async fn update_app_info(c: &mut SqliteConnection, app_info: &AppInfo) -> anyhow::Result<()> {
+    let blob_dir = if let Some(dir) = &app_info.xdc_blob_dir {
+        Some(dir.to_str().context("Can't convert to str")?)
+    } else {
+        None
+    };
     sqlx::query("UPDATE app_infos SET name = ?, description = ?, version = ?, image = ?, author_name = ?, author_email = ?, xdc_blob_dir = ?, active = ?, originator = ?, source_code_url = ? WHERE id = ?")
         .bind(app_info.name.as_str())
         .bind(&app_info.description)
@@ -318,7 +329,7 @@ pub async fn update_app_info(c: &mut SqliteConnection, app_info: &AppInfo) -> sq
         .bind(&app_info.image)
         .bind(&app_info.author_name)
         .bind(&app_info.author_email)
-        .bind(app_info.xdc_blob_dir.as_deref().map(|a| a.to_str().unwrap()))
+        .bind(blob_dir)
         .bind(app_info.active)
         .bind(app_info.originator)
         .bind(&app_info.source_code_url)
@@ -373,6 +384,7 @@ pub async fn get_last_serial(c: &mut SqliteConnection) -> sqlx::Result<i64> {
 }
 
 #[cfg(test)]
+#[allow(clippy::unwrap_used)]
 mod tests {
     use super::*;
     use sqlx::{Connection, SqliteConnection};
