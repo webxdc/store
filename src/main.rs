@@ -85,7 +85,7 @@ async fn main() -> anyhow::Result<()> {
 
                         fs::rename(file, &new_path)?;
                         app_info.xdc_blob_dir = Some(new_path);
-                        let db = SqlitePool::connect(DB_URL).await.unwrap();
+                        let db = SqlitePool::connect(DB_URL).await?;
                         db::create_app_info(&mut *db.acquire().await?, &mut app_info).await?;
                         println!("Added {:?}({}) to apps", file, app_info.name);
                     } else {
@@ -99,7 +99,7 @@ async fn main() -> anyhow::Result<()> {
             }
         }
         BotActions::ShowQr => {
-            let db = SqlitePool::connect(DB_URL).await.unwrap();
+            let db = SqlitePool::connect(DB_URL).await?;
 
             match db::get_config(&mut *db.acquire().await?).await {
                 Ok(config) => {
