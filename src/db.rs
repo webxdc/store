@@ -3,10 +3,14 @@
 //! - users (Stores reviewers, publishers, genesis members etc.)
 //! - app_infos (Stores the app infos)
 //! - chats (Stores information about the review and submit chats)
-//! - chat_types (Acts as a map between ChatId and ChatType)
+//! - chat_to_chat_type (Acts as a map between ChatId and ChatType)
+//! - config (Where config is stored)
 //!
 //! A chat entry will be created when submitting a webxdc and holds a [SubmitChat].
-//! When the app is send to review, it will turn into a [ReviewChat].
+//! When the app is send to review, it will turn into a [ReviewChat] using the same row but with
+//! the review chats chat_id stored in a dedicated field.
+//!
+//! See migrations folder for further details.
 
 use std::path::PathBuf;
 
