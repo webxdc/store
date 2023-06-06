@@ -12,15 +12,15 @@ use deltachat::{
 use log::{debug, error, info, trace, warn};
 use qrcode_generator::QrCodeEcc;
 use serde::{Deserialize, Serialize};
-use sqlx::SqlitePool;
-use std::{env, fs, path::PathBuf, sync::Arc};
+use sqlx::{pool::PoolConnection, Sqlite, SqlitePool};
+use std::{fs, path::PathBuf, sync::Arc};
 
 use crate::{
     db::{self, MIGRATOR},
     messages::appstore_message,
     request_handlers::{genisis, review, shop, submit, ChatType},
     utils::{configure_from_env, send_webxdc},
-    DB_URL, GENESIS_QR, INVITE_QR, SHOP_XDC, SUBMIT_HELPER_XDC,
+    DB_URL, DC_DB_PATH, GENESIS_QR, INVITE_QR, SHOP_XDC, SUBMIT_HELPER_XDC,
 };
 
 #[derive(Serialize, Deserialize, PartialEq, Debug, Default)]
@@ -46,11 +46,11 @@ pub struct Bot {
 }
 
 impl Bot {
+    /// Creates a new instance of the bot.
+    /// Handles the configuration for dc and the bot itself.
     pub async fn new() -> Result<Self> {
-        let dbdir = env::current_dir()?.join("deltachat.db");
-        std::fs::create_dir_all(dbdir.clone()).context("Failed to create db folder")?;
-
-        let dbfile = dbdir.join("db.sqlite");
+        std::fs::create_dir(DC_DB_PATH).ok();
+        let dbfile = PathBuf::from(DC_DB_PATH).join("db.sqlite");
         let context = Context::new(dbfile.as_path(), 1, Events::new(), StockStrings::new())
             .await
             .context("Failed to create context")?;
@@ -307,5 +307,9 @@ impl Bot {
         }
 
         Ok(())
+    }
+
+    pub async fn get_db_connection(&self) -> sqlx::Result<PoolConnection<Sqlite>> {
+        self.state.db.acquire().await
     }
 }
