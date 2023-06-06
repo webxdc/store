@@ -152,7 +152,7 @@ pub async fn get_chat_type(c: &mut SqliteConnection, chat_id: ChatId) -> sqlx::R
 
 /// TODO: this should add a new genesis, if contact_id is not yet set
 pub async fn add_genesis(c: &mut SqliteConnection, contact_id: ContactId) -> sqlx::Result<()> {
-    sqlx::query("UPDATE users SET genesis = true WHERE contact_id = ?")
+    sqlx::query("INSERT INTO users (genesis, tester, publisher, contact_id) VALUES (true, false, false, ?) ON CONFLICT (contact_id) DO UPDATE SET genesis=true")
         .bind(contact_id.to_u32())
         .execute(c)
         .await?;
@@ -171,7 +171,7 @@ pub async fn set_genesis_members(
 
 /// TODO: this should add a new publisher, if contact_id is not yet set
 pub async fn add_publisher(c: &mut SqliteConnection, contact_id: ContactId) -> anyhow::Result<()> {
-    sqlx::query("UPDATE users SET publisher = true WHERE contact_id = ?")
+    sqlx::query("INSERT INTO users (genesis, tester, publisher, contact_id) VALUES (false, false, true, ?) ON CONFLICT (contact_id) DO UPDATE SET publisher=true")
         .bind(contact_id.to_u32())
         .execute(c)
         .await?;
@@ -197,7 +197,7 @@ pub async fn get_random_publisher(c: &mut SqliteConnection) -> sqlx::Result<Cont
 
 /// TODO: this should add a new tester, if contact_id is not yet set
 pub async fn add_tester(c: &mut SqliteConnection, contact_id: ContactId) -> anyhow::Result<()> {
-    sqlx::query("UPDATE users SET tester = true WHERE contact_id = ?")
+    sqlx::query("INSERT INTO users (genesis, tester, publisher, contact_id) VALUES (false, true, false, ?) ON CONFLICT (contact_id) DO UPDATE SET tester=true")
         .bind(contact_id.to_u32())
         .execute(c)
         .await?;
@@ -468,10 +468,6 @@ mod tests {
 
         let contact_id = ContactId::new(0);
         let contact_id_u32 = contact_id.to_u32();
-        sqlx::query!("INSERT INTO users (genesis, tester, publisher, contact_id) VALUES (false, false, false, ?)", contact_id_u32)
-            .execute(&mut conn)
-            .await
-            .unwrap();
 
         add_publisher(&mut conn, contact_id).await.unwrap();
         add_tester(&mut conn, contact_id).await.unwrap();
@@ -494,14 +490,8 @@ mod tests {
     async fn get_random_publisher() {
         let mut conn = SqliteConnection::connect("sqlite::memory:").await.unwrap();
         MIGRATOR.run(&mut conn).await.unwrap();
-        let contact_id = ContactId::new(0);
-        let contact_id_u32 = contact_id.to_u32();
-        sqlx::query!("INSERT INTO users (genesis, tester, publisher, contact_id) VALUES (false, false, false, ?)", contact_id_u32)
-            .execute(&mut conn)
-            .await
-            .unwrap();
-
-        add_publisher(&mut conn, contact_id).await.unwrap();
+        add_publisher(&mut conn, ContactId::new(0)).await.unwrap();
+        add_publisher(&mut conn, ContactId::new(1)).await.unwrap();
         super::get_random_publisher(&mut conn).await.unwrap();
     }
 
@@ -509,12 +499,10 @@ mod tests {
     async fn get_random_tester() {
         let mut conn = SqliteConnection::connect("sqlite::memory:").await.unwrap();
         MIGRATOR.run(&mut conn).await.unwrap();
-        let query = "INSERT INTO users (genesis, tester, publisher, contact_id) VALUES (false, true, false, ?)";
 
-        // Add three testers
-        sqlx::query(query).bind(1).execute(&mut conn).await.unwrap();
-        sqlx::query(query).bind(2).execute(&mut conn).await.unwrap();
-        sqlx::query(query).bind(3).execute(&mut conn).await.unwrap();
+        add_tester(&mut conn, ContactId::new(1)).await.unwrap();
+        add_tester(&mut conn, ContactId::new(2)).await.unwrap();
+        add_tester(&mut conn, ContactId::new(3)).await.unwrap();
 
         let testers = super::get_random_testers(&mut conn, 3).await.unwrap();
         assert_eq!(testers.len(), 3);
