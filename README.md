@@ -33,7 +33,7 @@ pub struct AppInfo {
 
 ### Setting Up the Bot
 ### Requirements
-You need to have `rust` and `node` installed and also follow these [instructions](https://docs.rs/surrealdb/1.0.0-beta.9+20230402/surrealdb/engine/local/index.html) to get the file database working.
+You need to have `rust` and `node` installed.
 
 
 ### Setup
@@ -52,14 +52,6 @@ After scanning the invite like the bot prints into the console, the bot will add
 - `Tester Group`: A collection of testers, possibly from the community, who are capable of testing the apps on their devices.
 
 To assign new members to these roles, simply add them to the respective group chats.
-
-## Development
-
-The used database is surrealdb. You can run a local serve like this 
-```
-surreal start --log trace --user root file://bot.db
-```
-and use some client like `Insomnia` to query the sql backend `localhost:8000/sql`.
 
 ### Testing
 

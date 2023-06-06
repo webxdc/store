@@ -1,6 +1,5 @@
 
 ## Fixes
-- [ ] Remove surrealdb
 - [ ] Add testing
 - [ ] App updating
 - [ ] Close submit helper webxdc on submit

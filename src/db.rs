@@ -15,7 +15,7 @@
 use std::path::PathBuf;
 
 use deltachat::{chat::ChatId, contact::ContactId, message::MsgId};
-use sqlx::{migrate::Migrator, Connection, Row, SqliteConnection};
+use sqlx::{migrate::Migrator, Connection, FromRow, Row, SqliteConnection};
 
 use crate::{
     bot::BotConfig,
@@ -24,47 +24,95 @@ use crate::{
 
 pub static MIGRATOR: Migrator = sqlx::migrate!();
 
+#[derive(FromRow)]
+pub struct DBAppInfo {
+    pub id: RecordId,
+    pub name: String,                    // manifest
+    pub author_name: String,             // bot
+    pub author_email: String,            // bot
+    pub source_code_url: Option<String>, // manifest
+    pub image: Option<String>,           // webxdc
+    pub description: Option<String>,     // submit
+    pub xdc_blob_dir: Option<String>,    // bot
+    pub version: Option<String>,         // manifest
+    pub originator: RecordId,            // bot
+    pub active: bool,                    // bot
+}
+
+impl From<DBAppInfo> for AppInfo {
+    fn from(db_app: DBAppInfo) -> Self {
+        Self {
+            id: db_app.id,
+            name: db_app.name,
+            author_name: db_app.author_name,
+            author_email: db_app.author_email,
+            source_code_url: db_app.source_code_url,
+            image: db_app.image,
+            description: db_app.description,
+            xdc_blob_dir: db_app.xdc_blob_dir.map(PathBuf::from),
+            version: db_app.version,
+            originator: db_app.originator,
+            active: db_app.active,
+        }
+    }
+}
+
+#[derive(FromRow)]
+struct DBBotConfig {
+    pub genesis_qr: String,
+    pub invite_qr: String,
+    pub tester_group: i32,
+    pub reviewee_group: i32,
+    pub genesis_group: i32,
+    pub serial: i32,
+}
+
+impl TryFrom<DBBotConfig> for BotConfig {
+    type Error = anyhow::Error;
+    fn try_from(db_bot_config: DBBotConfig) -> anyhow::Result<Self> {
+        Ok(Self {
+            genesis_qr: db_bot_config.genesis_qr,
+            invite_qr: db_bot_config.invite_qr,
+            tester_group: ChatId::new(u32::try_from(db_bot_config.tester_group)?),
+            reviewee_group: ChatId::new(u32::try_from(db_bot_config.reviewee_group)?),
+            genesis_group: ChatId::new(u32::try_from(db_bot_config.genesis_group)?),
+            serial: db_bot_config.serial as i64,
+        })
+    }
+}
+
 pub type RecordId = i64;
 
 pub async fn set_config(c: &mut SqliteConnection, config: &BotConfig) -> anyhow::Result<()> {
-    let tester_group = config.tester_group.to_u32();
-    let reviewee_group = config.reviewee_group.to_u32();
-    let genesis_group = config.genesis_group.to_u32();
-    let serial = i64::try_from(config.serial).unwrap().to_string();
-    sqlx::query!(
+    sqlx::query(
         "INSERT INTO config (genesis_qr, invite_qr, tester_group, reviewee_group, genesis_group, serial) VALUES (?, ?, ?, ?, ?, ?)",
-        config.genesis_qr,
-        config.invite_qr,
-        tester_group,
-        reviewee_group,
-        genesis_group,
-        serial
-    ).execute(c).await?;
+    )
+    .bind(&config.genesis_qr)
+    .bind(&config.invite_qr)
+    .bind(config.tester_group.to_u32())
+    .bind(config.reviewee_group.to_u32())
+    .bind(config.genesis_group.to_u32())
+    .execute(c).await?;
     Ok(())
 }
 
-pub async fn get_config(c: &mut SqliteConnection) -> sqlx::Result<BotConfig> {
-    sqlx::query_as!(
-        BotConfig,
-        r#"SELECT genesis_qr, invite_qr, tester_group as "tester_group: u32", reviewee_group as 
-        "reviewee_group: u32", genesis_group as "genesis_group: u32", serial as "serial: u32" 
-        FROM config"#
+pub async fn get_config(c: &mut SqliteConnection) -> anyhow::Result<BotConfig> {
+    let res: anyhow::Result<BotConfig> = sqlx::query_as::<_, DBBotConfig>(
+        "SELECT genesis_qr, invite_qr, tester_group, reviewee_group, genesis_group, serial FROM config",
     )
     .fetch_one(c)
     .await
+    .map(|db_bot_config| db_bot_config.try_into())?;
+    res
 }
 
 pub async fn create_submit_chat(c: &mut SqliteConnection, chat: &SubmitChat) -> sqlx::Result<()> {
-    let submit_helper = chat.submit_helper.to_u32();
-    let submit_chat_id = chat.submit_chat.to_u32();
-    sqlx::query!(
-        "INSERT INTO chats (submit_chat_id, submit_helper, app_info) VALUES (?, ?, ?)",
-        submit_chat_id,
-        submit_helper,
-        chat.app_info
-    )
-    .execute(c)
-    .await?;
+    sqlx::query("INSERT INTO chats (submit_chat_id, submit_helper, app_info) VALUES (?, ?, ?)")
+        .bind(chat.submit_chat.to_u32())
+        .bind(chat.submit_helper.to_u32())
+        .bind(chat.app_info)
+        .execute(c)
+        .await?;
     Ok(())
 }
 
@@ -73,23 +121,14 @@ pub async fn upgrade_to_review_chat(
     c: &mut SqliteConnection,
     chat: &ReviewChat,
 ) -> anyhow::Result<()> {
-    let review_helper = chat.review_helper.to_u32();
-    let submit_helper = chat.submit_helper.to_u32();
-    let creator_chat = chat.submit_chat.to_u32();
-    let publisher = chat.publisher.to_u32();
-    let submit_chat_id = chat.submit_chat.to_u32();
-    let review_chat_id = chat.review_chat.to_u32();
-
-    sqlx::query!(
-        "UPDATE chats SET review_helper = ?, submit_helper = ?, review_chat_id = ?, submit_chat_id = ?, publisher = ?, app_info = ? WHERE submit_chat_id = ?",
-        review_helper,
-        submit_helper,
-        review_chat_id,
-        creator_chat,
-        publisher,
-        chat.app_info,
-        submit_chat_id
-    ).execute(c).await?;
+    sqlx::query(
+        "UPDATE chats SET review_helper = ?, submit_helper = ?, review_chat_id = ?, submit_chat_id = ?, publisher = ?, app_info = ? WHERE submit_chat_id = ?"
+    ).bind(chat.review_helper.to_u32())
+    .bind(chat.submit_helper.to_u32())
+    .bind(chat.submit_chat.to_u32())
+    .bind(chat.publisher.to_u32())
+    .bind(chat.submit_chat.to_u32())
+    .bind(chat.review_chat.to_u32()).execute(c).await?;
     Ok(())
 }
 
@@ -154,7 +193,6 @@ pub async fn get_chat_type(c: &mut SqliteConnection, chat_id: ChatId) -> sqlx::R
         .map(|row| row.try_get("chat_type"))?
 }
 
-/// TODO: this should add a new genesis, if contact_id is not yet set
 pub async fn add_genesis(c: &mut SqliteConnection, contact_id: ContactId) -> sqlx::Result<()> {
     sqlx::query("INSERT INTO users (genesis, tester, publisher, contact_id) VALUES (true, false, false, ?) ON CONFLICT (contact_id) DO UPDATE SET genesis=true")
         .bind(contact_id.to_u32())
@@ -173,7 +211,6 @@ pub async fn set_genesis_members(
     Ok(())
 }
 
-/// TODO: this should add a new publisher, if contact_id is not yet set
 pub async fn add_publisher(c: &mut SqliteConnection, contact_id: ContactId) -> anyhow::Result<()> {
     sqlx::query("INSERT INTO users (genesis, tester, publisher, contact_id) VALUES (false, false, true, ?) ON CONFLICT (contact_id) DO UPDATE SET publisher=true")
         .bind(contact_id.to_u32())
@@ -193,13 +230,12 @@ pub async fn set_publishers(
 }
 
 pub async fn get_random_publisher(c: &mut SqliteConnection) -> sqlx::Result<ContactId> {
-    sqlx::query!("SELECT contact_id FROM users WHERE publisher=true ORDER BY RANDOM() LIMIT 1")
+    sqlx::query("SELECT contact_id FROM users WHERE publisher=true ORDER BY RANDOM() LIMIT 1")
         .fetch_one(c)
         .await
-        .map(|row| Ok(ContactId::new(row.contact_id as u32)))?
+        .map(|row| Ok(ContactId::new(row.get("contact_id"))))?
 }
 
-/// TODO: this should add a new tester, if contact_id is not yet set
 pub async fn add_tester(c: &mut SqliteConnection, contact_id: ContactId) -> anyhow::Result<()> {
     sqlx::query("INSERT INTO users (genesis, tester, publisher, contact_id) VALUES (false, true, false, ?) ON CONFLICT (contact_id) DO UPDATE SET tester=true")
         .bind(contact_id.to_u32())
@@ -219,36 +255,34 @@ pub async fn get_random_testers(
     c: &mut SqliteConnection,
     count: u32,
 ) -> anyhow::Result<Vec<ContactId>> {
-    sqlx::query!(
-        "SELECT contact_id FROM users WHERE tester=true ORDER BY RANDOM() LIMIT ?",
-        count
-    )
-    .fetch_all(c)
-    .await
-    .map(|rows| {
-        Ok(rows
-            .into_iter()
-            .map(|row| ContactId::new(row.contact_id as u32))
-            .collect())
-    })?
+    sqlx::query("SELECT contact_id FROM users WHERE tester=true ORDER BY RANDOM() LIMIT ?")
+        .bind(count)
+        .fetch_all(c)
+        .await
+        .map(|rows| {
+            Ok(rows
+                .into_iter()
+                .map(|row| ContactId::new(row.get("contact_id")))
+                .collect())
+        })?
 }
 
 pub async fn increase_get_serial(c: &mut SqliteConnection) -> sqlx::Result<u32> {
-    let serial = c
+    let serial: u32 = c
         .transaction(|txn| {
             Box::pin(async move {
-                sqlx::query!("UPDATE config SET serial = serial + 1")
+                sqlx::query("UPDATE config SET serial = serial + 1")
                     .execute(&mut **txn)
                     .await?;
 
-                sqlx::query!("SELECT serial FROM config")
+                sqlx::query("SELECT serial FROM config")
                     .fetch_one(&mut **txn)
                     .await
-                    .map(|row| row.serial)
+                    .map(|row| row.get("serial"))
             })
         })
         .await?;
-    Ok(serial as u32)
+    Ok(serial)
 }
 
 pub async fn create_app_info(
@@ -304,86 +338,37 @@ pub async fn publish_app_info(c: &mut SqliteConnection, id: RecordId) -> anyhow:
 pub async fn get_app_info(
     c: &mut SqliteConnection,
     resource_id: RecordId,
-) -> anyhow::Result<AppInfo> {
-    sqlx::query!("SELECT * FROM app_infos WHERE rowid = ?", resource_id)
+) -> sqlx::Result<AppInfo> {
+    sqlx::query_as::<_, DBAppInfo>("SELECT * FROM app_infos WHERE rowid = ?")
+        .bind(resource_id)
         .fetch_one(c)
         .await
-        .map(|a| {
-            Ok(AppInfo {
-                id: a.id,
-                name: a.name,
-                description: a.description,
-                version: a.version,
-                image: a.image,
-                author_name: a.author_name,
-                author_email: a.author_email,
-                xdc_blob_dir: a.xdc_blob_dir.map(PathBuf::from),
-                active: a.active,
-                originator: a.originator,
-                source_code_url: a.source_code_url,
-            })
-        })?
+        .map(|app| app.into())
 }
 
 pub async fn _get_active_app_infos(c: &mut SqliteConnection) -> sqlx::Result<Vec<AppInfo>> {
-    sqlx::query!("SELECT * FROM app_infos WHERE active = true")
+    sqlx::query_as::<_, DBAppInfo>("SELECT * FROM app_infos WHERE active = true")
         .fetch_all(c)
         .await
-        .map(|rows| {
-            Ok(rows
-                .into_iter()
-                .map(|a| AppInfo {
-                    id: a.id,
-                    name: a.name,
-                    description: a.description,
-                    version: a.version,
-                    image: a.image,
-                    author_name: a.author_name,
-                    author_email: a.author_email,
-                    xdc_blob_dir: a.xdc_blob_dir.map(PathBuf::from),
-                    active: a.active,
-                    originator: a.originator,
-                    source_code_url: a.source_code_url,
-                })
-                .collect())
-        })?
+        .map(|app| app.into_iter().map(|a| a.into()).collect())
 }
 
 pub async fn get_active_app_infos_since(
     c: &mut SqliteConnection,
     serial: i64,
-) -> anyhow::Result<Vec<AppInfo>> {
-    sqlx::query!(
-        "SELECT * FROM app_infos WHERE active = true AND serial > ?",
-        serial
-    )
-    .fetch_all(c)
-    .await
-    .map(|rows| {
-        Ok(rows
-            .into_iter()
-            .map(|a| AppInfo {
-                id: a.id,
-                name: a.name,
-                description: a.description,
-                version: a.version,
-                image: a.image,
-                author_name: a.author_name,
-                author_email: a.author_email,
-                xdc_blob_dir: a.xdc_blob_dir.map(PathBuf::from),
-                active: a.active,
-                originator: a.originator,
-                source_code_url: a.source_code_url,
-            })
-            .collect())
-    })?
+) -> sqlx::Result<Vec<AppInfo>> {
+    sqlx::query_as::<_, DBAppInfo>("SELECT * FROM app_infos WHERE active = true AND serial > ?")
+        .bind(serial)
+        .fetch_all(c)
+        .await
+        .map(|app| app.into_iter().map(|a| a.into()).collect())
 }
 
 pub async fn get_last_serial(c: &mut SqliteConnection) -> sqlx::Result<i64> {
-    sqlx::query!("SELECT serial FROM config")
+    sqlx::query("SELECT serial FROM config")
         .fetch_one(c)
         .await
-        .map(|a| a.serial)
+        .map(|a| a.get("serial"))
 }
 
 #[cfg(test)]
