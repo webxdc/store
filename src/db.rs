@@ -151,7 +151,7 @@ pub async fn get_chat_type(c: &mut SqliteConnection, chat_id: ChatId) -> sqlx::R
         .bind(chat_id.to_u32())
         .fetch_one(c)
         .await
-        .map(|row| Ok(row.try_get("chat_type")?))?
+        .map(|row| row.try_get("chat_type"))?
 }
 
 /// TODO: this should add a new genesis, if contact_id is not yet set
@@ -263,9 +263,9 @@ pub async fn create_app_info(
         .bind(&app_info.image)
         .bind(&app_info.author_name)
         .bind(&app_info.author_email)
-        .bind(&app_info.xdc_blob_dir.as_deref().map(|a| a.to_str().unwrap()))
-        .bind(&app_info.active)
-        .bind(&app_info.originator)
+        .bind(app_info.xdc_blob_dir.as_deref().map(|a| a.to_str().unwrap()))
+        .bind(app_info.active)
+        .bind(app_info.originator)
         .bind(&app_info.source_code_url)
         .bind(next_serial)
         .bind(app_info.id)
@@ -283,9 +283,9 @@ pub async fn update_app_info(c: &mut SqliteConnection, app_info: &AppInfo) -> sq
         .bind(&app_info.image)
         .bind(&app_info.author_name)
         .bind(&app_info.author_email)
-        .bind(&app_info.xdc_blob_dir.as_deref().map(|a| a.to_str().unwrap()))
-        .bind(&app_info.active)
-        .bind(&app_info.originator)
+        .bind(app_info.xdc_blob_dir.as_deref().map(|a| a.to_str().unwrap()))
+        .bind(app_info.active)
+        .bind(app_info.originator)
         .bind(&app_info.source_code_url)
         .bind(app_info.id)
         .execute(c)
@@ -310,16 +310,16 @@ pub async fn get_app_info(
         .await
         .map(|a| {
             Ok(AppInfo {
-                id: a.id as i64,
+                id: a.id,
                 name: a.name,
                 description: a.description,
                 version: a.version,
                 image: a.image,
                 author_name: a.author_name,
                 author_email: a.author_email,
-                xdc_blob_dir: a.xdc_blob_dir.map(|a| PathBuf::from(a)),
+                xdc_blob_dir: a.xdc_blob_dir.map(PathBuf::from),
                 active: a.active,
-                originator: a.originator as i64,
+                originator: a.originator,
                 source_code_url: a.source_code_url,
             })
         })?
@@ -333,16 +333,16 @@ pub async fn _get_active_app_infos(c: &mut SqliteConnection) -> sqlx::Result<Vec
             Ok(rows
                 .into_iter()
                 .map(|a| AppInfo {
-                    id: a.id as i64,
+                    id: a.id,
                     name: a.name,
                     description: a.description,
                     version: a.version,
                     image: a.image,
                     author_name: a.author_name,
                     author_email: a.author_email,
-                    xdc_blob_dir: a.xdc_blob_dir.map(|a| PathBuf::from(a)),
+                    xdc_blob_dir: a.xdc_blob_dir.map(PathBuf::from),
                     active: a.active,
-                    originator: a.originator as i64,
+                    originator: a.originator,
                     source_code_url: a.source_code_url,
                 })
                 .collect())
@@ -363,16 +363,16 @@ pub async fn get_active_app_infos_since(
         Ok(rows
             .into_iter()
             .map(|a| AppInfo {
-                id: a.id as i64,
+                id: a.id,
                 name: a.name,
                 description: a.description,
                 version: a.version,
                 image: a.image,
                 author_name: a.author_name,
                 author_email: a.author_email,
-                xdc_blob_dir: a.xdc_blob_dir.map(|a| PathBuf::from(a)),
+                xdc_blob_dir: a.xdc_blob_dir.map(PathBuf::from),
                 active: a.active,
-                originator: a.originator as i64,
+                originator: a.originator,
                 source_code_url: a.source_code_url,
             })
             .collect())
