@@ -1242,7 +1242,7 @@ dependencies = [
 [[package]]
 name = "deltachat"
 version = "1.115.0"
-source = "git+https://github.com/deltachat/deltachat-core-rust.git?branch=sk/new_apis#e34661e1dc9ab3c8de9ab2ff63b0c9fde0caaf3a"
+source = "git+https://github.com/deltachat/deltachat-core-rust.git?branch=sk/new_apis#ddcdd539aecbf042184a48ce2c2d70b313cb5473"
 dependencies = [
  "anyhow",
  "async-channel",
@@ -1311,7 +1311,7 @@ dependencies = [
 [[package]]
 name = "deltachat_derive"
 version = "2.0.0"
-source = "git+https://github.com/deltachat/deltachat-core-rust.git?branch=sk/new_apis#e34661e1dc9ab3c8de9ab2ff63b0c9fde0caaf3a"
+source = "git+https://github.com/deltachat/deltachat-core-rust.git?branch=sk/new_apis#ddcdd539aecbf042184a48ce2c2d70b313cb5473"
 dependencies = [
  "quote",
  "syn 2.0.16",
@@ -1970,7 +1970,7 @@ dependencies = [
 [[package]]
 name = "format-flowed"
 version = "1.0.0"
-source = "git+https://github.com/deltachat/deltachat-core-rust.git?branch=sk/new_apis#e34661e1dc9ab3c8de9ab2ff63b0c9fde0caaf3a"
+source = "git+https://github.com/deltachat/deltachat-core-rust.git?branch=sk/new_apis#ddcdd539aecbf042184a48ce2c2d70b313cb5473"
 
 [[package]]
 name = "funty"
@@ -3939,7 +3939,7 @@ dependencies = [
 [[package]]
 name = "ratelimit"
 version = "1.0.0"
-source = "git+https://github.com/deltachat/deltachat-core-rust.git?branch=sk/new_apis#e34661e1dc9ab3c8de9ab2ff63b0c9fde0caaf3a"
+source = "git+https://github.com/deltachat/deltachat-core-rust.git?branch=sk/new_apis#ddcdd539aecbf042184a48ce2c2d70b313cb5473"
 
 [[package]]
 name = "rcgen"
