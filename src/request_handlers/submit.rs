@@ -123,7 +123,6 @@ pub async fn handle_status_update(
         // TODO: verify update
         db::update_app_info(conn, &req.payload.data).await?;
         check_app_info(context, &req.payload.data, &submit_chat, chat_id).await?;
-        
     } else {
         info!(
             "Ignoring update: {}",
