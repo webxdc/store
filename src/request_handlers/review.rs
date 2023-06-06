@@ -122,7 +122,7 @@ impl ReviewChat {
         Ok(review_chat)
     }
 
-    pub async fn get_app_info(&self, conn: &mut SqliteConnection) -> anyhow::Result<AppInfo> {
+    pub async fn get_app_info(&self, conn: &mut SqliteConnection) -> sqlx::Result<AppInfo> {
         db::get_app_info(conn, self.app_info).await
     }
 }
