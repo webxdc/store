@@ -100,7 +100,7 @@ const Review: Component = () => {
                         </Show>
                     </p>
                     <input type="Submit" class="btn font-semibold cursor-pointer w-full" classList={{ "bg-gray-100 border-gray-500 text-gray-700": !is_complete(), "text-indigo-500": is_complete() }}
-                        disabled={!is_complete()} onClick={submit}>Submit</input>
+                        disabled={!is_complete()} onClick={submit}>Publish</input>
                 </Show>
             </div>
         </div>
