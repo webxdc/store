@@ -71,7 +71,7 @@ impl Bot {
             fs::write(db_path, "")?;
         }
 
-        let db = SqlitePool::connect(DB_URL).await.unwrap();
+        let db = SqlitePool::connect(DB_URL).await?;
         MIGRATOR.run(&db).await?;
 
         let config = match db::get_config(&mut *db.acquire().await?).await {
