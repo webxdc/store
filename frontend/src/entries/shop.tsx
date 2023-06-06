@@ -86,7 +86,7 @@ const PublishButton: Component = () => {
     )
 }
 
-const AppList: Component<{ items: AppInfoWithState[], search: string, onDownload: (id: bigint) => void }> = (props) => {
+const AppList: Component<{ items: AppInfoWithState[], search: string, onDownload: (id: number) => void }> = (props) => {
     let fuse: Fuse<AppInfoWithState> = new Fuse(props.items, fuse_options);
 
     createEffect(() => {
@@ -121,7 +121,7 @@ const Shop: Component = () => {
 
 
     if (import.meta.env.DEV) {
-        setAppInfo(Number(mock.id), mock)
+        setAppInfo(mock.id, mock)
     }
 
     if (appInfo == undefined) {
@@ -136,7 +136,7 @@ const Shop: Component = () => {
             if (isUpdateResponse(resp.payload)) {
                 console.log('Received Update')
                 let app_infos: AppInfosById = resp.payload.app_infos.reduce((acc, appinfo) => {
-                    let index = Number(appinfo.id)
+                    let index = appinfo.id
                     acc[index] = { ...appinfo, state: AppState.Initial }
                     return acc
                 },
@@ -151,7 +151,7 @@ const Shop: Component = () => {
                     setAppInfo(reconcile(app_infos))
                 }
 
-                setlastUpdateSerial(Number(resp.payload.serial))
+                setlastUpdateSerial(resp.payload.serial)
                 setIsUpdating(false)
                 setlastUpdate(new Date())
 
@@ -159,7 +159,7 @@ const Shop: Component = () => {
                 if (resp.payload.okay) {
                     // id is set if resp is okay
                     let id = resp.payload.id!
-                    setAppInfo(Number(id), 'state', AppState.Received)
+                    setAppInfo(id, 'state', AppState.Received)
                 }
             }
         }
@@ -168,11 +168,11 @@ const Shop: Component = () => {
     async function handleUpdate() {
         setIsUpdating(true)
         window.webxdc.sendUpdate({
-            payload: { Update: { serial: BigInt(lastUpdateSerial()) } } as ShopRequest
+            payload: { Update: { serial: lastUpdateSerial() } } as ShopRequest
         }, "")
     }
 
-    function handleDownload(app_id: bigint) {
+    function handleDownload(app_id: number) {
         setAppInfo(Number(app_id), 'state', AppState.Downloading)
         window.webxdc.sendUpdate({
             payload: { Download: { app_id } } as ShopRequest

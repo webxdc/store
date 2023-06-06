@@ -49,7 +49,7 @@ pub async fn send_newest_updates(
     context: &Context,
     msg_id: MsgId,
     db: &mut SqliteConnection,
-    serial: i64,
+    serial: i32,
 ) -> anyhow::Result<()> {
     let app_infos: Vec<_> = db::get_active_app_infos_since(db, serial)
         .await?

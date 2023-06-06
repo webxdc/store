@@ -28,11 +28,11 @@ use ts_rs::TS;
 enum ShopRequest {
     Update {
         /// Requested update sequence number.
-        serial: i64,
+        serial: i32,
     },
     Download {
         /// ID of the requested application.
-        app_id: i64,
+        app_id: i32,
     },
 }
 
@@ -41,7 +41,7 @@ enum ShopRequest {
 #[ts(export_to = "frontend/src/bindings/")]
 pub struct UpdateResponse {
     pub app_infos: Vec<AppInfo>,
-    pub serial: i64,
+    pub serial: i32,
 }
 
 #[derive(TS, Serialize)]
@@ -49,7 +49,7 @@ pub struct UpdateResponse {
 #[ts(export_to = "frontend/src/bindings/")]
 pub struct DownloadResponse {
     okay: bool,
-    id: Option<i64>,
+    id: Option<i32>,
 }
 
 pub async fn handle_message(
@@ -152,9 +152,9 @@ pub async fn handle_status_update(
 async fn handle_download_request(
     context: &Context,
     state: Arc<State>,
-    app_id: i64,
+    app_id: i32,
     chat_id: ChatId,
-) -> anyhow::Result<i64> {
+) -> anyhow::Result<i32> {
     let app = db::get_app_info(&mut *state.db.acquire().await?, app_id).await?;
     let mut msg = Message::new(Viewtype::Webxdc);
     if let Some(file) = app.xdc_blob_dir {

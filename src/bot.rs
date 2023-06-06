@@ -30,7 +30,7 @@ pub struct BotConfig {
     pub tester_group: ChatId,
     pub reviewee_group: ChatId,
     pub genesis_group: ChatId,
-    pub serial: i64,
+    pub serial: i32,
 }
 
 /// Github Bot state

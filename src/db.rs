@@ -313,7 +313,7 @@ pub async fn create_app_info(
         .bind(app_info.id)
         .execute(c)
         .await?;
-    app_info.id = res.last_insert_rowid();
+    app_info.id = i32::try_from(res.last_insert_rowid())?;
     Ok(())
 }
 

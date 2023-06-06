@@ -42,7 +42,7 @@ pub struct ReviewChat {
 pub enum HandlePublishError {
     #[error("Not enough testers in pool")]
     NotEnoughTesters,
-    #[error("Not enough reviewee in pool")]
+    #[error("Not enough publisher in pool")]
     NotEnoughPublishers,
     #[error(transparent)]
     Other(#[from] anyhow::Error),
