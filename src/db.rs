@@ -92,6 +92,7 @@ pub async fn set_config(c: &mut SqliteConnection, config: &BotConfig) -> anyhow:
     .bind(config.tester_group.to_u32())
     .bind(config.reviewee_group.to_u32())
     .bind(config.genesis_group.to_u32())
+    .bind(config.serial)
     .execute(c).await?;
     Ok(())
 }
