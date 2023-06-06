@@ -13,7 +13,7 @@ use log::{debug, error, info, trace, warn};
 use qrcode_generator::QrCodeEcc;
 use serde::{Deserialize, Serialize};
 use sqlx::SqlitePool;
-use std::{env, path::PathBuf, sync::Arc};
+use std::{env, fs, path::PathBuf, sync::Arc};
 
 use crate::{
     db::{self, MIGRATOR},
@@ -59,6 +59,16 @@ impl Bot {
             info!("Start configuring...");
             configure_from_env(&context).await?;
             info!("Configuration done");
+        }
+
+        let db_path = PathBuf::from(
+            DB_URL
+                .split("://")
+                .nth(1)
+                .context("Failed to extract path from db")?,
+        );
+        if !db_path.exists() {
+            fs::write(db_path, "")?;
         }
 
         let db = SqlitePool::connect(DB_URL).await.unwrap();
