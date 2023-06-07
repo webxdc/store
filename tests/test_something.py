@@ -91,9 +91,7 @@ def test_update(acfactory, storebot):
     assert status_updates[0]["payload"] == {"app_infos": [], "serial": 0}
 
     # Request updates.
-    assert msg_in.send_status_update(
-        {"payload": { "Update": { "serial": 0}}}, "update"
-    )
+    assert msg_in.send_status_update({"payload": {"Update": {"serial": 0}}}, "update")
     ac1._evtracker.get_matching("DC_EVENT_WEBXDC_STATUS_UPDATE")
 
     # Receive a response.
