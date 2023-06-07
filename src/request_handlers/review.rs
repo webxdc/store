@@ -102,17 +102,17 @@ impl ReviewChat {
         )
         .await?;
 
-        let submit_helper = send_webxdc(context, chat_id, REVIEW_HELPER_XDC, None).await?;
-        send_app_info(context, &app_info, submit_helper).await?;
+        let review_helper = send_webxdc(context, chat_id, REVIEW_HELPER_XDC, None).await?;
+        send_app_info(context, &app_info, review_helper).await?;
 
         let review_chat = ReviewChat {
             review_chat: chat_id,
-            submit_chat: submit_chat.submit_chat,
             publisher,
+            review_helper,
             testers: testers.clone(),
+            submit_chat: submit_chat.submit_chat,
             app_info: submit_chat.app_info,
-            review_helper: submit_chat.submit_helper,
-            submit_helper,
+            submit_helper: submit_chat.submit_helper,
         };
 
         db::upgrade_to_review_chat(conn, &review_chat).await?;
