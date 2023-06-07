@@ -8,7 +8,7 @@
     "build-shop": "VITE_APP=shop vite build",
     "build-submit": "VITE_APP=submit vite build",
     "build-review": "VITE_APP=review vite build",
-    "build": "pnpm build-shop && pnpm build-submit && pnpm build-review && ./create_xdc.sh",
+    "build": "npm run build-shop && npm run build-submit && npm run build-review && ./create_xdc.sh",
     "serve": "vite preview"
   },
   "license": "MIT",
