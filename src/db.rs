@@ -77,7 +77,7 @@ impl TryFrom<DBBotConfig> for BotConfig {
             tester_group: ChatId::new(u32::try_from(db_bot_config.tester_group)?),
             reviewee_group: ChatId::new(u32::try_from(db_bot_config.reviewee_group)?),
             genesis_group: ChatId::new(u32::try_from(db_bot_config.genesis_group)?),
-            serial: db_bot_config.serial as i32,
+            serial: db_bot_config.serial,
         })
     }
 }
