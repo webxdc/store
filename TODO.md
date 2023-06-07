@@ -3,7 +3,6 @@
 - [ ] Add testing
 - [ ] App updating
 - [ ] Close submit helper webxdc on submit
-- [ ] Document Frondend better
 - [ ] Don't reshow submit button in submit chat
 
 ## Make appstore happy path run:
