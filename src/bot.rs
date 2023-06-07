@@ -65,15 +65,14 @@ impl Bot {
             DB_URL
                 .split("://")
                 .nth(1)
-                .context("Failed to extract path from db")
-                .unwrap(),
+                .context("Failed to extract path from db")?,
         );
         if !db_path.exists() {
             fs::create_dir(db_path.parent().context("db_path has no parant")?)?;
             fs::write(db_path, "")?;
         }
 
-        let db = SqlitePool::connect(DB_URL).await.unwrap();
+        let db = SqlitePool::connect(DB_URL).await?;
         MIGRATOR.run(&db).await?;
 
         let config = match db::get_config(&mut *db.acquire().await?).await {

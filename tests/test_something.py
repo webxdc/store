@@ -50,7 +50,11 @@ def storebot_example(acfactory, bot_path):
     res = subprocess.run(
         [Path.cwd() / "target/debug/github-bot", "import"],
         cwd=bot_path,
-        env={"RUST_LOG": "github_bot=trace"},
+        env={
+            "RUST_LOG": "github_bot=trace",
+            "addr": config["addr"],
+            "mail_pw": config["mail_pw"],
+        },
     )
     res.check_returncode()
 
