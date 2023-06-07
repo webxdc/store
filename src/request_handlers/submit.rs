@@ -129,7 +129,8 @@ pub async fn handle_status_update(
 
         match req.payload {
             SubmitRequest::Submit { app_info } => {
-                let app_info = app_info.into();
+                
+                // TODO: merge with existing app info
                 if check_app_info(context, &app_info, chat_id).await? {
                     db::update_app_info(conn, &app_info).await?;
                 }
