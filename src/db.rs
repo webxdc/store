@@ -77,12 +77,12 @@ impl TryFrom<DBBotConfig> for BotConfig {
             tester_group: ChatId::new(u32::try_from(db_bot_config.tester_group)?),
             reviewee_group: ChatId::new(u32::try_from(db_bot_config.reviewee_group)?),
             genesis_group: ChatId::new(u32::try_from(db_bot_config.genesis_group)?),
-            serial: db_bot_config.serial as i64,
+            serial: db_bot_config.serial as i32,
         })
     }
 }
 
-pub type RecordId = i64;
+pub type RecordId = i32;
 
 pub async fn set_config(c: &mut SqliteConnection, config: &BotConfig) -> anyhow::Result<()> {
     sqlx::query(
@@ -368,7 +368,7 @@ pub async fn _get_active_app_infos(c: &mut SqliteConnection) -> sqlx::Result<Vec
 
 pub async fn get_active_app_infos_since(
     c: &mut SqliteConnection,
-    serial: i64,
+    serial: i32,
 ) -> sqlx::Result<Vec<AppInfo>> {
     sqlx::query_as::<_, DBAppInfo>("SELECT * FROM app_infos WHERE active = true AND serial > ?")
         .bind(serial)
@@ -377,7 +377,7 @@ pub async fn get_active_app_infos_since(
         .map(|app| app.into_iter().map(|a| a.into()).collect())
 }
 
-pub async fn get_last_serial(c: &mut SqliteConnection) -> sqlx::Result<i64> {
+pub async fn get_last_serial(c: &mut SqliteConnection) -> sqlx::Result<i32> {
     sqlx::query("SELECT serial FROM config")
         .fetch_one(c)
         .await

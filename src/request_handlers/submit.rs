@@ -5,7 +5,7 @@ use crate::{
     db::{self, RecordId},
     request_handlers::{
         review::{HandlePublishError, ReviewChat},
-        FrontendRequestWithData,
+        WebxdcStatusUpdate,
     },
     utils::send_app_info,
 };
@@ -17,6 +17,7 @@ use deltachat::{
 use log::info;
 use serde::{Deserialize, Serialize};
 use sqlx::SqliteConnection;
+use ts_rs::TS;
 
 use super::AppInfo;
 
@@ -31,6 +32,13 @@ impl SubmitChat {
     pub async fn get_app_info(&self, conn: &mut SqliteConnection) -> sqlx::Result<AppInfo> {
         db::get_app_info(conn, self.app_info).await
     }
+}
+
+#[derive(Deserialize, TS)]
+#[ts(export)]
+#[ts(export_to = "frontend/src/bindings/")]
+pub enum SubmitRequest {
+    Submit { app_info: AppInfo },
 }
 
 pub async fn handle_message(
@@ -102,9 +110,9 @@ pub async fn handle_webxdc(
     if upgraded {
         // TODO: Handle upgrade
     } else if changed {
-        db::update_app_info(&mut *state.db.acquire().await?, &app_info).await?;
-
-        check_app_info(context, &app_info, &submit_chat, chat_id).await?;
+        if check_app_info(context, &app_info, chat_id).await? {
+            db::update_app_info(&mut *state.db.acquire().await?, &app_info).await?;
+        }
     }
     Ok(())
 }
@@ -115,14 +123,18 @@ pub async fn handle_status_update(
     chat_id: ChatId,
     update: String,
 ) -> anyhow::Result<()> {
-    info!("Handling [AppInfo] update");
-    if let Ok(req) = serde_json::from_str::<FrontendRequestWithData<String, AppInfo>>(&update) {
+    info!("Handling app info update");
+    if let Ok(req) = serde_json::from_str::<WebxdcStatusUpdate<SubmitRequest>>(&update) {
         let conn = &mut *state.db.acquire().await?;
-        let submit_chat = db::get_submit_chat(conn, chat_id).await?;
 
-        // TODO: verify update
-        db::update_app_info(conn, &req.payload.data).await?;
-        check_app_info(context, &req.payload.data, &submit_chat, chat_id).await?;
+        match req.payload {
+            SubmitRequest::Submit { app_info } => {
+                let app_info = app_info.into();
+                if check_app_info(context, &app_info, chat_id).await? {
+                    db::update_app_info(conn, &app_info).await?;
+                }
+            }
+        }
     } else {
         info!(
             "Ignoring update: {}",
@@ -136,11 +148,8 @@ pub async fn handle_status_update(
 pub async fn check_app_info(
     context: &Context,
     app_info: &AppInfo,
-    submit_chat: &SubmitChat,
     chat_id: ChatId,
-) -> anyhow::Result<()> {
-    send_app_info(context, app_info, submit_chat.submit_helper).await?;
-
+) -> anyhow::Result<bool> {
     let missing = app_info.generate_missing_list();
     if !missing.is_empty() {
         chat::send_text_msg(
@@ -157,5 +166,5 @@ pub async fn check_app_info(
         )
         .await?;
     }
-    Ok(())
+    Ok(true)
 }
