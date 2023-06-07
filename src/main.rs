@@ -20,7 +20,7 @@ use tokio::signal;
 use crate::request_handlers::AppInfo;
 
 const DB_URL: &str = "sqlite://bot-db/bot.db";
-const DC_DB_PATH: &str = "deltachat.db";
+const DC_DB_PATH: &str = "./deltachat.db";
 const GENESIS_QR: &str = "./bot-data/genesis_invite_qr.png";
 const INVITE_QR: &str = "./bot-data/1o1_invite_qr.png";
 const SHOP_XDC: &str = "./bot-data/appstore.xdc";

@@ -5,3 +5,4 @@ bot.db
 xdcs/*
 bot-data/*
 import/*
+**/__pycache__/*
