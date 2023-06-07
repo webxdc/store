@@ -90,7 +90,7 @@ pub async fn handle_webxdc(
 
     chat::forward_msgs(context, &[msg.get_id()], chat_id).await?;
     let creator_webxdc = send_webxdc(context, chat_id, SUBMIT_HELPER_XDC, None).await?;
-    send_app_info(context, app_info.clone(), creator_webxdc).await?;
+    send_app_info(context, &app_info, creator_webxdc).await?;
 
     db::create_submit_chat(
         conn,
