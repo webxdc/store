@@ -7,7 +7,6 @@ use crate::{
         review::{HandlePublishError, ReviewChat},
         WebxdcStatusUpdate,
     },
-    utils::send_app_info,
 };
 use deltachat::{
     chat::{self, ChatId},
@@ -109,10 +108,8 @@ pub async fn handle_webxdc(
     let (changed, upgraded) = app_info.update_from_xdc(file).await?;
     if upgraded {
         // TODO: Handle upgrade
-    } else if changed {
-        if check_app_info(context, &app_info, chat_id).await? {
-            db::update_app_info(&mut *state.db.acquire().await?, &app_info).await?;
-        }
+    } else if changed && check_app_info(context, &app_info, chat_id).await? {
+        db::update_app_info(&mut *state.db.acquire().await?, &app_info).await?;
     }
     Ok(())
 }
