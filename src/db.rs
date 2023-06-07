@@ -118,19 +118,20 @@ pub async fn create_submit_chat(c: &mut SqliteConnection, chat: &SubmitChat) -> 
     Ok(())
 }
 
-/// Upgrade a submit chat with chat_id `id` to a review chat
+/// Upgrade a submit chat with chat_id `id` to a review chat.
 pub async fn upgrade_to_review_chat(
     c: &mut SqliteConnection,
     chat: &ReviewChat,
 ) -> anyhow::Result<()> {
     sqlx::query(
-        "UPDATE chats SET review_helper = ?, submit_helper = ?, review_chat_id = ?, submit_chat_id = ?, publisher = ?, app_info = ? WHERE submit_chat_id = ?"
-    ).bind(chat.review_helper.to_u32())
-    .bind(chat.submit_helper.to_u32())
-    .bind(chat.submit_chat.to_u32())
+        "UPDATE chats SET review_helper = ?, review_chat_id = ?, publisher = ?, testers = ? WHERE submit_chat_id = ?"
+    )
+    .bind(chat.review_helper.to_u32())
+    .bind(chat.review_chat.to_u32())
     .bind(chat.publisher.to_u32())
+    .bind(serde_json::to_string(&chat.testers)?)
     .bind(chat.submit_chat.to_u32())
-    .bind(chat.review_chat.to_u32()).execute(c).await?;
+    .execute(c).await?;
     Ok(())
 }
 
@@ -138,7 +139,7 @@ pub async fn get_review_chat(
     c: &mut SqliteConnection,
     chat_id: ChatId,
 ) -> anyhow::Result<ReviewChat> {
-    sqlx::query("SELECT review_helper, submit_helper, review_chat_id, submit_chat_id, publisher, app_info FROM chats WHERE (review_chat_id = ?)")
+    sqlx::query("SELECT review_helper, submit_helper, review_chat_id, submit_chat_id, publisher, testers, app_info FROM chats WHERE review_chat_id = ?")
         .bind(chat_id.to_u32())
         .fetch_one(c)
         .await
@@ -150,7 +151,7 @@ pub async fn get_review_chat(
                 submit_chat: ChatId::new(row.try_get("submit_chat_id")?),
                 publisher: ContactId::new(row.try_get("publisher")?),
                 app_info: row.try_get("app_info")?,
-                testers: vec![],
+                testers: serde_json::from_str(row.try_get("testers")?)?,
             })
         })?
 }
@@ -440,6 +441,7 @@ mod tests {
             submit_chat: submit_chat.submit_chat,
             submit_helper: submit_chat.submit_helper,
             review_chat: review_chat_id,
+            testers: vec![ContactId::new(3)],
             ..Default::default()
         };
 
@@ -447,7 +449,10 @@ mod tests {
             .await
             .unwrap();
 
-        get_review_chat(&mut conn, review_chat_id).await.unwrap();
+        let loaded_review_chat = super::get_review_chat(&mut conn, review_chat_id)
+            .await
+            .unwrap();
+        assert_eq!(loaded_review_chat.testers, review_chat.testers);
     }
 
     #[tokio::test]
