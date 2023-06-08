@@ -53,28 +53,23 @@ Build the frontend by running `npm run build` or `pnpm run build`.
 This step creates a `bot-data` directory in the root of the repository
 with files `appstore.xdc`, `review-helpr.xdc` and `submit-helper.xdc`.
 
-Set environment variables `addr` and `mail_pw` with the login and password
-of the email account that the bot will use:
+To run the bot, set the environment variables
+`addr` and `mail_pw` with the login and password
+and use the command `start`:
 ```
-export addr=bot@example.org
-export mail_pw=My_P4ssword
+addr=bot@example.org mail_pw=My_P4ssword cargo run -- start
 ```
-These environment variables need to be set the first time you start the bot
+The environment variables need to be set the first time you start the bot
 and will be saved into the bot account database afterwards.
 
-Optionall, import example applications into the bot:
+Optionally, import example applications into the bot:
 ```
 mkdir import
 cp example-xdcs/*.xdc import/
 cargo run -- import
 ```
 
-Run the bot with
-```
-cargo run -- start
-```
-
-You cann pass the `--skip-qr` flag to not show the invite qr for the genesis group all the time.
+You can pass the `--skip-qr` flag to not show the invite qr for the genesis group all the time.
 You can set the `RUST_LOG=info` environment variable to get detailed logging from the bot.
 
 I like to run it like this which works after configuring the first time: `RUST_LOG=info cargo r -- --skip-qr`
