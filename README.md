@@ -32,14 +32,42 @@ pub struct AppInfo {
 ```
 
 ### Setting Up the Bot
-### Requirements
-You need to have `rust` and `node` installed.
 
+### Requirements
+
+You need to have `rust` and `node` installed.
+Optionally, have [pnpm](https://pnpm.io/) installed.
 
 ### Setup
-1. Go to the `frontend` folder and install the packages using `pnpm i`.
-2. Build the frontend using `pnpm build`.
-3. Start the bot (from the root folder) `addr="<email>" mail_pw="<password>" cargo r`
+
+Go to the `frontend` folder and install the packages using `pnpm install` or `pnpm i`.
+If you do not have `pnpm` installed, run `npx pnpm install` instead.
+This step creates a `node_modules` directory.
+
+Build the frontend using `pnpm run build` or `npx pnpm run build`.
+This step creates a `bot-data` directory in the root of the repository
+with files `appstore.xdc`, `review-helpr.xdc` and `submit-helper.xdc`.
+
+Set environment variables `addr` and `mail_pw` with the login and password
+of the email account that the bot will use:
+```
+export addr=bot@example.org
+export mail_pw=My_P4ssword
+```
+These environment variables need to be set the first time you start the bot
+and will be saved into the bot account database afterwards.
+
+Optionall, import example applications into the bot:
+```
+mkdir import
+cp example-xdcs/*.xdc import/
+cargo run -- import
+```
+
+Run the bot with
+```
+cargo run -- start
+```
 
 You cann pass the `--skip-qr` flag to not show the invite qr for the genesis group all the time.
 You can set the `RUST_LOG=info` environment variable to get detailed logging from the bot.
