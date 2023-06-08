@@ -41,8 +41,13 @@ Optionally, have [pnpm](https://pnpm.io/) installed.
 ### Setup
 
 Go to the `frontend` folder and install the packages using `pnpm install` or `pnpm i`.
-If you do not have `pnpm` installed, run `npx pnpm install` instead.
 This step creates a `node_modules` directory.
+If you do not have `pnpm` installed,
+you can run `npx pnpm install` to use `pnpm` without installing it globally
+or use `npm install` instead.
+However, if you use `npm install`,
+the latest versions of dependencies will be installed
+instead of the ones listed in the `frontend/pnpm-lock.yaml` file.
 
 Build the frontend using `pnpm run build` or `npx pnpm run build`.
 This step creates a `bot-data` directory in the root of the repository
