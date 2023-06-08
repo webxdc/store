@@ -15,7 +15,7 @@ const AppInfoPreview: Component<AppInfoPreviewProps> = (props) => {
         props.setAppInfo({ ...props.appinfo, [name]: value });
     };
 
-    let errors = createMemo(() => Object.entries(props.appinfo).reduce((acc, [key, v]) => {
+    const errors = createMemo(() => Object.entries(props.appinfo).reduce((acc, [key, v]) => {
         acc[key as keyof AppInfo] = v === undefined || v === null || v === ''
         return acc
     }, {} as { [key in keyof AppInfo]: boolean }

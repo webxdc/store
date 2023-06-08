@@ -25,7 +25,7 @@ const fuse_options = {
 }
 
 function isEmpty(obj: any) {
-    for (var prop in obj) {
+    for (const prop in obj) {
         if (obj.hasOwnProperty(prop))
             return false;
     }
@@ -95,7 +95,7 @@ const AppList: Component<{ items: AppInfoWithState[], search: string, onDownload
         fuse = new Fuse(props.items, fuse_options);
     })
 
-    let filtered_items = createMemo(() => {
+    const filtered_items = createMemo(() => {
         if (props.search !== '') {
             return fuse!.search(props.search).map((fr) => fr.item)
         } else {
@@ -141,7 +141,7 @@ const Shop: Component = () => {
     }
 
     const db = new AppInfoDB('webxdc')
-    
+
     // This is for now _not_ synchronized with the update receival so a delayed 
     // query could overwrite app updates. For now, this should be fine.
     db.get_all().then((apps) => {
@@ -159,7 +159,7 @@ const Shop: Component = () => {
         if (!Object.hasOwn(resp.payload, "request_type")) {
             if (isUpdateResponse(resp.payload)) {
                 console.log('Received Update')
-                let app_infos = to_app_infos_by_id(resp.payload.app_infos)
+                const app_infos = to_app_infos_by_id(resp.payload.app_infos)
 
                 if (isEmpty(appInfo)) {
                     // initially write the newest update to state
@@ -189,7 +189,7 @@ const Shop: Component = () => {
             } else if (isDownloadResponse(resp.payload)) {
                 if (resp.payload.okay) {
                     // id is set if resp is okay
-                    let id = resp.payload.id!
+                    const id = resp.payload.id!
                     setAppInfo(id, 'state', AppState.Received)
                 }
             }
