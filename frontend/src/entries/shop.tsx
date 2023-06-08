@@ -7,7 +7,7 @@ import Fuse from 'fuse.js';
 import { DownloadResponse } from '../bindings/DownloadResponse';
 import { UpdateResponse } from '../bindings/UpdateResponse';
 import { ShopRequest } from '../bindings/ShopRequest'
-import { createStore, reconcile } from 'solid-js/store';
+import { createStore, produce, reconcile } from 'solid-js/store';
 import mock from '../mock'
 import { AppInfoWithState, AppState, AppInfosById } from '../types';
 import { render } from 'solid-js/web';
@@ -148,7 +148,17 @@ const Shop: Component = () => {
                 } else {
                     // all but the first update only overwrite existing properties
                     console.log('Reconceiling updates')
-                    setAppInfo(reconcile(app_infos))
+                    setAppInfo(produce((s) => {
+                        for (const key in app_infos) {
+                            const num_key = Number(key)
+                            if (s[num_key] === undefined) {
+                                s[num_key] = app_infos[num_key]
+                            }
+                            else {
+                                s[num_key] = Object.assign(s[num_key], app_infos[num_key])
+                            }
+                        }
+                    }))
                 }
 
                 setlastUpdateSerial(resp.payload.serial)
@@ -181,7 +191,7 @@ const Shop: Component = () => {
 
     return (
         <div class="c-grid p-3">
-            <div class="max-width min-width">
+            <div class="min-width">
                 <div class="flex gap-2 justify-between">
                     <h1 class="text-2xl font-bold">Webxdc Appstore</h1>
                     <div class="unimportant p-1 flex items-center gap-2">
