@@ -1,0 +1,10 @@
+{
+    "extends": [
+        "@antfu",
+        "@unocss"
+    ],
+    "rules": {
+        "curly": 0,
+        "no-console": 0
+    }
+}

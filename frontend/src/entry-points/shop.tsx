@@ -1,60 +1,60 @@
-import { Component, Show, createEffect, createMemo, createSignal } from 'solid-js';
-import { For } from "solid-js/web";
-import { useStorage } from 'solidjs-use';
-import { ReceivedStatusUpdate } from '../webxdc';
-import { format } from 'date-fns';
-import Fuse from 'fuse.js';
-import { DownloadResponse } from '../bindings/DownloadResponse';
-import { UpdateResponse } from '../bindings/UpdateResponse';
-import { ShopRequest } from '../bindings/ShopRequest'
-import { createStore, produce } from 'solid-js/store';
+import type { Component } from 'solid-js'
+import { Show, createEffect, createMemo, createSignal } from 'solid-js'
+import { For, render } from 'solid-js/web'
+import { useStorage } from 'solidjs-use'
+import { format } from 'date-fns'
+import Fuse from 'fuse.js'
+import { createStore, produce } from 'solid-js/store'
+import type { ReceivedStatusUpdate } from '../webxdc'
+import type { DownloadResponse } from '../bindings/DownloadResponse'
+import type { UpdateResponse } from '../bindings/UpdateResponse'
+import type { ShopRequest } from '../bindings/ShopRequest'
 import mock from '../mock'
-import { AppInfoWithState, AppState, AppInfosById } from '../types';
-import { render } from 'solid-js/web';
-import '../index.sass';
-import "virtual:uno.css"
+import type { AppInfoWithState, AppInfosById } from '../types'
+import { AppState } from '../types'
+import '../index.sass'
+import 'virtual:uno.css'
 import '@unocss/reset/tailwind.css'
-import { AppInfoDB } from '../db/shop_db';
-import { AppInfo } from '../bindings/AppInfo';
+import { AppInfoDB } from '../db/shop_db'
+import type { AppInfo } from '../bindings/AppInfo'
 
 const fuse_options = {
-    keys: [
-        "name",
-        "author_name"
-    ]
+  keys: [
+    'name',
+    'author_name',
+  ],
 }
 
 function isEmpty(obj: any) {
-    for (const prop in obj) {
-        if (obj.hasOwnProperty(prop))
-            return false;
-    }
-    return true;
+  for (const prop in obj) {
+    if (Object.prototype.hasOwnProperty.call(obj, prop))
+      return false
+  }
+  return true
 }
 
 function isDownloadResponse(p: any): p is DownloadResponse {
-    return Object.hasOwn(p, "okay")
+  return Object.hasOwn(p, 'okay')
 }
 
 function isUpdateResponse(p: any): p is UpdateResponse {
-    return Object.hasOwn(p, "app_infos")
+  return Object.hasOwn(p, 'app_infos')
 }
 
-
 function AppInfoModal(item: AppInfoWithState, onDownload: () => void) {
-    const [isExpanded, setIsExpanded] = createSignal(false);
+  const [isExpanded, setIsExpanded] = createSignal(false)
 
-    return (
-        <li class="p-4 rounded shadow border w-full">
-            <div class="flex justify-between items-center gap-2">
-                <img src={"data:image/png;base64," + item.image!} alt={item.name} class="w-20 h-20 object-cover rounded-xl" />
-                <div class="overflow-hidden flex-grow-1">
+  return (
+        <li class="w-full border rounded p-4 shadow">
+            <div class="flex items-center justify-between gap-2">
+                <img src={`data:image/png;base64,${item.image!}`} alt={item.name} class="h-20 w-20 rounded-xl object-cover" />
+                <div class="flex-grow-1 overflow-hidden">
                     <h2 class="text-xl font-semibold">{item.name}</h2>
-                    <p class="text-gray-600 truncate max-width-text">{item.description}</p>
+                    <p class="max-width-text truncate text-gray-600">{item.description}</p>
                 </div>
-                {item.state == AppState.Initial && <button class="btn justify-self-center" onClick={onDownload}> Add </button>}
-                {item.state == AppState.Downloading && <p class="unimportant"> Downloading.. </p>}
-                {item.state == AppState.Received && <p class="text-amber-400 font-bold"> Received in Chat </p>}
+                {item.state === AppState.Initial && <button class="justify-self-center btn" onClick={onDownload}> Add </button>}
+                {item.state === AppState.Downloading && <p class="unimportant"> Downloading.. </p>}
+                {item.state === AppState.Received && <p class="font-bold text-amber-400"> Received in Chat </p>}
             </div>
             {
                 isExpanded() && (
@@ -62,9 +62,9 @@ function AppInfoModal(item: AppInfoWithState, onDownload: () => void) {
                         <p class="my-2 text-gray-600">{item.description}</p>
                         <hr />
                         <div class="my-2">
-                            <p class="text-gray-600 text-sm"><span class="font-bold"> author:</span> {item.author_name}</p>
-                            <p class="text-gray-600 text-sm"><span class="font-bold"> contact:</span>  {item.author_email}</p>
-                            <p class="text-gray-600 text-sm"><span class="font-bold"> source code:</span>  {item.source_code_url}</p>
+                            <p class="text-sm text-gray-600"><span class="font-bold"> author:</span> {item.author_name}</p>
+                            <p class="text-sm text-gray-600"><span class="font-bold"> contact:</span>  {item.author_email}</p>
+                            <p class="text-sm text-gray-600"><span class="font-bold"> source code:</span>  {item.source_code_url}</p>
                         </div>
                     </>
                 )
@@ -74,148 +74,146 @@ function AppInfoModal(item: AppInfoWithState, onDownload: () => void) {
                 </button>
             </div>
         </li >
-    )
+  )
 }
-
 
 const PublishButton: Component = () => {
-    const [isOpen, setIsOpen] = createSignal(false)
+  const [isOpen, setIsOpen] = createSignal(false)
 
-    return (
-        <button onClick={() => setIsOpen(true)} class="btn w-full">
-            {isOpen() ? "You can send me your webxdc in our 1:1 chat and I will help you publish it." : "Publish your own app"}
+  return (
+        <button onClick={() => setIsOpen(true)} class="w-full btn">
+            {isOpen() ? 'You can send me your webxdc in our 1:1 chat and I will help you publish it.' : 'Publish your own app'}
         </button>
-    )
+  )
 }
 
-const AppList: Component<{ items: AppInfoWithState[], search: string, onDownload: (id: number) => void }> = (props) => {
-    let fuse: Fuse<AppInfoWithState> = new Fuse(props.items, fuse_options);
+const AppList: Component<{ items: AppInfoWithState[]; search: string; onDownload: (id: number) => void }> = (props) => {
+  let fuse: Fuse<AppInfoWithState> = new Fuse(props.items, fuse_options)
 
-    createEffect(() => {
-        fuse = new Fuse(props.items, fuse_options);
-    })
+  createEffect(() => {
+    fuse = new Fuse(props.items, fuse_options)
+  })
 
-    const filtered_items = createMemo(() => {
-        if (props.search !== '') {
-            return fuse!.search(props.search).map((fr) => fr.item)
-        } else {
-            props.items
-        }
-    })
+  const filtered_items = createMemo(() => {
+    if (props.search !== '') {
+      return fuse!.search(props.search).map(fr => fr.item)
+    }
+    else {
+      return props.items
+    }
+  })
 
-    return (
-        <Show when={props.items.length != 0} fallback={<p class="text-center unimportant">Loading Apps..</p>}>
+  return (
+        <Show when={props.items.length !== 0} fallback={<p class="text-center unimportant">Loading Apps..</p>}>
             <For each={filtered_items() || props.items}>
                 {
                     item => AppInfoModal(item, () => { props.onDownload(item.id) })
                 }
             </For>
         </Show>
-    );
-};
-
+  )
+}
 
 function to_app_infos_by_id(app_infos: AppInfo[]): AppInfosById {
-    return app_infos.reduce((acc, appinfo) => {
-        let index = appinfo.id
-        acc[index] = { ...appinfo, state: AppState.Initial }
-        return acc
-    }, {} as AppInfosById)
+  return app_infos.reduce((acc, appinfo) => {
+    const index = appinfo.id
+    acc[index] = { ...appinfo, state: AppState.Initial }
+    return acc
+  }, {} as AppInfosById)
 }
 
 const Shop: Component = () => {
-    const [appInfo, setAppInfo] = createStore({} as AppInfosById)
-    const [lastSerial, setlastSerial] = useStorage('last-serial', 0)
-    const [lastUpdateSerial, setlastUpdateSerial] = useStorage('last-update-serial', 0)
-    const [lastUpdate, setlastUpdate] = useStorage('last-update', new Date())
-    const [isUpdating, setIsUpdating] = createSignal(false)
-    const [search, setSearch] = createSignal("")
+  const [appInfo, setAppInfo] = createStore({} as AppInfosById)
+  const [lastSerial, setlastSerial] = useStorage('last-serial', 0)
+  const [lastUpdateSerial, setlastUpdateSerial] = useStorage('last-update-serial', 0)
+  const [lastUpdate, setlastUpdate] = useStorage('last-update', new Date())
+  const [isUpdating, setIsUpdating] = createSignal(false)
+  const [search, setSearch] = createSignal('')
 
+  if (import.meta.env.DEV) {
+    setAppInfo(mock.id, mock)
+  }
 
-    if (import.meta.env.DEV) {
-        setAppInfo(mock.id, mock)
+  if (appInfo === undefined) {
+    setIsUpdating(true)
+  }
+
+  const db = new AppInfoDB('webxdc')
+
+  // This is for now _not_ synchronized with the update receival so a delayed
+  // query could overwrite app updates. For now, this should be fine.
+  db.get_all().then((apps) => {
+    const app_infos = to_app_infos_by_id(apps)
+    if (apps.length > 0) {
+      setAppInfo(app_infos)
     }
+  })
 
-    if (appInfo == undefined) {
-        setIsUpdating(true)
-    }
+  window.webxdc.setUpdateListener(async (resp: ReceivedStatusUpdate<UpdateResponse | DownloadResponse>) => {
+    setlastSerial(resp.serial)
 
-    const db = new AppInfoDB('webxdc')
+    // Skip events that have a request_type and are hence self-send
+    if (!Object.hasOwn(resp.payload, 'request_type')) {
+      if (isUpdateResponse(resp.payload)) {
+        console.log('Received Update')
+        const app_infos = to_app_infos_by_id(resp.payload.app_infos)
 
-    // This is for now _not_ synchronized with the update receival so a delayed 
-    // query could overwrite app updates. For now, this should be fine.
-    db.get_all().then((apps) => {
-        let app_infos = to_app_infos_by_id(apps)
-        if (apps.length > 0) {
-            setAppInfo(app_infos)
+        if (isEmpty(appInfo)) {
+          // initially write the newest update to state
+          setAppInfo(app_infos)
+          db.insertMultiple(resp.payload.app_infos)
         }
-    })
-
-
-    window.webxdc.setUpdateListener(async (resp: ReceivedStatusUpdate<UpdateResponse | DownloadResponse>) => {
-        setlastSerial(resp.serial)
-
-        // Skip events that have a request_type and are hence self-send
-        if (!Object.hasOwn(resp.payload, "request_type")) {
-            if (isUpdateResponse(resp.payload)) {
-                console.log('Received Update')
-                const app_infos = to_app_infos_by_id(resp.payload.app_infos)
-
-                if (isEmpty(appInfo)) {
-                    // initially write the newest update to state
-                    setAppInfo(app_infos)
-                    db.insertMultiple(resp.payload.app_infos)
-                } else {
-                    // all but the first update only overwrite existing properties
-                    console.log('Reconceiling updates')
-                    setAppInfo(produce((s) => {
-                        for (const key in app_infos) {
-                            const num_key = Number(key)
-                            if (s[num_key] === undefined) {
-                                s[num_key] = app_infos[num_key]
-                            }
-                            else {
-                                s[num_key] = Object.assign(s[num_key], app_infos[num_key])
-                            }
-                        }
-                    }))
-                    db.updateMultiple(resp.payload.app_infos)
-                }
-
-                setlastUpdateSerial(resp.payload.serial)
-                setIsUpdating(false)
-                setlastUpdate(new Date())
-
-            } else if (isDownloadResponse(resp.payload)) {
-                if (resp.payload.okay) {
-                    // id is set if resp is okay
-                    const id = resp.payload.id!
-                    setAppInfo(id, 'state', AppState.Received)
-                }
+        else {
+          // all but the first update only overwrite existing properties
+          console.log('Reconceiling updates')
+          setAppInfo(produce((s) => {
+            for (const key in app_infos) {
+              const num_key = Number(key)
+              if (s[num_key] === undefined) {
+                s[num_key] = app_infos[num_key]
+              }
+              else {
+                s[num_key] = Object.assign(s[num_key], app_infos[num_key])
+              }
             }
+          }))
+          db.updateMultiple(resp.payload.app_infos)
         }
-    }, lastSerial())
 
-    async function handleUpdate() {
-        setIsUpdating(true)
-        window.webxdc.sendUpdate({
-            payload: { Update: { serial: lastUpdateSerial() } } as ShopRequest
-        }, "")
+        setlastUpdateSerial(resp.payload.serial)
+        setIsUpdating(false)
+        setlastUpdate(new Date())
+      }
+      else if (isDownloadResponse(resp.payload)) {
+        if (resp.payload.okay) {
+          // id is set if resp is okay
+          const id = resp.payload.id!
+          setAppInfo(id, 'state', AppState.Received)
+        }
+      }
     }
+  }, lastSerial())
 
-    function handleDownload(app_id: number) {
-        setAppInfo(Number(app_id), 'state', AppState.Downloading)
-        window.webxdc.sendUpdate({
-            payload: { Download: { app_id } } as ShopRequest
-        }, "")
-    }
+  async function handleUpdate() {
+    setIsUpdating(true)
+    window.webxdc.sendUpdate({
+      payload: { Update: { serial: lastUpdateSerial() } } as ShopRequest,
+    }, '')
+  }
 
-    return (
+  function handleDownload(app_id: number) {
+    setAppInfo(Number(app_id), 'state', AppState.Downloading)
+    window.webxdc.sendUpdate({
+      payload: { Download: { app_id } } as ShopRequest,
+    }, '')
+  }
+
+  return (
         <div class="c-grid p-3">
             <div class="min-width">
-                <div class="flex gap-2 justify-between">
+                <div class="flex justify-between gap-2">
                     <h1 class="text-2xl font-bold">Webxdc Appstore</h1>
-                    <div class="unimportant p-1 flex items-center gap-2">
+                    <div class="flex items-center gap-2 p-1 unimportant">
                         <Show when={isUpdating()} fallback={
                             <button onclick={handleUpdate}>
                                 <span>{format(lastUpdate(), 'cccc HH:mm')}</span>
@@ -223,15 +221,15 @@ const Shop: Component = () => {
                         }>
                             Updating..
                         </Show>
-                        <div class="rounded border border-indigo-500" classList={{ "loading-spinner": isUpdating() }} i-carbon-reset></div>
+                        <div class="border border-indigo-500 rounded" classList={{ 'loading-spinner': isUpdating() }} i-carbon-reset></div>
                     </div>
                 </div>
 
-                <div class="p-4 mt-5">
-                    <ul class="flex flex-col gap-2 w-full">
-                        <li class="w-full flex justify-center items-center gap-2 mb-3">
-                            <input class="rounded-2xl border-2" onInput={(event) => setSearch((event.target as HTMLInputElement).value)} />
-                            <button class="btn rounded-1/2 p-2">
+                <div class="mt-5 p-4">
+                    <ul class="w-full flex flex-col gap-2">
+                        <li class="mb-3 w-full flex items-center justify-center gap-2">
+                            <input class="border-2 rounded-2xl" onInput={event => setSearch((event.target as HTMLInputElement).value)} />
+                            <button class="rounded-1/2 p-2 btn">
                                 <div class="i-carbon-search text-indigo-500" />
                             </button>
                         </li>
@@ -243,9 +241,8 @@ const Shop: Component = () => {
                 </div>
             </div >
         </div>
-    );
-};
+  )
+}
 
-const root = document.getElementById('root');
-render(() => <Shop />, root!);
-
+const root = document.getElementById('root')
+render(() => <Shop />, root!)

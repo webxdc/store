@@ -1,7 +1,5 @@
 // @ts-check
 
-import { StoreRequestWithData } from "./bindings/StoreRequestWithData"
-
 interface SendingStatusUpdate<T> {
     /** the payload, deserialized json:
      * any javascript primitive, array or object. */
