@@ -7,13 +7,15 @@ import Fuse from 'fuse.js';
 import { DownloadResponse } from '../bindings/DownloadResponse';
 import { UpdateResponse } from '../bindings/UpdateResponse';
 import { ShopRequest } from '../bindings/ShopRequest'
-import { createStore, produce, reconcile } from 'solid-js/store';
+import { createStore, produce } from 'solid-js/store';
 import mock from '../mock'
 import { AppInfoWithState, AppState, AppInfosById } from '../types';
 import { render } from 'solid-js/web';
 import '../index.sass';
 import "virtual:uno.css"
 import '@unocss/reset/tailwind.css'
+import { AppInfoDB } from '../db/shop_db';
+import { AppInfo } from '../bindings/AppInfo';
 
 const fuse_options = {
     keys: [
@@ -102,14 +104,24 @@ const AppList: Component<{ items: AppInfoWithState[], search: string, onDownload
     })
 
     return (
-        <For each={filtered_items() || props.items}>
-            {
-                item => AppInfoModal(item, () => { props.onDownload(item.id) })
-            }
-        </For>
+        <Show when={props.items.length != 0} fallback={<p class="text-center unimportant">Loading Apps..</p>}>
+            <For each={filtered_items() || props.items}>
+                {
+                    item => AppInfoModal(item, () => { props.onDownload(item.id) })
+                }
+            </For>
+        </Show>
     );
 };
 
+
+function to_app_infos_by_id(app_infos: AppInfo[]): AppInfosById {
+    return app_infos.reduce((acc, appinfo) => {
+        let index = appinfo.id
+        acc[index] = { ...appinfo, state: AppState.Initial }
+        return acc
+    }, {} as AppInfosById)
+}
 
 const Shop: Component = () => {
     const [appInfo, setAppInfo] = createStore({} as AppInfosById)
@@ -128,23 +140,31 @@ const Shop: Component = () => {
         setIsUpdating(true)
     }
 
-    window.webxdc.setUpdateListener((resp: ReceivedStatusUpdate<UpdateResponse | DownloadResponse>) => {
+    const db = new AppInfoDB('webxdc')
+    
+    // This is for now _not_ synchronized with the update receival so a delayed 
+    // query could overwrite app updates. For now, this should be fine.
+    db.get_all().then((apps) => {
+        let app_infos = to_app_infos_by_id(apps)
+        if (apps.length > 0) {
+            setAppInfo(app_infos)
+        }
+    })
+
+
+    window.webxdc.setUpdateListener(async (resp: ReceivedStatusUpdate<UpdateResponse | DownloadResponse>) => {
         setlastSerial(resp.serial)
 
         // Skip events that have a request_type and are hence self-send
         if (!Object.hasOwn(resp.payload, "request_type")) {
             if (isUpdateResponse(resp.payload)) {
                 console.log('Received Update')
-                let app_infos: AppInfosById = resp.payload.app_infos.reduce((acc, appinfo) => {
-                    let index = appinfo.id
-                    acc[index] = { ...appinfo, state: AppState.Initial }
-                    return acc
-                },
-                    {} as AppInfosById)
+                let app_infos = to_app_infos_by_id(resp.payload.app_infos)
 
                 if (isEmpty(appInfo)) {
                     // initially write the newest update to state
                     setAppInfo(app_infos)
+                    db.insertMultiple(resp.payload.app_infos)
                 } else {
                     // all but the first update only overwrite existing properties
                     console.log('Reconceiling updates')
@@ -159,6 +179,7 @@ const Shop: Component = () => {
                             }
                         }
                     }))
+                    db.updateMultiple(resp.payload.app_infos)
                 }
 
                 setlastUpdateSerial(resp.payload.serial)
