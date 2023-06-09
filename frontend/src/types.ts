@@ -1,14 +1,13 @@
-import { AppInfo } from "./bindings/AppInfo"
-
+import type { AppInfo } from './bindings/AppInfo'
 
 export enum AppState {
-    Initial,
-    Downloading,
-    Received
+  Initial,
+  Downloading,
+  Received,
 }
 
 export interface AppInfoWithState extends AppInfo {
-    state: AppState
+  state: AppState
 }
 
 export type AppInfosById = Record<number, AppInfoWithState>

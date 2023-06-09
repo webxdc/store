@@ -23,6 +23,17 @@ jobs:
       - name: Rust tests
         run: cargo test
 
+  frontend_lint:
+    name: Lint the frontend
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - name: Build the frontend
+        run: |
+          npx pnpm install
+          npx pnpm run lint
+        working-directory: frontend
+
   python_tests:
     name: Python tests
     runs-on: ubuntu-latest

@@ -9,10 +9,14 @@
     "build-submit": "VITE_APP=submit vite build",
     "build-review": "VITE_APP=review vite build",
     "build": "npm run build-shop && npm run build-submit && npm run build-review && ./create_xdc.sh",
-    "serve": "vite preview"
+    "serve": "vite preview",
+    "lint": "eslint . --ext .tsx"
   },
   "license": "MIT",
   "devDependencies": {
+    "eslint": "^8.42.0",
+    "@antfu/eslint-config": "^0.39.3",
+    "@unocss/eslint-config": "^0.52.2",
     "typescript": "^5.1.3",
     "vite": "^4.3.9",
     "vite-plugin-solid": "^2.7.0"
