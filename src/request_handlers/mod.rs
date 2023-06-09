@@ -39,9 +39,9 @@ pub struct AppInfo {
     pub source_code_url: Option<String>, // manifest
     pub image: Option<String>,           // webxdc
     pub description: Option<String>,     // submit
+    pub version: Option<String>,         // manifest
     #[serde(skip)]
     pub xdc_blob_dir: Option<PathBuf>, // bot
-    pub version: Option<String>,         // manifest
     #[serde(skip)]
     pub originator: RecordId, // bot
     #[serde(skip)]
