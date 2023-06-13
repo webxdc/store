@@ -6,3 +6,4 @@ xdcs/*
 bot-data/*
 import/*
 **/__pycache__/*
+dist/
