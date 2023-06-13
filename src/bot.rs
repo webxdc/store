@@ -72,6 +72,10 @@ impl Bot {
             fs::write(db_path, "")?;
         }
 
+        if !PathBuf::from("bot-data").exists() {
+            fs::create_dir("bot-data")?;
+        }
+
         let db = SqlitePool::connect(DB_URL).await?;
         MIGRATOR.run(&db).await?;
 
