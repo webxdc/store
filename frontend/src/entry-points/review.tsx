@@ -3,14 +3,13 @@ import { Show, createMemo, createSignal } from 'solid-js'
 import { useStorage } from 'solidjs-use'
 import { render } from 'solid-js/web'
 import type { AppInfo } from '../bindings/AppInfo'
-import type { ReceivedStatusUpdate } from '../webxdc'
 import AppInfoPreview from '../components/AppInfo'
 import mock from '../mock'
 import '../index.sass'
 import 'virtual:uno.css'
 import '@unocss/reset/tailwind.css'
 import { isAppInfo } from '../utils'
-import { ReviewResponse } from '../bindings/ReviewResponse'
+import type { ReviewResponse } from '../bindings/ReviewResponse'
 
 interface TestStatus {
   android: boolean
@@ -72,7 +71,8 @@ const Review: Component = () => {
     setlastSerial(resp.serial)
     if (isAppInfo(resp.payload)) {
       setAppInfo(resp.payload)
-    } else if (isReviewResponse(resp.payload)) {
+    }
+    else if (isReviewResponse(resp.payload)) {
       setShowButton(!resp.payload.okay)
       setSuccess(resp.payload.okay)
     }

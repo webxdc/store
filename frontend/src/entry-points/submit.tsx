@@ -10,7 +10,7 @@ import '../index.sass'
 import 'virtual:uno.css'
 import '@unocss/reset/tailwind.css'
 import type { SubmitRequest } from '../bindings/SubmitRequest'
-import { SubmitResponse } from '../bindings/SubmitResponse'
+import type { SubmitResponse } from '../bindings/SubmitResponse'
 import { isAppInfo } from '../utils'
 
 function isSubmitResponse(p: any): p is SubmitResponse {
@@ -27,7 +27,6 @@ const Submit: Component = () => {
   const [showButton, setShowButton] = useStorage('show_submit', true)
   const [success, setSuccess] = createSignal<undefined | boolean>(undefined)
 
-
   if (import.meta.env.DEV) {
     lastAppinfo = mock
     setAppInfo(mock)
@@ -38,11 +37,13 @@ const Submit: Component = () => {
     if (isSubmitResponse(resp.payload)) {
       if (resp.payload.okay) {
         setSuccess(true)
-      } else {
+      }
+      else {
         setSuccess(false)
         setShowButton(true)
       }
-    } else if (isAppInfo(resp.payload)) {
+    }
+    else if (isAppInfo(resp.payload)) {
       lastAppinfo = resp.payload
       setAppInfo(resp.payload)
     }
@@ -64,11 +65,11 @@ const Submit: Component = () => {
           <p>Waiting for setup message...</p>
         }>
           <AppInfoPreview appinfo={appInfo()} setAppInfo={setAppInfo} disable_all={false} />
-          {success() === false &&
-            <p class="text-red"> Some problem occured while publishing your app. We will get in touch with you soon. </p>
+          {success() === false
+            && <p class="text-red"> Some problem occured while publishing your app. We will get in touch with you soon. </p>
           }
-          {success() === true &&
-            <p class="text-green">I've send your app to some reviewers. We will soon get in touch with you again!</p>
+          {success() === true
+            && <p class="text-green">I've send your app to some reviewers. We will soon get in touch with you again!</p>
           }
           {showButton() && <button class="w-full cursor-pointer font-semibold btn" classList={{ 'bg-gray-100 border-gray-500 text-gray-700': !is_different(), 'text-indigo-500': is_different() }}
             disabled={!is_different() && !is_appdata_complete()} onClick={submit}>Submit</button>}

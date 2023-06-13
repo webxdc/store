@@ -1056,8 +1056,8 @@ dependencies = [
 
 [[package]]
 name = "deltachat"
-version = "1.115.0"
-source = "git+https://github.com/deltachat/deltachat-core-rust.git?branch=sk/new_apis#ddcdd539aecbf042184a48ce2c2d70b313cb5473"
+version = "1.116.0"
+source = "git+https://github.com/deltachat/deltachat-core-rust.git?branch=sk/new_apis#8e8bc8054e57b26919c10da3ed9a0dc9af8f9572"
 dependencies = [
  "anyhow",
  "async-channel",
@@ -1126,7 +1126,7 @@ dependencies = [
 [[package]]
 name = "deltachat_derive"
 version = "2.0.0"
-source = "git+https://github.com/deltachat/deltachat-core-rust.git?branch=sk/new_apis#ddcdd539aecbf042184a48ce2c2d70b313cb5473"
+source = "git+https://github.com/deltachat/deltachat-core-rust.git?branch=sk/new_apis#8e8bc8054e57b26919c10da3ed9a0dc9af8f9572"
 dependencies = [
  "quote",
  "syn 2.0.16",
@@ -1790,7 +1790,7 @@ dependencies = [
 [[package]]
 name = "format-flowed"
 version = "1.0.0"
-source = "git+https://github.com/deltachat/deltachat-core-rust.git?branch=sk/new_apis#ddcdd539aecbf042184a48ce2c2d70b313cb5473"
+source = "git+https://github.com/deltachat/deltachat-core-rust.git?branch=sk/new_apis#8e8bc8054e57b26919c10da3ed9a0dc9af8f9572"
 
 [[package]]
 name = "futures"
@@ -2892,9 +2892,9 @@ dependencies = [
 
 [[package]]
 name = "once_cell"
-version = "1.17.1"
+version = "1.18.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b7e5500299e16ebb147ae15a00a942af264cf3688f47923b8fc2cd5858f23ad3"
+checksum = "dd8b5dd2ae5ed71462c540258bedcb51965123ad7e7ccf4b9a8cafaa4a63576d"
 
 [[package]]
 name = "opaque-debug"
@@ -3105,9 +3105,9 @@ dependencies = [
 
 [[package]]
 name = "percent-encoding"
-version = "2.2.0"
+version = "2.3.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "478c572c3d73181ff3c2539045f6eb99e5491218eae919370993b890cdbdd98e"
+checksum = "9b2a4787296e9989611394c33f193f676704af1686e70b8f8033ab5ba9a35a94"
 
 [[package]]
 name = "pgp"
@@ -3545,7 +3545,7 @@ dependencies = [
 [[package]]
 name = "ratelimit"
 version = "1.0.0"
-source = "git+https://github.com/deltachat/deltachat-core-rust.git?branch=sk/new_apis#ddcdd539aecbf042184a48ce2c2d70b313cb5473"
+source = "git+https://github.com/deltachat/deltachat-core-rust.git?branch=sk/new_apis#8e8bc8054e57b26919c10da3ed9a0dc9af8f9572"
 
 [[package]]
 name = "rcgen"

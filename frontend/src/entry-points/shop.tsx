@@ -187,7 +187,8 @@ const Shop: Component = () => {
       if (resp.payload.okay) {
         // id is set if resp is okay
         setAppInfo(resp.payload.id, 'state', AppState.Received)
-      } else {
+      }
+      else {
         // id is set if resp is okay
         setAppInfo(resp.payload.id, 'state', AppState.DownloadCancelled)
       }
