@@ -5,6 +5,7 @@ import type { AppInfo } from '../bindings/AppInfo'
 interface AppInfoPreviewProps {
   appinfo: AppInfo
   setAppInfo(appInfo: AppInfo): void
+  disable_all: boolean
 }
 
 const AppInfoPreview: Component<AppInfoPreviewProps> = (props) => {
@@ -33,13 +34,13 @@ const AppInfoPreview: Component<AppInfoPreviewProps> = (props) => {
             </Show>
             <label>App Name</label>
             <Show when={errors().name}><p class="text-red">You have to give a name.</p></Show>
-            <input class="mb-2" name="name" value={props.appinfo.name} onInput={handleInputChange} placeholder="App Name" />
+            <input class="mb-2" name="name" value={props.appinfo.name} onInput={handleInputChange} disabled={props.disable_all} placeholder="App Name" />
             <label>Description</label>
             <Show when={errors().description}><p class="text-red">You have to give a description.</p></Show>
-            <textarea name="description" value={props.appinfo.description || ''} onInput={handleInputChange} placeholder="Description" />
+            <textarea name="description" value={props.appinfo.description || ''} onInput={handleInputChange} disabled={props.disable_all} placeholder="Description" />
             <label>Author</label>
             <Show when={errors().author_name}><p class="text-red">You have to give an author name.</p></Show>
-            <input class="mb-2" name="author_name" value={props.appinfo.author_name} onInput={handleInputChange} placeholder="Author Name" />
+            <input class="mb-2" name="author_name" value={props.appinfo.author_name} onInput={handleInputChange} disabled={props.disable_all} placeholder="Author Name" />
             <label>Author Email</label>
             <input class="mb-2" name="author_email" value={props.appinfo.author_email || ''} disabled placeholder="Author Email" />
             <label>Source code url </label>

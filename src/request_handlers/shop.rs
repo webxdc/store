@@ -16,7 +16,7 @@ use deltachat::{
     message::{Message, MsgId, Viewtype},
     webxdc::StatusUpdateItem,
 };
-use log::info;
+use log::{info, warn};
 use serde::{Deserialize, Serialize};
 use serde_json::json;
 use std::sync::Arc;
@@ -49,7 +49,7 @@ pub struct UpdateResponse {
 #[ts(export_to = "frontend/src/bindings/")]
 pub struct DownloadResponse {
     okay: bool,
-    id: Option<i32>,
+    id: i32,
 }
 
 pub async fn handle_message(
@@ -121,12 +121,20 @@ pub async fn handle_status_update(
             }
             ShopRequest::Download { app_id } => {
                 info!("Handling store download");
-                let result = handle_download_request(context, state, app_id, chat_id).await;
-
-                let resp = DownloadResponse {
-                    okay: result.is_ok(),
-                    id: result.ok(),
+                let resp = match handle_download_request(context, state, app_id, chat_id).await {
+                    Ok(_) => DownloadResponse {
+                        okay: true,
+                        id: app_id,
+                    },
+                    Err(e) => {
+                        warn!("Error while handling download request: {}", e);
+                        DownloadResponse {
+                            okay: false,
+                            id: app_id,
+                        }
+                    }
                 };
+
                 context
                     .send_webxdc_status_update_struct(
                         msg_id,
@@ -153,7 +161,7 @@ async fn handle_download_request(
     state: Arc<State>,
     app_id: i32,
     chat_id: ChatId,
-) -> anyhow::Result<i32> {
+) -> anyhow::Result<()> {
     let app = db::get_app_info(&mut *state.db.acquire().await?, app_id).await?;
     let mut msg = Message::new(Viewtype::Webxdc);
     if let Some(file) = app.xdc_blob_dir {
@@ -162,5 +170,5 @@ async fn handle_download_request(
     } else {
         bail!("Appinfo {} has no xdc_blob_dir", app.name)
     }
-    Ok(app_id)
+    Ok(())
 }

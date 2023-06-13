@@ -3,6 +3,7 @@ import type { AppInfo } from './bindings/AppInfo'
 export enum AppState {
   Initial,
   Downloading,
+  DownloadCancelled,
   Received,
 }
 

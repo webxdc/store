@@ -19,7 +19,7 @@ use crate::{
     db::{self, MIGRATOR},
     messages::appstore_message,
     request_handlers::{genisis, review, shop, submit, ChatType},
-    utils::{configure_from_env, send_webxdc},
+    utils::{configure_from_env, send_newest_updates, send_webxdc},
     DB_URL, DC_DB_PATH, GENESIS_QR, INVITE_QR, SHOP_XDC, SUBMIT_HELPER_XDC,
 };
 
@@ -225,7 +225,10 @@ impl Bot {
                         "Chat {chat_id} is not in the database, adding it as chat with type shop"
                     );
                         db::set_chat_type(conn, chat_id, ChatType::Shop).await?;
-                        send_webxdc(context, chat_id, SHOP_XDC, Some(appstore_message())).await?;
+                        let msg = send_webxdc(context, chat_id, SHOP_XDC, Some(appstore_message()))
+                            .await?;
+                        send_newest_updates(context, msg, &mut *state.db.acquire().await?, 0)
+                            .await?;
                     }
                 }
             }
@@ -259,8 +262,6 @@ impl Bot {
                         let msg = Message::load_from_db(context, msg_id).await?;
                         if msg.get_viewtype() == Viewtype::Webxdc {
                             submit::handle_webxdc(context, chat_id, state, msg).await?;
-                        } else {
-                            submit::handle_message(context, chat_id, state, msg).await?;
                         }
                     }
                     ChatType::Review => {
@@ -304,7 +305,7 @@ impl Bot {
                 shop::handle_status_update(context, state, chat_id, msg_id, update).await?
             }
             ChatType::ReviewPool | ChatType::TesterPool | ChatType::Genesis => (),
-            ChatType::Review => todo!(),
+            ChatType::Review => review::handle_status_update(context, state, chat_id, update).await?
         }
 
         Ok(())

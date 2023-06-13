@@ -293,6 +293,7 @@ pub async fn create_app_info(
     app_info: &mut AppInfo,
 ) -> anyhow::Result<()> {
     let next_serial = increase_get_serial(c).await?;
+    println!("dir: {:?}", app_info.xdc_blob_dir);
     let blob_dir = if let Some(dir) = &app_info.xdc_blob_dir {
         Some(dir.to_str().context("Can't convert to str")?)
     } else {
@@ -323,6 +324,8 @@ pub async fn update_app_info(c: &mut SqliteConnection, app_info: &AppInfo) -> an
     } else {
         None
     };
+    println!("dir: {:?}", app_info.xdc_blob_dir);
+
     sqlx::query("UPDATE app_infos SET name = ?, description = ?, version = ?, image = ?, author_name = ?, author_email = ?, xdc_blob_dir = ?, active = ?, originator = ?, source_code_url = ? WHERE id = ?")
         .bind(app_info.name.as_str())
         .bind(&app_info.description)

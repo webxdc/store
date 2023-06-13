@@ -1,11 +1,14 @@
+use serde_json::json;
 use sqlx::SqliteConnection;
 use std::sync::Arc;
 use thiserror::Error;
+use ts_rs::TS;
 
 use crate::{
     bot::State,
     db::{self, RecordId},
     messages::creat_review_group_init_message,
+    request_handlers::WebxdcStatusUpdate,
     utils::{get_contact_name, send_app_info, send_webxdc},
     REVIEW_HELPER_XDC,
 };
@@ -14,6 +17,7 @@ use deltachat::{
     contact::ContactId,
     context::Context,
     message::{Message, MsgId},
+    webxdc::StatusUpdateItem,
 };
 use log::info;
 use serde::{Deserialize, Serialize};
@@ -48,6 +52,20 @@ pub enum HandlePublishError {
     Other(#[from] anyhow::Error),
     #[error(transparent)]
     Sqlx(#[from] sqlx::Error),
+}
+
+#[derive(Deserialize, TS)]
+#[ts(export)]
+#[ts(export_to = "frontend/src/bindings/")]
+pub enum RevieRequest {
+    Publish { app_info: RecordId },
+}
+
+#[derive(Serialize, TS)]
+#[ts(export)]
+#[ts(export_to = "frontend/src/bindings/")]
+struct ReviewResponse {
+    okay: bool,
 }
 
 impl ReviewChat {
@@ -156,6 +174,46 @@ pub async fn handle_message(
                 .await?;
             }
         }
+    }
+    Ok(())
+}
+
+pub async fn handle_status_update(
+    context: &Context,
+    state: Arc<State>,
+    chat_id: ChatId,
+    update: String,
+) -> anyhow::Result<()> {
+    info!("Handling app info update");
+    if let Ok(req) = serde_json::from_str::<WebxdcStatusUpdate<RevieRequest>>(&update) {
+        match req.payload {
+            RevieRequest::Publish { app_info } => {
+                let conn = &mut *state.db.acquire().await?;
+                db::publish_app_info(conn, app_info).await?;
+                let review_chat = db::get_review_chat(conn, chat_id).await?;
+                context
+                    .send_webxdc_status_update_struct(
+                        review_chat.review_helper,
+                        StatusUpdateItem {
+                            payload: json!(ReviewResponse { okay: true }),
+                            ..Default::default()
+                        },
+                        "",
+                    )
+                    .await?;
+                chat::send_text_msg(
+                    context,
+                    review_chat.submit_chat,
+                    "Your app has been accepted and published to the appstore!".into(),
+                )
+                .await?;
+            }
+        }
+    } else {
+        info!(
+            "Ignoring update: {}",
+            &update.get(..100.min(update.len())).unwrap_or_default()
+        )
     }
     Ok(())
 }

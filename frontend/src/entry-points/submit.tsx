@@ -1,5 +1,5 @@
 import type { Component } from 'solid-js'
-import { Show, createMemo } from 'solid-js'
+import { Show, createMemo, createSignal } from 'solid-js'
 import { useStorage } from 'solidjs-use'
 import { render } from 'solid-js/web'
 import type { AppInfo } from '../bindings/AppInfo'
@@ -10,6 +10,12 @@ import '../index.sass'
 import 'virtual:uno.css'
 import '@unocss/reset/tailwind.css'
 import type { SubmitRequest } from '../bindings/SubmitRequest'
+import { SubmitResponse } from '../bindings/SubmitResponse'
+import { isAppInfo } from '../utils'
+
+function isSubmitResponse(p: any): p is SubmitResponse {
+  return Object.hasOwn(p, 'okay')
+}
 
 const Submit: Component = () => {
   const [appInfo, setAppInfo] = useStorage('app-info', {} as AppInfo)
@@ -18,6 +24,9 @@ const Submit: Component = () => {
   let lastAppinfo: AppInfo = {} as AppInfo
   const is_different = createMemo(() => JSON.stringify(appInfo()) !== JSON.stringify(lastAppinfo))
   const has_loaded = createMemo(() => Object.hasOwn(appInfo(), 'version'))
+  const [showButton, setShowButton] = useStorage('show_submit', true)
+  const [success, setSuccess] = createSignal<undefined | boolean>(undefined)
+
 
   if (import.meta.env.DEV) {
     lastAppinfo = mock
@@ -26,17 +35,21 @@ const Submit: Component = () => {
 
   window.webxdc.setUpdateListener((resp: ReceivedStatusUpdate<AppInfo>) => {
     setlastSerial(resp.serial)
-    // skip events that have a request_type and are hence self-send
-    if (!Object.hasOwn(resp.payload, 'request_type')) {
-      if (!has_loaded()) {
-        lastAppinfo = resp.payload
+    if (isSubmitResponse(resp.payload)) {
+      if (resp.payload.okay) {
+        setSuccess(true)
+      } else {
+        setSuccess(false)
+        setShowButton(true)
       }
+    } else if (isAppInfo(resp.payload)) {
+      lastAppinfo = resp.payload
       setAppInfo(resp.payload)
-      console.log('Received app info', appInfo())
     }
   }, lastSerial())
 
   function submit() {
+    setShowButton(false)
     lastAppinfo = appInfo()
     window.webxdc.sendUpdate({
       payload: { Submit: { app_info: appInfo() } } as SubmitRequest,
@@ -44,17 +57,24 @@ const Submit: Component = () => {
   }
 
   return (
-        <div class="c-grid m-4">
-            <div class="min-width flex flex-col gap-3">
-                <h1 class="text-center text-2xl font-bold text-indigo-500"> App Metadata</h1>
-                <Show when={has_loaded()} fallback={
-                    <p>Waiting for setup message...</p>
-                }>
-                    <AppInfoPreview appinfo={appInfo()} setAppInfo={setAppInfo} />
-                    {is_different() && <button class="btn" disabled={!is_appdata_complete()} onclick={submit}> Submit </button>}
-                </Show>
-            </div>
-        </div>
+    <div class="c-grid m-4">
+      <div class="min-width flex flex-col gap-3">
+        <h1 class="text-center text-2xl font-bold text-indigo-500"> App Metadata</h1>
+        <Show when={has_loaded()} fallback={
+          <p>Waiting for setup message...</p>
+        }>
+          <AppInfoPreview appinfo={appInfo()} setAppInfo={setAppInfo} disable_all={false} />
+          {success() === false &&
+            <p class="text-red"> Some problem occured while publishing your app. We will get in touch with you soon. </p>
+          }
+          {success() === true &&
+            <p class="text-green">I've send your app to some reviewers. We will soon get in touch with you again!</p>
+          }
+          {showButton() && <button class="w-full cursor-pointer font-semibold btn" classList={{ 'bg-gray-100 border-gray-500 text-gray-700': !is_different(), 'text-indigo-500': is_different() }}
+            disabled={!is_different() && !is_appdata_complete()} onClick={submit}>Submit</button>}
+        </Show>
+      </div>
+    </div>
   )
 }
 

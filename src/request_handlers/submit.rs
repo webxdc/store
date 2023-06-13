@@ -12,9 +12,11 @@ use deltachat::{
     chat::{self, ChatId},
     context::Context,
     message::{Message, MsgId},
+    webxdc::StatusUpdateItem,
 };
 use log::info;
 use serde::{Deserialize, Serialize};
+use serde_json::json;
 use sqlx::SqliteConnection;
 use ts_rs::TS;
 
@@ -40,48 +42,50 @@ pub enum SubmitRequest {
     Submit { app_info: AppInfo },
 }
 
-pub async fn handle_message(
-    context: &Context,
-    chat_id: ChatId,
-    state: Arc<State>,
-    msg: Message,
-) -> anyhow::Result<()> {
-    info!("Handling message in submit-chat");
-    let submit_chat: SubmitChat =
-        db::get_submit_chat(&mut *state.db.acquire().await?, chat_id).await?;
+#[derive(Serialize, TS)]
+#[ts(export)]
+#[ts(export_to = "frontend/src/bindings/")]
+pub struct SubmitResponse {
+    pub okay: bool,
+}
 
-    if let Some(msg_text) = msg.get_text() {
-        if msg_text.starts_with('/') {
-            if msg_text == "/publish" {
-                // create review chat
-                if let Err(e) =
-                    ReviewChat::from_submit_chat(context, state.clone(), submit_chat).await
-                {
-                    let msg = match e {
-                        HandlePublishError::NotEnoughTesters
-                        | HandlePublishError::NotEnoughPublishers => e.to_string(),
-                        e => return Err(anyhow::anyhow!(e)),
-                    };
-                    chat::send_text_msg(context, state.config.genesis_group, msg).await?;
-                    chat::send_text_msg(
-                        context,
-                        chat_id,
-                        "Problem creating your review chat.".to_string(),
-                    )
-                    .await?;
-                } else {
-                    chat::send_text_msg(
-                        context,
-                        chat_id,
-                        "I've submitted your app for review!".to_string(),
-                    )
-                    .await?;
-                }
-            } else {
-                chat::send_text_msg(context, chat_id, "Command not found".to_string()).await?;
+pub async fn create_review_chat(
+    context: &Context,
+    state: Arc<State>,
+    submit_chat: SubmitChat,
+    _chat_id: ChatId,
+) -> anyhow::Result<()> {
+    let submit_helper = submit_chat.submit_helper;
+    if let Err(e) = ReviewChat::from_submit_chat(context, state.clone(), submit_chat).await {
+        let msg = match e {
+            HandlePublishError::NotEnoughTesters | HandlePublishError::NotEnoughPublishers => {
+                e.to_string()
             }
-        }
-    }
+            e => return Err(anyhow::anyhow!(e)),
+        };
+        chat::send_text_msg(context, state.config.genesis_group, msg).await?;
+        context
+            .send_webxdc_status_update_struct(
+                submit_helper,
+                StatusUpdateItem {
+                    payload: json!(SubmitResponse { okay: false }),
+                    ..Default::default()
+                },
+                "",
+            )
+            .await?;
+    } else {
+        context
+            .send_webxdc_status_update_struct(
+                submit_helper,
+                StatusUpdateItem {
+                    payload: json!(SubmitResponse { okay: true }),
+                    ..Default::default()
+                },
+                "",
+            )
+            .await?;
+    };
     Ok(())
 }
 
@@ -107,8 +111,10 @@ pub async fn handle_webxdc(
     // TODO: Verify update
     let (changed, upgraded) = app_info.update_from_xdc(file).await?;
     if upgraded {
+        info!("Upgraded app info: {:?}", app_info.id)
         // TODO: Handle upgrade
     } else if changed && check_app_info(context, &app_info, chat_id).await? {
+        info!("Updating app info: {:?}", app_info.id);
         db::update_app_info(&mut *state.db.acquire().await?, &app_info).await?;
     }
     Ok(())
@@ -123,13 +129,17 @@ pub async fn handle_status_update(
     info!("Handling app info update");
     if let Ok(req) = serde_json::from_str::<WebxdcStatusUpdate<SubmitRequest>>(&update) {
         let conn = &mut *state.db.acquire().await?;
-
+        let submit_chat: SubmitChat =
+            db::get_submit_chat(&mut *state.db.acquire().await?, chat_id).await?;
         match req.payload {
             SubmitRequest::Submit { app_info } => {
                 // TODO: merge with existing app info
-                if check_app_info(context, &app_info, chat_id).await? {
-                    db::update_app_info(conn, &app_info).await?;
+                let current_app_info = submit_chat.get_app_info(conn).await?;
+                let new_app_info = current_app_info.update_from_request(app_info);
+                if check_app_info(context, &new_app_info, chat_id).await? {
+                    db::update_app_info(conn, &new_app_info).await?;
                 }
+                create_review_chat(context, state, submit_chat, chat_id).await?;
             }
         }
     } else {
@@ -153,13 +163,6 @@ pub async fn check_app_info(
             context,
             chat_id,
             format!("Missing fields: {}", missing.join(", ")),
-        )
-        .await?;
-    } else {
-        chat::send_text_msg(
-            context,
-            chat_id,
-            "I've got all information needed, if you want to publish it, type '/publish' and I will send it into review.".into(),
         )
         .await?;
     }

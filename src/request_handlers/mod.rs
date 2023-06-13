@@ -52,6 +52,7 @@ impl AppInfo {
     /// Create appinfo from webxdc file.
     pub async fn from_xdc(file: &Path) -> anyhow::Result<Self> {
         let mut app = AppInfo::default();
+        app.xdc_blob_dir = Some(file.to_path_buf());
         app.update_from_xdc(file.to_path_buf()).await?;
         Ok(app)
     }
@@ -115,6 +116,22 @@ impl AppInfo {
             ne_assign_option(&mut self.image, Some(encode(&res)), &mut changed);
         }
         Ok((changed, upgraded))
+    }
+
+    pub fn update_from_request(self, app_info: AppInfo) -> Self {
+        Self {
+            id: self.id,
+            name: app_info.name,
+            author_name: app_info.author_name,
+            author_email: self.author_email,
+            source_code_url: self.source_code_url,
+            image: self.image,
+            description: app_info.description,
+            version: self.version,
+            xdc_blob_dir: self.xdc_blob_dir,
+            originator: self.originator,
+            active: self.active,
+        }
     }
 
     /// Generates a list of missing values from the appinfo.

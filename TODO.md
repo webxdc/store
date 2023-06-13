@@ -3,7 +3,8 @@
 - [ ] Add testing
 - [ ] App updating
 - [ ] Close submit helper webxdc on submit
-- [ ] Don't reshow submit button in submit chat
+- [ ] What happens if people think they should upgrade-submit their apps into the 1:1 chat?
+- [ ] Handle upgrade-submit in submit-chats.
 
 ## Make appstore happy path run:
 1. [x] bot admin configures the bot with QRCode
@@ -18,5 +19,5 @@
 2. [x] The bot creates a new group with the user where he forwards the webxdc to. It also send the helper wbxdc where things like name, description and so on can be seen and edited.
 3. [x] When all required fields are filled in, the user can send the webxdc to review.
 4. [x] Upon review request (send from helper xdc), the bot creates a new group with some testers and one publisher.
-5. [ ] The testers test the app and checkmark required tests in the helper webxdc.
-6. [ ] When all requirements are met, the publisher can publish the app to the appstore.
+5. [x] The testers test the app and checkmark required tests in the helper webxdc.
+6. [x] When all requirements are met, the publisher can publish the app to the appstore.
