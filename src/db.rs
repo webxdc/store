@@ -118,6 +118,14 @@ pub async fn create_submit_chat(c: &mut SqliteConnection, chat: &SubmitChat) -> 
     Ok(())
 }
 
+pub async fn delete_submit_chat(c: &mut SqliteConnection, chat_id: ChatId) -> sqlx::Result<()> {
+    sqlx::query("DELETE FROM chats WHERE submit_chat_id = ?")
+        .bind(chat_id.to_u32())
+        .execute(c)
+        .await?;
+    Ok(())
+}
+
 /// Upgrade a submit chat with chat_id `id` to a review chat.
 pub async fn upgrade_to_review_chat(
     c: &mut SqliteConnection,
@@ -268,6 +276,13 @@ pub async fn get_random_testers(
                 .map(|row| ContactId::new(row.get("contact_id")))
                 .collect())
         })?
+}
+
+pub async fn get_random_tester(c: &mut SqliteConnection) -> anyhow::Result<ContactId> {
+    sqlx::query("SELECT contact_id FROM users WHERE tester=true ORDER BY RANDOM() LIMIT 1")
+        .fetch_one(c)
+        .await
+        .map(|row| Ok(ContactId::new(row.get("contact_id"))))?
 }
 
 pub async fn increase_get_serial(c: &mut SqliteConnection) -> sqlx::Result<u32> {

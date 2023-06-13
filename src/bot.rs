@@ -9,11 +9,12 @@ use deltachat::{
     stock_str::StockStrings,
     EventType, Events,
 };
+use itertools::Itertools;
 use log::{debug, error, info, trace, warn};
 use qrcode_generator::QrCodeEcc;
 use serde::{Deserialize, Serialize};
 use sqlx::{pool::PoolConnection, Sqlite, SqlitePool};
-use std::{fs, path::PathBuf, sync::Arc};
+use std::{collections::HashSet, fs, path::PathBuf, sync::Arc};
 
 use crate::{
     db::{self, MIGRATOR},
@@ -217,7 +218,74 @@ impl Bot {
                                 info!("updating tester contacts");
                                 db::set_testers(conn, &filtered.collect::<Vec<_>>()).await?;
                             }
-                            // TODO: handle membership changes in review and submit group
+                            ChatType::Submit => {
+                                let new_members = filtered.collect::<HashSet<_>>();
+                                if new_members.len() == 1 {
+                                    info!("submit chat has only one member left, deleting");
+                                    db::delete_submit_chat(
+                                        &mut *state.db.acquire().await?,
+                                        chat_id,
+                                    )
+                                    .await?;
+                                    chat_id.delete(context).await?;
+                                }
+                            }
+                            ChatType::Review => {
+                                let new_members = filtered.collect::<HashSet<_>>();
+                                let mut conn = state.db.acquire().await?;
+                                let review_chat = db::get_review_chat(&mut conn, chat_id).await?;
+                                let old_members: HashSet<_> =
+                                    review_chat.get_members().into_iter().collect();
+                                let removed_members = old_members.difference(&new_members);
+                                for removed_member in removed_members {
+                                    if *removed_member == review_chat.publisher {
+                                        let mut new_publisher =
+                                            db::get_random_publisher(&mut conn).await?;
+                                        let mut count = 0;
+                                        while new_publisher == *removed_member || count > 10 {
+                                            new_publisher =
+                                                db::get_random_publisher(&mut conn).await?;
+                                            count += 1;
+                                        }
+                                        sqlx::query(
+                                            "UPDATE chats SET publisher = ? WHERE chat_id = ?",
+                                        )
+                                        .bind(new_publisher.to_u32())
+                                        .bind(chat_id.to_u32())
+                                        .execute(&mut *conn)
+                                        .await?;
+                                    } else if review_chat.testers.contains(removed_member) {
+                                        let mut new_tester =
+                                            db::get_random_tester(&mut conn).await?;
+                                        let mut count = 0;
+                                        while new_tester == *removed_member || count > 10 {
+                                            new_tester = db::get_random_tester(&mut conn).await?;
+                                            count += 1;
+                                        }
+                                        let mut new_testers = review_chat
+                                            .testers
+                                            .iter()
+                                            .copied()
+                                            .filter(|t| t != removed_member)
+                                            .collect_vec();
+
+                                        new_testers.push(new_tester);
+
+                                        sqlx::query(
+                                            "UPDATE chats SET testers = ? WHERE chat_id = ?",
+                                        )
+                                        .bind(serde_json::to_string(&new_testers)?)
+                                        .bind(chat_id.to_u32())
+                                        .execute(&mut *conn)
+                                        .await?;
+                                    }
+                                }
+                                let added_members = new_members.difference(&old_members);
+                                for member in added_members {
+                                    chat::remove_contact_from_chat(context, chat_id, *member)
+                                        .await?;
+                                }
+                            }
                             _ => (),
                         };
                     }
