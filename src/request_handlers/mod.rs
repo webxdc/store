@@ -51,8 +51,10 @@ pub struct AppInfo {
 impl AppInfo {
     /// Create appinfo from webxdc file.
     pub async fn from_xdc(file: &Path) -> anyhow::Result<Self> {
-        let mut app = AppInfo::default();
-        app.xdc_blob_dir = Some(file.to_path_buf());
+        let mut app = AppInfo {
+            xdc_blob_dir: Some(file.to_path_buf()),
+            ..Default::default()
+        };
         app.update_from_xdc(file.to_path_buf()).await?;
         Ok(app)
     }
