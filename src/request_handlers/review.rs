@@ -40,6 +40,14 @@ pub struct ReviewChat {
     pub app_info: RecordId,
 }
 
+impl ReviewChat {
+    pub fn get_members(&self) -> Vec<ContactId> {
+        let mut members = self.testers.clone();
+        members.push(self.publisher);
+        members
+    }
+}
+
 #[derive(Debug, Error)]
 pub enum HandlePublishError {
     #[error("Not enough testers in pool")]
@@ -67,7 +75,6 @@ struct ReviewResponse {
 }
 
 impl ReviewChat {
-    // TODO: refactor this to some more idiomatic version
     pub async fn from_submit_chat(
         context: &Context,
         state: Arc<State>,

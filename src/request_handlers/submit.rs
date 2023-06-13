@@ -92,7 +92,7 @@ pub async fn handle_webxdc(
     // TODO: Verify update
     let (changed, upgraded) = app_info.update_from_xdc(file).await?;
     if upgraded {
-        info!("Upgraded app info: {:?}", app_info.id)
+        info!("Upgrading app info: {:?}", app_info.id)
         // TODO: Handle upgrade
     } else if changed && check_app_info(context, &app_info, chat_id).await? {
         info!("Updating app info: {:?}", app_info.id);
@@ -114,7 +114,6 @@ pub async fn handle_status_update(
             db::get_submit_chat(&mut *state.db.acquire().await?, chat_id).await?;
         match req.payload {
             SubmitRequest::Submit { app_info } => {
-                // TODO: merge with existing app info
                 let current_app_info = submit_chat.get_app_info(conn).await?;
                 let new_app_info = current_app_info.update_from_request(app_info);
                 if check_app_info(context, &new_app_info, chat_id).await? {
