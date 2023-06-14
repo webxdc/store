@@ -14,7 +14,7 @@ import type { SubmitResponse } from '../bindings/SubmitResponse'
 import { isAppInfo } from '../utils'
 
 function isSubmitResponse(p: any): p is SubmitResponse {
-  return Object.hasOwn(p, 'okay')
+  return Object.prototype.hasOwnProperty.call(p, 'okay')
 }
 
 const Submit: Component = () => {
@@ -23,7 +23,7 @@ const Submit: Component = () => {
   const is_appdata_complete = createMemo(() => Object.values(appInfo()).reduce((init, v) => init && !(v === undefined || v === null || v === ''), true))
   let lastAppinfo: AppInfo = {} as AppInfo
   const is_different = createMemo(() => JSON.stringify(appInfo()) !== JSON.stringify(lastAppinfo))
-  const has_loaded = createMemo(() => Object.hasOwn(appInfo(), 'version'))
+  const has_loaded = createMemo(() => Object.prototype.hasOwnProperty.call(appInfo(), 'version'))
   const [showButton, setShowButton] = useStorage('show_submit', true)
   const [success, setSuccess] = createSignal<undefined | boolean>(undefined)
 

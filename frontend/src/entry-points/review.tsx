@@ -23,7 +23,7 @@ interface ReviewStateProps {
 }
 
 function isReviewResponse(p: any): p is ReviewResponse {
-  return Object.hasOwn(p, 'okay')
+  return Object.prototype.hasOwnProperty.call(p, 'okay')
 }
 
 const ReviewState: Component<ReviewStateProps> = (props) => {
