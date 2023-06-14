@@ -34,11 +34,11 @@ function isEmpty(obj: any) {
 }
 
 function isDownloadResponse(p: any): p is DownloadResponse {
-  return Object.hasOwn(p, 'okay')
+  return Object.prototype.hasOwnProperty.call(p, 'okay')
 }
 
 function isUpdateResponse(p: any): p is UpdateResponse {
-  return Object.hasOwn(p, 'app_infos')
+  return Object.prototype.hasOwnProperty.call(p, 'app_infos')
 }
 
 function AppInfoModal(item: AppInfoWithState, onDownload: () => void) {
