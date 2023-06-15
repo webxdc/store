@@ -231,36 +231,50 @@ impl Bot {
                                 }
                             }
                             ChatType::Review => {
-                                let new_members = filtered.collect::<HashSet<_>>();
                                 let mut conn = state.db.acquire().await?;
                                 let review_chat = db::get_review_chat(&mut conn, chat_id).await?;
+                                let new_members = filtered.collect::<HashSet<_>>();
                                 let old_members: HashSet<_> =
                                     review_chat.get_members().into_iter().collect();
                                 let removed_members = old_members.difference(&new_members);
                                 for removed_member in removed_members {
+                                    // handle publisher removal
                                     if *removed_member == review_chat.publisher {
-                                        let mut new_publisher =
-                                            db::get_random_publisher(&mut conn).await?;
-                                        let mut count = 0;
-                                        while new_publisher == *removed_member || count > 10 {
-                                            new_publisher =
-                                                db::get_random_publisher(&mut conn).await?;
-                                            count += 1;
-                                        }
-                                        sqlx::query(
-                                            "UPDATE chats SET publisher = ? WHERE chat_id = ?",
+                                        match db::get_new_random_publisher(
+                                            &mut conn,
+                                            *removed_member,
                                         )
-                                        .bind(new_publisher.to_u32())
-                                        .bind(chat_id.to_u32())
-                                        .execute(&mut *conn)
-                                        .await?;
-                                    } else if review_chat.testers.contains(removed_member) {
+                                        .await
+                                        {
+                                            Ok(new_publisher) => {
+                                                db::set_review_chat_publisher(
+                                                    &mut conn,
+                                                    chat_id,
+                                                    new_publisher,
+                                                )
+                                                .await?;
+                                            }
+                                            Err(_) => warn!(
+                                                "Could not find a new publisher for chat {}",
+                                                chat_id
+                                            ),
+                                        }
+                                    }
+                                    // handle tester removal
+                                    else if review_chat.testers.contains(removed_member) {
                                         let mut new_tester =
                                             db::get_random_tester(&mut conn).await?;
                                         let mut count = 0;
-                                        while new_tester == *removed_member || count > 10 {
+                                        while new_tester == *removed_member || count >= 10 {
                                             new_tester = db::get_random_tester(&mut conn).await?;
                                             count += 1;
+                                        }
+                                        if count == 10 {
+                                            warn!(
+                                                "Could not find a new tester for chat {}",
+                                                chat_id
+                                            );
+                                            continue;
                                         }
                                         let mut new_testers = review_chat
                                             .testers
@@ -271,19 +285,13 @@ impl Bot {
 
                                         new_testers.push(new_tester);
 
-                                        sqlx::query(
-                                            "UPDATE chats SET testers = ? WHERE chat_id = ?",
+                                        db::set_review_chat_testers(
+                                            &mut conn,
+                                            chat_id,
+                                            &new_testers,
                                         )
-                                        .bind(serde_json::to_string(&new_testers)?)
-                                        .bind(chat_id.to_u32())
-                                        .execute(&mut *conn)
                                         .await?;
                                     }
-                                }
-                                let added_members = new_members.difference(&old_members);
-                                for member in added_members {
-                                    chat::remove_contact_from_chat(context, chat_id, *member)
-                                        .await?;
                                 }
                             }
                             _ => (),
