@@ -143,6 +143,51 @@ pub async fn upgrade_to_review_chat(
     Ok(())
 }
 
+pub async fn set_review_chat_testers(
+    c: &mut SqliteConnection,
+    chat_id: ChatId,
+    testers: &[ContactId],
+) -> anyhow::Result<()> {
+    sqlx::query("UPDATE chats SET testers = ? WHERE review_chat_id = ?")
+        .bind(serde_json::to_string(testers)?)
+        .bind(chat_id.to_u32())
+        .execute(c)
+        .await?;
+    Ok(())
+}
+
+pub async fn set_review_chat_publisher(
+    c: &mut SqliteConnection,
+    chat_id: ChatId,
+    publisher: ContactId,
+) -> anyhow::Result<()> {
+    sqlx::query("UPDATE chats SET publisher = ? WHERE review_chat_id = ?")
+        .bind(publisher.to_u32())
+        .bind(chat_id.to_u32())
+        .execute(c)
+        .await?;
+    Ok(())
+}
+
+#[allow(unused)]
+/// Used only for testing.
+pub async fn create_review_chat(
+    c: &mut SqliteConnection,
+    review_chat: &ReviewChat,
+) -> anyhow::Result<()> {
+    sqlx::query("INSERT INTO chats (review_helper, submit_helper, review_chat_id, submit_chat_id, publisher, testers, app_info) VALUES (?, ?, ?, ?, ?, ?, ?)")
+        .bind(review_chat.review_helper.to_u32())
+        .bind(review_chat.submit_helper.to_u32())
+        .bind(review_chat.review_chat.to_u32())
+        .bind(review_chat.submit_chat.to_u32())
+        .bind(review_chat.publisher.to_u32())
+        .bind(serde_json::to_string(&review_chat.testers)?)
+        .bind(review_chat.app_info)
+        .execute(c)
+        .await?;
+    Ok(())
+}
+
 pub async fn get_review_chat(
     c: &mut SqliteConnection,
     chat_id: ChatId,
@@ -242,6 +287,17 @@ pub async fn set_publishers(
 
 pub async fn get_random_publisher(c: &mut SqliteConnection) -> sqlx::Result<ContactId> {
     sqlx::query("SELECT contact_id FROM users WHERE publisher=true ORDER BY RANDOM() LIMIT 1")
+        .fetch_one(c)
+        .await
+        .map(|row| Ok(ContactId::new(row.get("contact_id"))))?
+}
+
+pub async fn get_new_random_publisher(
+    c: &mut SqliteConnection,
+    old_publisher: ContactId,
+) -> sqlx::Result<ContactId> {
+    sqlx::query("SELECT contact_id FROM users WHERE publisher=true AND contact_id != ? ORDER BY RANDOM() LIMIT 1")
+        .bind(old_publisher.to_u32())
         .fetch_one(c)
         .await
         .map(|row| Ok(ContactId::new(row.get("contact_id"))))?
@@ -515,6 +571,51 @@ mod tests {
         add_publisher(&mut conn, ContactId::new(0)).await.unwrap();
         add_publisher(&mut conn, ContactId::new(1)).await.unwrap();
         super::get_random_publisher(&mut conn).await.unwrap();
+    }
+
+    #[tokio::test]
+    async fn set_review_chat_testers() {
+        let mut conn = SqliteConnection::connect("sqlite::memory:").await.unwrap();
+        MIGRATOR.run(&mut conn).await.unwrap();
+
+        let chat_id = ChatId::new(0);
+
+        let review_chat = ReviewChat {
+            review_chat: chat_id,
+            ..Default::default()
+        };
+        super::create_review_chat(&mut conn, &review_chat)
+            .await
+            .unwrap();
+
+        super::set_review_chat_testers(
+            &mut conn,
+            chat_id,
+            &[ContactId::new(0), ContactId::new(1), ContactId::new(2)],
+        )
+        .await
+        .unwrap();
+        assert_eq!(
+            super::get_review_chat(&mut conn, chat_id)
+                .await
+                .unwrap()
+                .testers,
+            vec![ContactId::new(0), ContactId::new(1), ContactId::new(2)]
+        )
+    }
+
+    #[tokio::test]
+    async fn get_new_random_publisher() {
+        let mut conn = SqliteConnection::connect("sqlite::memory:").await.unwrap();
+        MIGRATOR.run(&mut conn).await.unwrap();
+        add_publisher(&mut conn, ContactId::new(0)).await.unwrap();
+        add_publisher(&mut conn, ContactId::new(1)).await.unwrap();
+        assert_eq!(
+            super::get_new_random_publisher(&mut conn, ContactId::new(0))
+                .await
+                .unwrap(),
+            ContactId::new(1)
+        );
     }
 
     #[tokio::test]
