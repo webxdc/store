@@ -16,6 +16,7 @@ use clap::Parser;
 use cli::{BotActions, BotCli};
 use log::info;
 use tokio::signal;
+use utils::get_version;
 
 use crate::request_handlers::AppInfo;
 
@@ -114,6 +115,7 @@ async fn main() -> anyhow::Result<()> {
             }
             Err(_) => println!("Bot not configured yet, start the bot first."),
         },
+        BotActions::Version => println!("{}", get_version().await?),
         BotActions::Start => {
             bot.start().await;
             signal::ctrl_c().await?;
