@@ -12,7 +12,9 @@ import {
 
 export default defineConfig({
   theme: {
-    colors: {},
+    colors: {
+      buttonBg: '#e5eaff',
+    },
   },
   presets: [
     presetUno(),
@@ -22,13 +24,13 @@ export default defineConfig({
       warn: true,
     }),
     presetTypography(),
-    /* presetWebFonts({
+    presetWebFonts({
       fonts: {
         sans: 'DM Sans',
         serif: 'DM Serif Display',
         mono: 'DM Mono',
       },
-    }), */
+    }),
   ],
   extractors: [
     extractorSplit,
@@ -38,7 +40,7 @@ export default defineConfig({
     transformerVariantGroup(),
   ],
   shortcuts: {
-    btn: 'rounded border p-1 border-indigo-200 bg-gray-100 hover:bg-gray-200 text-indigo-500',
+    btn: 'rounded border p-1 bg-buttonBg hover:bg-gray-200 text-blue-800',
     unimportant: 'text-gray-400 font-italic tracking-wide',
-  }
+  },
 })
