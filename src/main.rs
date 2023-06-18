@@ -81,9 +81,21 @@ async fn main() -> anyhow::Result<()> {
                         new_path.push(file.file_name().context("Direntry has no filename")?);
 
                         if keep_files.unwrap_or_default() {
-                            fs::copy(file, &new_path)?;
+                            fs::copy(file, &new_path).with_context(|| {
+                                format!(
+                                    "failed to copy {} to {}",
+                                    file.display(),
+                                    new_path.display()
+                                )
+                            })?;
                         } else {
-                            fs::rename(file, &new_path)?;
+                            fs::rename(file, &new_path).with_context(|| {
+                                format!(
+                                    "failed to move {} to {}",
+                                    file.display(),
+                                    new_path.display()
+                                )
+                            })?;
                         }
                         app_info.xdc_blob_dir = Some(new_path);
                         db::create_app_info(&mut *bot.get_db_connection().await?, &mut app_info)
