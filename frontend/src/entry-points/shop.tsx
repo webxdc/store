@@ -187,7 +187,7 @@ const Shop: Component = () => {
     }
     else if (isDownloadResponseOkay(resp.payload)) {
       const resp_data = resp.payload.Okay
-      window.webxdc.sendToChat({ file: { base64: resp_data.data, name: resp_data.name + '.xdc' } })
+      window.webxdc.sendToChat({ file: { base64: resp_data.data, name: `${resp_data.name}.xdc` } })
     }
     else if (isDownloadResponseError(resp.payload)) {
       setAppInfo(resp.payload.Error.id, 'state', AppState.DownloadCancelled)
