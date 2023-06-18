@@ -53,7 +53,8 @@ async fn main() -> anyhow::Result<()> {
                 .try_exists()
                 .unwrap_or_default()
             {
-                fs::create_dir("./bot-data/xdcs")?;
+                fs::create_dir("./bot-data/xdcs")
+                    .context("failed to create ./bot-data/xdcs directory")?;
             }
 
             for file in &files {
