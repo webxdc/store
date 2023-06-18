@@ -309,9 +309,7 @@ impl Bot {
             ChatType::Submit => {
                 submit::handle_status_update(context, state, chat_id, update).await?
             }
-            ChatType::Shop => {
-                shop::handle_status_update(context, state, chat_id, msg_id, update).await?
-            }
+            ChatType::Shop => shop::handle_status_update(context, state, msg_id, update).await?,
             ChatType::ReviewPool | ChatType::TesterPool | ChatType::Genesis => (),
             ChatType::Review => {
                 review::handle_status_update(context, state, chat_id, update).await?
