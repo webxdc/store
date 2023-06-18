@@ -115,7 +115,7 @@ async fn main() -> anyhow::Result<()> {
             }
             Err(_) => println!("Bot not configured yet, start the bot first."),
         },
-        BotActions::Version => println!("{}", get_version().await?),
+        BotActions::Version => print!("{}", get_version().await?),
         BotActions::Start => {
             bot.start().await;
             signal::ctrl_c().await?;
