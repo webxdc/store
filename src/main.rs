@@ -35,8 +35,9 @@ async fn main() -> anyhow::Result<()> {
 
     match &cli.action {
         BotActions::Import { path, keep_files } => {
-            info!("Importing webxdcs from 'import/'");
-            let dir_entry = match std::fs::read_dir(path.as_deref().unwrap_or("import/")) {
+            let path = path.as_deref().unwrap_or("import/");
+            info!("Importing webxdcs from {path}");
+            let dir_entry = match std::fs::read_dir(path) {
                 Ok(dir) => dir,
                 Err(_) => {
                     fs::create_dir("import/").ok();
@@ -51,7 +52,7 @@ async fn main() -> anyhow::Result<()> {
                 .collect();
 
             if files.is_empty() {
-                println!("No xdcs to add in ./import")
+                println!("No xdcs to add in {}", path)
             }
 
             if !PathBuf::from("./bot-data/xdcs")
