@@ -24,7 +24,6 @@ const Submit: Component = () => {
   let lastAppinfo: AppInfo = {} as AppInfo
   const is_different = createMemo(() => JSON.stringify(appInfo()) !== JSON.stringify(lastAppinfo))
   const has_loaded = createMemo(() => Object.prototype.hasOwnProperty.call(appInfo(), 'version'))
-  const [showButton, setShowButton] = useStorage('show_submit', true)
   const [success, setSuccess] = createSignal<undefined | boolean>(undefined)
 
   if (import.meta.env.DEV) {
@@ -40,7 +39,6 @@ const Submit: Component = () => {
       }
       else {
         setSuccess(false)
-        setShowButton(true)
       }
     }
     else if (isAppInfo(resp.payload)) {
@@ -50,7 +48,6 @@ const Submit: Component = () => {
   }, lastSerial())
 
   function submit() {
-    setShowButton(false)
     lastAppinfo = appInfo()
     window.webxdc.sendUpdate({
       payload: { Submit: { app_info: appInfo() } } as SubmitRequest,

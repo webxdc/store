@@ -10,7 +10,7 @@ import 'virtual:uno.css'
 import '@unocss/reset/tailwind.css'
 import { isAppInfo } from '../utils'
 import type { ReviewResponse } from '../bindings/ReviewResponse'
-import { ReviewRequest } from '../bindings/ReviewRequest'
+import type { ReviewRequest } from '../bindings/ReviewRequest'
 
 interface TestStatus {
   android: boolean
