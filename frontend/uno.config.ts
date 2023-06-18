@@ -13,7 +13,8 @@ import {
 export default defineConfig({
   theme: {
     colors: {
-      buttonBg: '#e5eaff',
+      button: '#e5eaff',
+      buttonLight: '#d2d9f5',
     },
   },
   presets: [
@@ -40,7 +41,7 @@ export default defineConfig({
     transformerVariantGroup(),
   ],
   shortcuts: {
-    btn: 'rounded border p-1 bg-buttonBg hover:bg-gray-200 text-blue-800',
+    btn: 'rounded border p-1 bg-button hover:bg-buttonLight text-blue-800',
     unimportant: 'text-gray-400 font-italic tracking-wide',
   },
 })
