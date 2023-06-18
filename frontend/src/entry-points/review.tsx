@@ -108,8 +108,8 @@ const Review: Component = () => {
               </Show>
             </Show>}
           </p>
-          {showButton() && <input type="Submit" class="w-full cursor-pointer font-semibold btn" classList={{ 'bg-gray-100 border-gray-500 text-gray-700': !is_complete(), 'text-blue-500': is_complete() }}
-            disabled={!is_complete()} onClick={submit}>Publish</input>}
+          {showButton() && <button class="w-full btn" classList={{ 'text-gray-700  hover:bg-button': !is_complete() }}
+            disabled={!is_complete()} onClick={submit}>Publish</button>}
           {success() === true && <p class="text-green-500">Successfully published!</p>}
           {success() === false && <p class="text-red">Some problem occured while trying to pubslish.</p>}
         </Show>
