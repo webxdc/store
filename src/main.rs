@@ -71,13 +71,7 @@ async fn main() -> anyhow::Result<()> {
 
                     let missing = app_info.generate_missing_list();
                     if missing.is_empty() {
-                        let mut new_path = file
-                            .parent()
-                            .and_then(|a| a.parent())
-                            .context("Path could not be constructed")?
-                            .to_path_buf();
-
-                        new_path.push("bot-data/xdcs");
+                        let mut new_path = PathBuf::from("./bot-data/xdcs");
                         new_path.push(file.file_name().context("Direntry has no filename")?);
 
                         if keep_files.unwrap_or_default() {
