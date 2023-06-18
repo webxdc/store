@@ -45,7 +45,7 @@ function AppInfoModal(item: AppInfoWithState, onDownload: () => void) {
   const [isExpanded, setIsExpanded] = createSignal(false)
 
   return (
-    <li class="w-full border rounded p-4 shadow">
+    <li class="w-full border rounded p-4 shadow" onClick={() => setIsExpanded(!isExpanded())}>
       <div class="flex items-center justify-between gap-2">
         <img src={`data:image/png;base64,${item.image!}`} alt={item.name} class="h-20 w-20 rounded-xl object-cover" />
         <div class="flex-grow-1 overflow-hidden">
@@ -60,18 +60,17 @@ function AppInfoModal(item: AppInfoWithState, onDownload: () => void) {
       {
         isExpanded() && (
           <>
-            <p class="my-2 text-gray-600">{item.description}</p>
-            <hr />
+            <p class="my-4 text-gray-600">{item.description}</p>
             <div class="my-2">
-              <p class="text-sm text-gray-600"><span class="font-bold"> author:</span> {item.author_name}</p>
-              <p class="text-sm text-gray-600"><span class="font-bold"> contact:</span>  {item.author_email}</p>
-              <p class="text-sm text-gray-600"><span class="font-bold"> source code:</span>  {item.source_code_url}</p>
+              <p class="text-sm text-gray-600"><span class="font-bold"> Author:</span> {item.author_name}</p>
+              <p class="text-sm text-gray-600"><span class="font-bold"> Contact:</span>  {item.author_email}</p>
+              <p class="text-sm text-gray-600"><span class="font-bold"> Source code:</span>  {item.source_code_url}</p>
             </div>
           </>
         )
       }
       <div class="flex justify-center">
-        <button onClick={() => setIsExpanded(!isExpanded())} class={`text-blue-500 ${isExpanded() ? 'i-carbon-up-to-top' : 'i-carbon-down-to-bottom'}`}>
+        <button class={`text-blue-800 ${isExpanded() ? 'i-carbon-up-to-top' : 'i-carbon-down-to-bottom'}`}>
         </button>
       </div>
     </li >
