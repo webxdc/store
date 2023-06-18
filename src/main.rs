@@ -34,9 +34,9 @@ async fn main() -> anyhow::Result<()> {
     let mut bot = Bot::new().await.context("failed to create bot")?;
 
     match &cli.action {
-        BotActions::Import => {
+        BotActions::Import { path, keep_files } => {
             info!("Importing webxdcs from 'import/'");
-            let dir_entry = match std::fs::read_dir("import/") {
+            let dir_entry = match std::fs::read_dir(path.as_deref().unwrap_or("import/")) {
                 Ok(dir) => dir,
                 Err(_) => {
                     fs::create_dir("import/").ok();
@@ -84,7 +84,11 @@ async fn main() -> anyhow::Result<()> {
                         new_path.push("bot-data/xdcs");
                         new_path.push(file.file_name().context("Direntry has no filename")?);
 
-                        fs::rename(file, &new_path)?;
+                        if keep_files.unwrap_or_default() {
+                            fs::copy(file, &new_path)?;
+                        } else {
+                            fs::rename(file, &new_path)?;
+                        }
                         app_info.xdc_blob_dir = Some(new_path);
                         db::create_app_info(&mut *bot.get_db_connection().await?, &mut app_info)
                             .await?;
