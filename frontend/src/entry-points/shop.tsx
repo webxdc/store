@@ -52,7 +52,7 @@ function AppInfoModal(item: AppInfoWithState, onDownload: () => void) {
           <h2 class="text-xl font-semibold">{item.name}</h2>
           <p class="max-width-text truncate text-gray-600">{item.description}</p>
         </div>
-        {item.state === AppState.Initial && <button class="justify-self-center btn" onClick={onDownload}> Add </button>}
+        {item.state === AppState.Initial && <button class="justify-self-center px-2 btn" onClick={onDownload}> Add </button>}
         {item.state === AppState.Downloading && <p class="unimportant"> Downloading.. </p>}
         {item.state === AppState.DownloadCancelled && <p class="text-red"> Download cancelled </p>}
         {item.state === AppState.Received && <p class="font-bold text-amber-400"> Received in Chat </p>}
@@ -71,7 +71,7 @@ function AppInfoModal(item: AppInfoWithState, onDownload: () => void) {
         )
       }
       <div class="flex justify-center">
-        <button onClick={() => setIsExpanded(!isExpanded())} class={`text-indigo-500 ${isExpanded() ? 'i-carbon-up-to-top' : 'i-carbon-down-to-bottom'}`}>
+        <button onClick={() => setIsExpanded(!isExpanded())} class={`text-blue-500 ${isExpanded() ? 'i-carbon-up-to-top' : 'i-carbon-down-to-bottom'}`}>
         </button>
       </div>
     </li >
@@ -82,7 +82,7 @@ const PublishButton: Component = () => {
   const [isOpen, setIsOpen] = createSignal(false)
 
   return (
-    <button onClick={() => setIsOpen(true)} class="w-full btn">
+    <button onClick={() => setIsOpen(true)} class="w-full border-gray-200 shadow btn">
       {isOpen() ? 'You can send me your webxdc in our 1:1 chat and I will help you publish it.' : 'Publish your own app'}
     </button>
   )
@@ -222,7 +222,7 @@ const Shop: Component = () => {
             }>
               Updating..
             </Show>
-            <div class="border border-indigo-500 rounded" classList={{ 'loading-spinner': isUpdating() }} i-carbon-reset></div>
+            <div class="border border-blue-500 rounded" classList={{ 'loading-spinner': isUpdating() }} i-carbon-reset></div>
           </div>
         </div>
 
@@ -231,7 +231,7 @@ const Shop: Component = () => {
             <li class="mb-3 w-full flex items-center justify-center gap-2">
               <input class="border-2 rounded-2xl" onInput={event => setSearch((event.target as HTMLInputElement).value)} />
               <button class="rounded-1/2 p-2 btn">
-                <div class="i-carbon-search text-indigo-500" />
+                <div class="i-carbon-search" />
               </button>
             </li>
             <AppList items={Object.values(appInfo)} search={search()} onDownload={handleDownload} ></AppList>

@@ -60,7 +60,7 @@ const Submit: Component = () => {
   return (
     <div class="c-grid m-4">
       <div class="min-width flex flex-col gap-3">
-        <h1 class="text-center text-2xl font-bold text-indigo-500"> App Metadata</h1>
+        <h1 class="text-center text-2xl font-bold text-blue-500"> App Metadata</h1>
         <Show when={has_loaded()} fallback={
           <p>Waiting for setup message...</p>
         }>
@@ -71,7 +71,7 @@ const Submit: Component = () => {
           {success() === true
             && <p class="text-green">I've send your app to some reviewers. We will soon get in touch with you again!</p>
           }
-          {showButton() && <button class="w-full cursor-pointer font-semibold btn" classList={{ 'bg-gray-100 border-gray-500 text-gray-700': !is_different(), 'text-indigo-500': is_different() }}
+          {showButton() && <button class="w-full cursor-pointer font-semibold btn" classList={{ 'bg-gray-100 border-gray-500 text-gray-700': !is_different(), 'text-blue-500': is_different() }}
             disabled={!is_different() && !is_appdata_complete()} onClick={submit}>Submit</button>}
         </Show>
       </div>

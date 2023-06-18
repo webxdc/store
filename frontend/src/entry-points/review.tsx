@@ -89,7 +89,7 @@ const Review: Component = () => {
   return (
     <div class="c-grid m-4">
       <div class="min-width flex flex-col gap-3">
-        <h1 class="text-center text-2xl font-bold text-indigo-500"> App Publishing Status</h1>
+        <h1 class="text-center text-2xl font-bold text-blue-500"> App Publishing Status</h1>
         <Show when={appInfo() !== undefined} fallback={
           <p>Waiting for setup message...</p>
         }>
@@ -108,7 +108,7 @@ const Review: Component = () => {
               </Show>
             </Show>}
           </p>
-          {showButton() && <input type="Submit" class="w-full cursor-pointer font-semibold btn" classList={{ 'bg-gray-100 border-gray-500 text-gray-700': !is_complete(), 'text-indigo-500': is_complete() }}
+          {showButton() && <input type="Submit" class="w-full cursor-pointer font-semibold btn" classList={{ 'bg-gray-100 border-gray-500 text-gray-700': !is_complete(), 'text-blue-500': is_complete() }}
             disabled={!is_complete()} onClick={submit}>Publish</input>}
           {success() === true && <p class="text-green-500">Successfully published!</p>}
           {success() === false && <p class="text-red">Some problem occured while trying to pubslish.</p>}
