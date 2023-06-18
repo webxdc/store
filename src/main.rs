@@ -37,13 +37,7 @@ async fn main() -> anyhow::Result<()> {
         BotActions::Import { path, keep_files } => {
             let path = path.as_deref().unwrap_or("import/");
             info!("Importing webxdcs from {path}");
-            let dir_entry = match std::fs::read_dir(path) {
-                Ok(dir) => dir,
-                Err(_) => {
-                    fs::create_dir("import/").ok();
-                    fs::read_dir("import/")?
-                }
-            };
+            let dir_entry = std::fs::read_dir(path).context("failed to read dir")?;
 
             let files: Vec<_> = dir_entry
                 .filter_map(|e| e.ok())
