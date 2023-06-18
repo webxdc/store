@@ -45,10 +45,13 @@ def storebot_example(acfactory, bot_path):
     """Store bot with imported example apps."""
     config = acfactory.get_next_liveconfig()
 
-    shutil.copytree("example-xdcs", bot_path / "import")
-    (bot_path / "import" / "README.md").unlink()
     res = subprocess.run(
-        [Path.cwd() / "target/debug/github-bot", "import"],
+        [
+            Path.cwd() / "target/debug/github-bot",
+            "import",
+            Path.cwd() / "example-xdcs",
+            "true",
+        ],
         cwd=bot_path,
         env={
             "RUST_LOG": "github_bot=trace",
