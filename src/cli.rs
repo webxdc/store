@@ -11,8 +11,13 @@ pub struct BotCli {
 pub enum BotActions {
     /// Start the bot.
     Start,
-    /// Import xdcs from './import/'.
-    Import,
+    /// Import xdcs.
+    Import {
+        /// Path from which files should be imported. Default is '/import'.
+        path: Option<String>,
+        /// Boolean flag whether xdcs should be removed. Default is false.
+        keep_files: Option<bool>,
+    },
     /// Show the 1:1-invite and genesis-invite qr code.
     ShowQr,
 }
