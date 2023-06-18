@@ -57,7 +57,7 @@ pub enum HandlePublishError {
 #[derive(Deserialize, TS)]
 #[ts(export)]
 #[ts(export_to = "frontend/src/bindings/")]
-pub enum RevieRequest {
+pub enum ReviewRequest {
     Publish { app_info: RecordId },
 }
 
@@ -185,9 +185,9 @@ pub async fn handle_status_update(
     update: String,
 ) -> anyhow::Result<()> {
     info!("Handling app info update");
-    if let Ok(req) = serde_json::from_str::<WebxdcStatusUpdate<RevieRequest>>(&update) {
+    if let Ok(req) = serde_json::from_str::<WebxdcStatusUpdate<ReviewRequest>>(&update) {
         match req.payload {
-            RevieRequest::Publish { app_info } => {
+            ReviewRequest::Publish { app_info } => {
                 let conn = &mut *state.db.acquire().await?;
                 db::publish_app_info(conn, app_info).await?;
                 let review_chat = db::get_review_chat(conn, chat_id).await?;
