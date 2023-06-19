@@ -36,9 +36,19 @@ def bot_binary_path():
 
 
 @pytest.fixture
-def bot_path(tmp_path):
+def bot_assets_path():
+    for path in [
+        Path.cwd() / "bot-data",
+        Path.cwd() / "appstore-bot" / "bot-data",
+    ]:
+        if path.exists():
+            return path
+
+
+@pytest.fixture
+def bot_path(tmp_path, bot_assets_path):
     # Copy bot-data to the bot working directory.
-    shutil.copytree("bot-data", tmp_path / "bot-data")
+    shutil.copytree(bot_assets_path, tmp_path / "bot-data")
 
     return tmp_path
 
