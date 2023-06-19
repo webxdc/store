@@ -61,7 +61,7 @@ function AppInfoModal(item: AppInfoWithState, onDownload: () => void) {
           <h2 class="text-xl font-semibold">{item.name}</h2>
           <p class="max-width-text truncate text-gray-600">{item.description}</p>
         </div>
-        {item.state === AppState.Initial && <button class="flex items-center justify-center justify-self-center px-2 bg-blue-500 rounded-half rounded-1/2 aspect-1 p-3 button" onClick={onDownload}> <div class="i-carbon-send-filled text-white"></div> </button>}
+        {item.state === AppState.Initial && <button class="justify-self-center px-2 btn" onClick={onDownload}> Add </button>}
         {item.state === AppState.Downloading && <p class="unimportant"> Downloading.. </p>}
         {item.state === AppState.DownloadCancelled && <p class="text-red"> Download cancelled </p>}
       </div>
