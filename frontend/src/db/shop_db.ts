@@ -1,4 +1,5 @@
 import type { AppInfo } from '../bindings/AppInfo'
+import type { XDCFile } from '../webxdc'
 
 export class AppInfoDB {
   private dbName: string
@@ -17,8 +18,8 @@ export class AppInfoDB {
       request.onsuccess = () => resolve((this.db = request.result))
       request.onupgradeneeded = () => {
         const db = request.result
-        console.log('wat')
         db.createObjectStore('appInfo', { keyPath: 'id' })
+        db.createObjectStore('apps')
       }
     })
   }
@@ -85,6 +86,30 @@ export class AppInfoDB {
           resolve(result)
         }
       }
+    })
+  }
+
+  // Add base64 encoded webxdc to the db.
+  async add_webxdc(webxdc: XDCFile, id: number): Promise<void> {
+    const db = await this.open()
+    return new Promise((resolve, reject) => {
+      const transaction = db.transaction('apps', 'readwrite')
+      transaction.onerror = () => reject(transaction.error)
+      const store = transaction.objectStore('apps')
+      const request = store.add(webxdc, id)
+      request.onsuccess = () => resolve()
+    })
+  }
+
+  // Get base64 encoded webxdc from the db.
+  async get_webxdc(id: number): Promise<XDCFile> {
+    const db = await this.open()
+    return new Promise((resolve, reject) => {
+      const transaction = db.transaction('apps', 'readonly')
+      transaction.onerror = () => reject(transaction.error)
+      const store = transaction.objectStore('apps')
+      const request = store.get(id)
+      request.onsuccess = () => resolve(request.result)
     })
   }
 }

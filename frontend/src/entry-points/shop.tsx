@@ -196,7 +196,9 @@ const Shop: Component = () => {
       setlastUpdate(new Date())
     }
     else if (isDownloadResponseOkay(resp.payload)) {
-      window.webxdc.sendToChat({ file: { base64: resp.payload.data, name: `${resp.payload.name}.xdc` } })
+      const file = { base64: resp.payload.data, name: `${resp.payload.name}.xdc` }
+      db.add_webxdc(file, resp.payload.id)
+      window.webxdc.sendToChat({ file })
     }
     else if (isDownloadResponseError(resp.payload)) {
       setAppInfo(resp.payload.id, 'state', AppState.DownloadCancelled)
@@ -210,11 +212,19 @@ const Shop: Component = () => {
     }, '')
   }
 
-  function handleDownload(app_id: number) {
-    setAppInfo(Number(app_id), 'state', AppState.Downloading)
-    window.webxdc.sendUpdate({
-      payload: { Download: { app_id } } as ShopRequest,
-    }, '')
+  async function handleDownload(app_id: number) {
+    try {
+      let file = await db.get_webxdc(app_id)
+      if (file === undefined) {
+        throw new Error('No cached file found')
+      }
+      window.webxdc.sendToChat({ file })
+    } catch (e) {
+      setAppInfo(Number(app_id), 'state', AppState.Downloading)
+      window.webxdc.sendUpdate({
+        payload: { Download: { app_id } } as ShopRequest,
+      }, '')
+    }
   }
 
   return (
