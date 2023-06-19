@@ -22,7 +22,7 @@ After establishing initial contact the bot will send a "xdc store" app which pro
 the central point of interaction for users: 
 
 - scroll the app index list and hit the "share/sendToChat/forward" button on any app 
-  of your likening 
+  of your liking
 
 - select the chat where you want to share the app 
 
