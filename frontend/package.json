@@ -1,6 +1,6 @@
 {
   "name": "appstore-bot-xdcs",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "All webxdcs used by the bot",
   "scripts": {
     "start": "vite",

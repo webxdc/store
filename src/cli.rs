@@ -20,4 +20,6 @@ pub enum BotActions {
     },
     /// Show the 1:1-invite and genesis-invite qr code.
     ShowQr,
+    /// Show the bots version.
+    Version,
 }

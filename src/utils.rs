@@ -12,6 +12,7 @@ use deltachat::{
 use serde_json::json;
 use sqlx::SqliteConnection;
 use std::env;
+use tokio::fs;
 
 use crate::{
     db,
@@ -19,9 +20,9 @@ use crate::{
 };
 
 pub async fn configure_from_env(ctx: &Context) -> Result<()> {
-    let addr = env::var("addr")?;
+    let addr = env::var("addr").context("Missing environment variable addr")?;
     ctx.set_config(Config::Addr, Some(&addr)).await?;
-    let pw = env::var("mail_pw")?;
+    let pw = env::var("mail_pw").context("Missing environment variable mail_pw")?;
     ctx.set_config(Config::MailPw, Some(&pw)).await?;
     ctx.set_config(Config::Bot, Some("1")).await?;
     ctx.set_config(Config::E2eeEnabled, Some("1")).await?;
@@ -129,7 +130,7 @@ pub fn ne_assign<T: PartialEq>(original: &mut T, new: Option<T>, changed: &mut b
     }
 }
 
-/// Updates a value and update changed accordingly.
+/// Updates a value and update `changed` accordingly.
 pub fn ne_assign_option<T: PartialEq>(
     original: &mut Option<T>,
     new: Option<T>,
@@ -146,4 +147,9 @@ pub fn ne_assign_option<T: PartialEq>(
             *changed = true;
         }
     }
+}
+
+/// Returns the version taken from the `bot-data/VERSION` file.
+pub async fn get_version() -> anyhow::Result<String> {
+    Ok(fs::read_to_string("bot-data/VERSION").await?)
 }

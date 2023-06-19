@@ -123,3 +123,21 @@ def test_import(acfactory, storebot_example):
     payload = status_updates[0]["payload"]
     app_infos = payload["app_infos"]
     assert len(app_infos) == 4
+
+
+def test_version(acfactory, storebot):
+    """Test /version command."""
+
+    (ac1,) = acfactory.get_online_accounts(1)
+
+    version_text = subprocess.run(
+        ["target/debug/github-bot", "version"], capture_output=True, check=True
+    ).stdout.decode()
+
+    bot_contact = ac1.create_contact(storebot.addr)
+    bot_chat = bot_contact.create_chat()
+    bot_chat.send_text("/version")
+
+    msg_in = ac1.wait_next_incoming_message()
+
+    assert msg_in.text + "\n" == version_text
