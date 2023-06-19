@@ -17,12 +17,13 @@ The following structure outlines the essential information needed for publishing
 Copy code
 pub struct AppInfo {
     pub name: String,                    // Taken from manifest.toml
-    pub author_name: String,             
-    pub author_email: String,
-    pub source_code_url: String,         // Taken from manifest.toml
-    pub image: String,                   // Taken from manifest.toml
     pub description: String,             // Taken from manifest.toml
+    pub image: String,                   // Taken from .xdc file
+    pub app_id: String,                  // Taken from manifest.toml (alphanumeric & pascal_case)
     pub version: String,                 // Taken from manifest.toml
+    pub author_uri: Option<String>,      // Taken from manifest.toml
+    pub source_code_url: Option<String>, // Taken from manifest.toml
+    pub submitter_uri: Option<String>,
 }
 ```
 
