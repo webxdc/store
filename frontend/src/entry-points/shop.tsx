@@ -137,13 +137,13 @@ const Shop: Component = () => {
   const [lastUpdate, setlastUpdate] = useStorage('last-update', new Date())
   const timeSinceLastUpdate = createMemo(() => intervalToDuration({
     start: lastUpdate(),
-    end: new Date()
+    end: new Date(),
   }))
   const [isUpdating, setIsUpdating] = createSignal(false)
   const [search, setSearch] = createSignal('')
 
-  let past_time = Math.abs(new Date().getTime() - lastUpdate().getTime()) / 1000;
-  console.log(past_time);
+  const past_time = Math.abs(new Date().getTime() - lastUpdate().getTime()) / 1000
+  console.log(past_time)
 
   if (appInfo === undefined || (past_time > 60 * 60)) {
     setIsUpdating(true)
@@ -224,7 +224,7 @@ const Shop: Component = () => {
       <div class="min-width">
         <div class="flex justify-between gap-2">
           <h1 class="text-2xl font-bold">Webxdc Appstore</h1>
-          <div class="bg-gray-100 rounded-xl p-2 unimportant text-gray-500">
+          <div class="rounded-xl bg-gray-100 p-2 unimportant text-gray-500">
             <Show when={isUpdating()} fallback={
               <button class="flex items-center gap-2" onclick={handleUpdate}>
                 <span>{formatDuration(timeSinceLastUpdate(), { delimiter: ',' }).split(',')[0]} ago</span>
@@ -233,7 +233,7 @@ const Shop: Component = () => {
             }>
               <div class="flex items-center gap-2">
                 <span>Updating..</span>
-                <div class="border border-blue-500 rounded loading-spinner" i-carbon-reset></div>
+                <div class="loading-spinner border border-blue-500 rounded" i-carbon-reset></div>
               </div>
             </Show>
           </div>
