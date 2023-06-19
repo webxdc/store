@@ -33,12 +33,15 @@ function isEmpty(obj: any) {
   return true
 }
 
-function isDownloadResponseOkay(p: any): p is { Okay: { id: number; data: string } } {
-  return Object.prototype.hasOwnProperty.call(p, 'Okay')
+type DownloadResponseOkay = Extract<DownloadResponse, { type: "Okay" }>
+type DownloadResponseError = Extract<DownloadResponse, { type: "Error" }>
+
+function isDownloadResponseOkay(p: any): p is DownloadResponseOkay {
+  return Object.prototype.hasOwnProperty.call(p, 'data')
 }
 
-function isDownloadResponseError(p: any): p is { Okay: { id: number; error: string } } {
-  return Object.prototype.hasOwnProperty.call(p, 'Error')
+function isDownloadResponseError(p: any): p is DownloadResponseError {
+  return Object.prototype.hasOwnProperty.call(p, 'error')
 }
 
 function isUpdateResponse(p: any): p is UpdateResponse {
@@ -186,11 +189,10 @@ const Shop: Component = () => {
       setlastUpdate(new Date())
     }
     else if (isDownloadResponseOkay(resp.payload)) {
-      const resp_data = resp.payload.Okay
-      window.webxdc.sendToChat({ file: { base64: resp_data.data, name: `${resp_data.name}.xdc` } })
+      window.webxdc.sendToChat({ file: { base64: resp.payload.data, name: `${resp.payload.name}.xdc` } })
     }
     else if (isDownloadResponseError(resp.payload)) {
-      setAppInfo(resp.payload.Error.id, 'state', AppState.DownloadCancelled)
+      setAppInfo(resp.payload.id, 'state', AppState.DownloadCancelled)
     }
   }, lastSerial())
 
