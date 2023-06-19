@@ -48,9 +48,19 @@ pub struct UpdateResponse {
 #[derive(TS, Serialize)]
 #[ts(export)]
 #[ts(export_to = "frontend/src/bindings/")]
+#[serde(tag = "type")]
 pub enum DownloadResponse {
-    Okay { id: i32, name: String, data: String },
-    Error { id: i32, error: String },
+    Okay {
+        id: i32,
+        /// Name to be used as filename in `sendToChat`.
+        name: String,
+        /// Base64 encoded webxdc.
+        data: String,
+    },
+    Error {
+        id: i32,
+        error: String,
+    },
 }
 
 pub async fn handle_message(
@@ -165,7 +175,13 @@ async fn handle_download_request(
     let app = db::get_app_info(&mut *state.db.acquire().await?, app_id).await?;
     if let Some(file) = app.xdc_blob_dir {
         Ok((
-            encode(&tokio::fs::read(file.to_str().context("Can't covert file to str")?).await?),
+            encode(
+                &tokio::fs::read(
+                    file.to_str()
+                        .context("Can't covert file '{file:?}' to str")?,
+                )
+                .await?,
+            ),
             app.name,
         ))
     } else {
