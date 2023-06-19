@@ -22,7 +22,9 @@ const fuse_options = {
   keys: [
     'name',
     'author_name',
+    'description',
   ],
+  threshold: 0.3,
 }
 
 function isEmpty(obj: any) {
