@@ -155,7 +155,14 @@ def test_download(acfactory, storebot_example):
     msg_in = ac1.wait_next_incoming_message()
     ac1._evtracker.get_matching("DC_EVENT_WEBXDC_STATUS_UPDATE")
 
-    assert msg_in.send_status_update({"payload": {"Download": {"app_id": 2}}}, "update")
+    status_updates = msg_in.get_status_updates()
+    payload = status_updates[0]["payload"]
+    app_infos = payload["app_infos"]
+    xdc_2040 = [xdc for xdc in app_infos if xdc["name"] == "2048"][0]
+
+    assert msg_in.send_status_update(
+        {"payload": {"Download": {"app_id": xdc_2040["id"]}}}, "update"
+    )
 
     ac1._evtracker.get_matching("DC_EVENT_WEBXDC_STATUS_UPDATE")
     ac1._evtracker.get_matching("DC_EVENT_WEBXDC_STATUS_UPDATE")
@@ -164,7 +171,7 @@ def test_download(acfactory, storebot_example):
     status_updates = msg_in.get_status_updates()
     payload = status_updates[2]["payload"]
     assert payload["type"] == "Okay"
-    assert payload["id"] == 2
+    assert payload["id"] == xdc_2040["id"]
     assert payload["name"] == "2048"
     with open(str(Path.cwd()) + "/example-xdcs/2048.xdc", "rb") as f:
         assert payload["data"] == base64.b64encode(f.read()).decode("ascii")
