@@ -33,8 +33,8 @@ function isEmpty(obj: any) {
   return true
 }
 
-type DownloadResponseOkay = Extract<DownloadResponse, { type: "Okay" }>
-type DownloadResponseError = Extract<DownloadResponse, { type: "Error" }>
+type DownloadResponseOkay = Extract<DownloadResponse, { type: 'Okay' }>
+type DownloadResponseError = Extract<DownloadResponse, { type: 'Error' }>
 
 function isDownloadResponseOkay(p: any): p is DownloadResponseOkay {
   return Object.prototype.hasOwnProperty.call(p, 'data')
