@@ -5,13 +5,14 @@ set -e
 
 SRC="$PWD"
 
+# Build the frontend.
+cd "$SRC/frontend"
+npx pnpm install
+
 TMP="$(mktemp -d)"
 export DESTDIR="$TMP/appstore-bot"
 mkdir "$DESTDIR"
 
-# Build the frontend.
-cd "$SRC/frontend"
-npx pnpm install
 npm run build
 
 # Build the backend.
