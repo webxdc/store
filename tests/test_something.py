@@ -11,18 +11,28 @@ class BotProcess:
     addr: str
     process: Popen
 
-    def __init__(self, addr, password, path):
+    def __init__(self, addr, password, path, binary_path):
         self.addr = addr
         self.path = path
 
         self.process = Popen(
-            [Path.cwd() / "target/debug/github-bot", "start"],
+            [binary_path, "start"],
             cwd=path,
             env={"addr": addr, "mail_pw": password, "RUST_LOG": "github_bot=trace"},
         )
 
     def __del__(self):
         self.process.terminate()
+
+
+@pytest.fixture
+def bot_binary_path():
+    for path in [
+        Path.cwd() / "target/debug/github-bot",
+        Path.cwd() / "appstore-bot" / "appstore-bot",
+    ]:
+        if path.exists():
+            return path
 
 
 @pytest.fixture
@@ -34,21 +44,21 @@ def bot_path(tmp_path):
 
 
 @pytest.fixture
-def storebot(acfactory, bot_path):
+def storebot(acfactory, bot_path, bot_binary_path):
     """Store bot without any apps."""
     config = acfactory.get_next_liveconfig()
 
-    return BotProcess(config["addr"], config["mail_pw"], bot_path)
+    return BotProcess(config["addr"], config["mail_pw"], bot_path, bot_binary_path)
 
 
 @pytest.fixture
-def storebot_example(acfactory, bot_path):
+def storebot_example(acfactory, bot_path, bot_binary_path):
     """Store bot with imported example apps."""
     config = acfactory.get_next_liveconfig()
 
     res = subprocess.run(
         [
-            Path.cwd() / "target/debug/github-bot",
+            bot_binary_path,
             "import",
             Path.cwd() / "example-xdcs",
             "true",
@@ -62,7 +72,7 @@ def storebot_example(acfactory, bot_path):
     )
     res.check_returncode()
 
-    return BotProcess(config["addr"], config["mail_pw"], bot_path)
+    return BotProcess(config["addr"], config["mail_pw"], bot_path, bot_binary_path)
 
 
 def test_welcome_message(acfactory, storebot):
@@ -126,13 +136,13 @@ def test_import(acfactory, storebot_example):
     assert len(app_infos) == 4
 
 
-def test_version(acfactory, storebot):
+def test_version(acfactory, storebot, bot_binary_path):
     """Test /version command."""
 
     (ac1,) = acfactory.get_online_accounts(1)
 
     version_text = subprocess.run(
-        ["target/debug/github-bot", "version"], capture_output=True, check=True
+        [bot_binary_path, "version"], capture_output=True, check=True
     ).stdout.decode()
 
     bot_contact = ac1.create_contact(storebot.addr)
