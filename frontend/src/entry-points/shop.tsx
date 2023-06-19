@@ -214,12 +214,13 @@ const Shop: Component = () => {
 
   async function handleDownload(app_id: number) {
     try {
-      let file = await db.get_webxdc(app_id)
+      const file = await db.get_webxdc(app_id)
       if (file === undefined) {
         throw new Error('No cached file found')
       }
       window.webxdc.sendToChat({ file })
-    } catch (e) {
+    }
+    catch (e) {
       setAppInfo(Number(app_id), 'state', AppState.Downloading)
       window.webxdc.sendUpdate({
         payload: { Download: { app_id } } as ShopRequest,
