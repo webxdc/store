@@ -2,7 +2,7 @@ import type { Component } from 'solid-js'
 import { Show, createEffect, createMemo, createSignal } from 'solid-js'
 import { For, render } from 'solid-js/web'
 import { useStorage } from 'solidjs-use'
-import { format } from 'date-fns'
+import { formatDuration, intervalToDuration } from 'date-fns'
 import Fuse from 'fuse.js'
 import { createStore, produce } from 'solid-js/store'
 import type { ReceivedStatusUpdate } from '../webxdc'
@@ -61,7 +61,7 @@ function AppInfoModal(item: AppInfoWithState, onDownload: () => void) {
           <h2 class="text-xl font-semibold">{item.name}</h2>
           <p class="max-width-text truncate text-gray-600">{item.description}</p>
         </div>
-        {item.state === AppState.Initial && <button class="justify-self-center px-2 btn" onClick={onDownload}> Add </button>}
+        {item.state === AppState.Initial && <button class="flex items-center justify-center justify-self-center px-2 bg-blue-500 rounded-half rounded-1/2 aspect-1 p-3 button" onClick={onDownload}> <div class="i-carbon-send-filled text-white"></div> </button>}
         {item.state === AppState.Downloading && <p class="unimportant"> Downloading.. </p>}
         {item.state === AppState.DownloadCancelled && <p class="text-red"> Download cancelled </p>}
       </div>
@@ -135,12 +135,13 @@ const Shop: Component = () => {
   const [lastSerial, setlastSerial] = useStorage('last-serial', 0)
   const [lastUpdateSerial, setlastUpdateSerial] = useStorage('last-update-serial', 0)
   const [lastUpdate, setlastUpdate] = useStorage('last-update', new Date())
+  const timeSinceLastUpdate = createMemo(() => intervalToDuration({
+    start: lastUpdate(),
+    end: new Date()
+  }))
   const [isUpdating, setIsUpdating] = createSignal(false)
   const [search, setSearch] = createSignal('')
 
-  if (import.meta.env.DEV) {
-    setAppInfo(mock)
-  }
 
   if (appInfo === undefined) {
     setIsUpdating(true)
@@ -154,6 +155,10 @@ const Shop: Component = () => {
     const app_infos = to_app_infos_by_id(apps)
     if (apps.length > 0) {
       setAppInfo(app_infos)
+    }
+
+    if (import.meta.env.DEV) {
+      setAppInfo(mock.id, mock)
     }
   })
 
@@ -217,21 +222,24 @@ const Shop: Component = () => {
       <div class="min-width">
         <div class="flex justify-between gap-2">
           <h1 class="text-2xl font-bold">Webxdc Appstore</h1>
-          <div class="flex items-center gap-2 p-1 unimportant">
+          <div class="bg-gray-100 rounded-xl p-2 unimportant text-gray-500">
             <Show when={isUpdating()} fallback={
-              <button onclick={handleUpdate}>
-                <span>{format(lastUpdate(), 'cccc HH:mm')}</span>
+              <button class="flex items-center gap-2" onclick={handleUpdate}>
+                <span>{formatDuration(timeSinceLastUpdate(), { delimiter: ',' }).split(',')[0]} ago</span>
+                <div class="border border-blue-500 rounded" i-carbon-reset></div>
               </button>
             }>
-              Updating..
+              <div class="flex items-center gap-2">
+                <span>Updating..</span>
+                <div class="border border-blue-500 rounded loading-spinner" i-carbon-reset></div>
+              </div>
             </Show>
-            <div class="border border-blue-500 rounded" classList={{ 'loading-spinner': isUpdating() }} i-carbon-reset></div>
           </div>
         </div>
 
-        <div class="mt-5 p-4">
+        <div class="p-4">
           <ul class="w-full flex flex-col gap-2">
-            <li class="mb-3 w-full flex items-center justify-center gap-2">
+            <li class="my-5 w-full flex items-center justify-center gap-2">
               <input class="border-2 rounded-2xl" onInput={event => setSearch((event.target as HTMLInputElement).value)} />
               <button class="rounded-1/2 p-2 btn">
                 <div class="i-carbon-search" />
