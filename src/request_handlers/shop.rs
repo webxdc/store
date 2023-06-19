@@ -168,6 +168,8 @@ pub async fn handle_status_update(
     Ok(())
 }
 
+/// Handles a request to download a store app.
+/// Returns the base64 encoded webxdc and the name of the app.
 async fn handle_download_request(
     state: Arc<State>,
     app_id: i32,
