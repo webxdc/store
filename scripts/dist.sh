@@ -11,6 +11,7 @@ mkdir "$DESTDIR"
 
 # Build the frontend.
 cd "$SRC/frontend"
+npx pnpm install
 npm run build
 
 # Build the backend.
