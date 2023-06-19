@@ -137,7 +137,7 @@ const Shop: Component = () => {
   const [search, setSearch] = createSignal('')
 
   if (import.meta.env.DEV) {
-    setAppInfo(mock.id, mock)
+    setAppInfo(mock)
   }
 
   if (appInfo === undefined) {

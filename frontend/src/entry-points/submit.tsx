@@ -27,8 +27,8 @@ const Submit: Component = () => {
   const [success, setSuccess] = createSignal<undefined | boolean>(undefined)
 
   if (import.meta.env.DEV) {
-    lastAppinfo = mock
-    setAppInfo(mock)
+    lastAppinfo = mock[0]
+    setAppInfo(mock[0])
   }
 
   window.webxdc.setUpdateListener((resp: ReceivedStatusUpdate<AppInfo>) => {
