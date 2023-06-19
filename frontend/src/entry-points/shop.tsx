@@ -142,8 +142,10 @@ const Shop: Component = () => {
   const [isUpdating, setIsUpdating] = createSignal(false)
   const [search, setSearch] = createSignal('')
 
+  let past_time = Math.abs(new Date().getTime() - lastUpdate().getTime()) / 1000;
+  console.log(past_time);
 
-  if (appInfo === undefined) {
+  if (appInfo === undefined || (past_time > 60 * 60)) {
     setIsUpdating(true)
   }
 
