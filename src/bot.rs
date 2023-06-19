@@ -19,8 +19,8 @@ use crate::{
     db::{self, MIGRATOR},
     messages::appstore_message,
     request_handlers::{genisis, review, shop, submit, ChatType},
-    utils::{configure_from_env, send_newest_updates, send_webxdc},
-    DB_URL, DC_DB_PATH, GENESIS_QR, INVITE_QR, SHOP_XDC, SUBMIT_HELPER_XDC,
+    utils::{configure_from_env, get_version, send_newest_updates, send_webxdc},
+    DB_URL, DC_DB_PATH, GENESIS_QR, INVITE_QR, REVIEW_HELPER_XDC, SHOP_XDC, SUBMIT_HELPER_XDC,
 };
 
 #[derive(Serialize, Deserialize, PartialEq, Debug, Default)]
@@ -70,10 +70,6 @@ impl Bot {
         if !db_path.exists() {
             fs::create_dir(db_path.parent().context("db_path has no parant")?)?;
             fs::write(db_path, "")?;
-        }
-
-        if !PathBuf::from("bot-data").exists() {
-            fs::create_dir("bot-data")?;
         }
 
         let db = SqlitePool::connect(DB_URL).await?;
@@ -153,7 +149,7 @@ impl Bot {
         let ctx = self.dc_ctx.clone();
         let state = self.state.clone();
 
-        let frontend_files = [SHOP_XDC, SUBMIT_HELPER_XDC];
+        let frontend_files = [SHOP_XDC, SUBMIT_HELPER_XDC, REVIEW_HELPER_XDC];
         let required_files_present = frontend_files
             .into_iter()
             .all(|path| PathBuf::from(path).try_exists().unwrap_or_default());
@@ -250,6 +246,14 @@ impl Bot {
         chat_id: ChatId,
         msg_id: MsgId,
     ) -> Result<()> {
+        let msg = Message::load_from_db(context, msg_id).await?;
+        if let Some(text) = msg.get_text() {
+            if text == "/version" {
+                chat::send_text_msg(context, chat_id, get_version().await?).await?;
+                return Ok(());
+            }
+        }
+
         match db::get_chat_type(&mut *state.db.acquire().await?, chat_id).await {
             Ok(chat_type) => {
                 info!("Handling message with type <{chat_type:?}>");

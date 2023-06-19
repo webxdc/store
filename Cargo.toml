@@ -1,6 +1,6 @@
 [package]
 name = "github-bot"
-version = "0.1.0"
+version = "1.0.1"
 authors = ["DeltaChatBot Contributers<https://github.com/deltachat-bot>"]
 edition = "2021"
 
