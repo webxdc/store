@@ -32,10 +32,10 @@ const REVIEW_HELPER_XDC: &str = "./bot-data/review-helper.xdc";
 async fn main() -> anyhow::Result<()> {
     env_logger::init();
     let cli = BotCli::parse();
-    let mut bot = Bot::new().await.context("failed to create bot")?;
 
     match &cli.action {
         BotActions::Import { path, keep_files } => {
+            let bot = Bot::new().await.context("failed to create bot")?;
             let path = path.as_deref().unwrap_or("import/");
             info!("Importing webxdcs from {path}");
             let dir_entry = std::fs::read_dir(path).context("failed to read dir")?;
@@ -106,17 +106,21 @@ async fn main() -> anyhow::Result<()> {
                 }
             }
         }
-        BotActions::ShowQr => match db::get_config(&mut *bot.get_db_connection().await?).await {
-            Ok(config) => {
-                println!("Genisis invite qr:");
-                qr2term::print_qr(config.genesis_qr)?;
-                println!("Bot invite qr:");
-                qr2term::print_qr(config.invite_qr)?;
+        BotActions::ShowQr => {
+            let bot = Bot::new().await.context("failed to create bot")?;
+            match db::get_config(&mut *bot.get_db_connection().await?).await {
+                Ok(config) => {
+                    println!("Genisis invite qr:");
+                    qr2term::print_qr(config.genesis_qr)?;
+                    println!("Bot invite qr:");
+                    qr2term::print_qr(config.invite_qr)?;
+                }
+                Err(_) => println!("Bot not configured yet, start the bot first."),
             }
-            Err(_) => println!("Bot not configured yet, start the bot first."),
-        },
+        }
         BotActions::Version => print!("{}", get_version().await?),
         BotActions::Start => {
+            let mut bot = Bot::new().await.context("failed to create bot")?;
             bot.start().await;
             signal::ctrl_c().await?;
         }
