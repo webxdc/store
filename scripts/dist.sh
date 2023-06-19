@@ -20,6 +20,7 @@ cd "$SRC"
 cargo build --release
 
 cp target/release/github-bot "$DESTDIR/appstore-bot"
+git describe --always >"$DESTDIR/bot-data/VERSION"
 
 mkdir -p "$SRC/dist"
 OUT="$SRC/dist/appstore-bot.tar.gz"
