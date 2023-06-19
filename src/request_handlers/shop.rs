@@ -8,12 +8,13 @@ use crate::{
     SHOP_XDC, SUBMIT_HELPER_XDC,
 };
 use anyhow::{bail, Context as _};
+use base64::encode;
 use deltachat::{
     chat::{self, ChatId, ProtectionStatus},
     constants,
     contact::Contact,
     context::Context,
-    message::{Message, MsgId, Viewtype},
+    message::{Message, MsgId},
     webxdc::StatusUpdateItem,
 };
 use log::{info, warn};
@@ -47,9 +48,19 @@ pub struct UpdateResponse {
 #[derive(TS, Serialize)]
 #[ts(export)]
 #[ts(export_to = "frontend/src/bindings/")]
-pub struct DownloadResponse {
-    okay: bool,
-    id: i32,
+#[serde(tag = "type")]
+pub enum DownloadResponse {
+    Okay {
+        id: i32,
+        /// Name to be used as filename in `sendToChat`.
+        name: String,
+        /// Base64 encoded webxdc.
+        data: String,
+    },
+    Error {
+        id: i32,
+        error: String,
+    },
 }
 
 pub async fn handle_message(
@@ -108,7 +119,6 @@ pub async fn handle_webxdc(
 pub async fn handle_status_update(
     context: &Context,
     state: Arc<State>,
-    chat_id: ChatId,
     msg_id: MsgId,
     update: String,
 ) -> anyhow::Result<()> {
@@ -121,15 +131,17 @@ pub async fn handle_status_update(
             }
             ShopRequest::Download { app_id } => {
                 info!("Handling store download");
-                let resp = match handle_download_request(context, state, app_id, chat_id).await {
-                    Ok(_) => DownloadResponse {
-                        okay: true,
+
+                let resp = match handle_download_request(state, app_id).await {
+                    Ok((data, name)) => DownloadResponse::Okay {
+                        data,
+                        name,
                         id: app_id,
                     },
                     Err(e) => {
                         warn!("Error while handling download request: {}", e);
-                        DownloadResponse {
-                            okay: false,
+                        DownloadResponse::Error {
+                            error: e.to_string(),
                             id: app_id,
                         }
                     }
@@ -156,19 +168,25 @@ pub async fn handle_status_update(
     Ok(())
 }
 
+/// Handles a request to download a store app.
+/// Returns the base64 encoded webxdc and the name of the app.
 async fn handle_download_request(
-    context: &Context,
     state: Arc<State>,
     app_id: i32,
-    chat_id: ChatId,
-) -> anyhow::Result<()> {
+) -> anyhow::Result<(String, String)> {
     let app = db::get_app_info(&mut *state.db.acquire().await?, app_id).await?;
-    let mut msg = Message::new(Viewtype::Webxdc);
     if let Some(file) = app.xdc_blob_dir {
-        msg.set_file(file.to_str().context("Can't covert file to str")?, None);
-        chat::send_msg(context, chat_id, &mut msg).await?;
+        Ok((
+            encode(
+                &tokio::fs::read(
+                    file.to_str()
+                        .context("Can't covert file '{file:?}' to str")?,
+                )
+                .await?,
+            ),
+            app.name,
+        ))
     } else {
         bail!("Appinfo {} has no xdc_blob_dir", app.name)
     }
-    Ok(())
 }

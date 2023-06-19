@@ -1,5 +1,6 @@
 import shutil
 import subprocess
+import base64
 from pathlib import Path
 from subprocess import Popen
 
@@ -141,3 +142,45 @@ def test_version(acfactory, storebot):
     msg_in = ac1.wait_next_incoming_message()
 
     assert msg_in.text + "\n" == version_text
+
+
+def test_download(acfactory, storebot_example):
+    """Test that download works."""
+    (ac1,) = acfactory.get_online_accounts(1)
+
+    bot_contact = ac1.create_contact(storebot_example.addr)
+    bot_chat = bot_contact.create_chat()
+    bot_chat.send_text("hi!")
+
+    msg_in = ac1.wait_next_incoming_message()
+    ac1._evtracker.get_matching("DC_EVENT_WEBXDC_STATUS_UPDATE")
+
+    status_updates = msg_in.get_status_updates()
+    payload = status_updates[0]["payload"]
+    app_infos = payload["app_infos"]
+    xdc_2040 = [xdc for xdc in app_infos if xdc["name"] == "2048"][0]
+
+    assert msg_in.send_status_update(
+        {"payload": {"Download": {"app_id": xdc_2040["id"]}}}, "update"
+    )
+
+    ac1._evtracker.get_matching("DC_EVENT_WEBXDC_STATUS_UPDATE")
+    ac1._evtracker.get_matching("DC_EVENT_WEBXDC_STATUS_UPDATE")
+
+    # Test download response for existing app.
+    status_updates = msg_in.get_status_updates()
+    payload = status_updates[2]["payload"]
+    assert payload["type"] == "Okay"
+    assert payload["id"] == xdc_2040["id"]
+    assert payload["name"] == "2048"
+    with open(str(Path.cwd()) + "/example-xdcs/2048.xdc", "rb") as f:
+        assert payload["data"] == base64.b64encode(f.read()).decode("ascii")
+
+    # Test download response for non-existing app.
+    assert msg_in.send_status_update({"payload": {"Download": {"app_id": 9}}}, "update")
+    ac1._evtracker.get_matching("DC_EVENT_WEBXDC_STATUS_UPDATE")
+    ac1._evtracker.get_matching("DC_EVENT_WEBXDC_STATUS_UPDATE")
+    status_updates = msg_in.get_status_updates()
+    payload = status_updates[4]["payload"]
+    assert payload["type"] == "Error"
+    assert payload["id"] == 9

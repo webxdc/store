@@ -33,8 +33,15 @@ function isEmpty(obj: any) {
   return true
 }
 
-function isDownloadResponse(p: any): p is DownloadResponse {
-  return Object.prototype.hasOwnProperty.call(p, 'okay')
+type DownloadResponseOkay = Extract<DownloadResponse, { type: 'Okay' }>
+type DownloadResponseError = Extract<DownloadResponse, { type: 'Error' }>
+
+function isDownloadResponseOkay(p: any): p is DownloadResponseOkay {
+  return Object.prototype.hasOwnProperty.call(p, 'data')
+}
+
+function isDownloadResponseError(p: any): p is DownloadResponseError {
+  return Object.prototype.hasOwnProperty.call(p, 'error')
 }
 
 function isUpdateResponse(p: any): p is UpdateResponse {
@@ -55,7 +62,6 @@ function AppInfoModal(item: AppInfoWithState, onDownload: () => void) {
         {item.state === AppState.Initial && <button class="justify-self-center px-2 btn" onClick={onDownload}> Add </button>}
         {item.state === AppState.Downloading && <p class="unimportant"> Downloading.. </p>}
         {item.state === AppState.DownloadCancelled && <p class="text-red"> Download cancelled </p>}
-        {item.state === AppState.Received && <p class="font-bold text-amber-400"> Received in Chat </p>}
       </div>
       {
         isExpanded() && (
@@ -182,15 +188,11 @@ const Shop: Component = () => {
       setIsUpdating(false)
       setlastUpdate(new Date())
     }
-    else if (isDownloadResponse(resp.payload)) {
-      if (resp.payload.okay) {
-        // id is set if resp is okay
-        setAppInfo(resp.payload.id, 'state', AppState.Received)
-      }
-      else {
-        // id is set if resp is okay
-        setAppInfo(resp.payload.id, 'state', AppState.DownloadCancelled)
-      }
+    else if (isDownloadResponseOkay(resp.payload)) {
+      window.webxdc.sendToChat({ file: { base64: resp.payload.data, name: `${resp.payload.name}.xdc` } })
+    }
+    else if (isDownloadResponseError(resp.payload)) {
+      setAppInfo(resp.payload.id, 'state', AppState.DownloadCancelled)
     }
   }, lastSerial())
 
