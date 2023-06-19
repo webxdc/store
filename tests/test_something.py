@@ -146,13 +146,13 @@ def test_import(acfactory, storebot_example):
     assert len(app_infos) == 4
 
 
-def test_version(acfactory, storebot, bot_binary_path):
+def test_version(acfactory, storebot, bot_path, bot_binary_path):
     """Test /version command."""
 
     (ac1,) = acfactory.get_online_accounts(1)
 
     version_text = subprocess.run(
-        [bot_binary_path, "version"], capture_output=True, check=True
+        [bot_binary_path, "version"], cwd=bot_path, capture_output=True, check=True
     ).stdout.decode()
 
     bot_contact = ac1.create_contact(storebot.addr)
