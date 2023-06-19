@@ -61,7 +61,7 @@ const Review: Component = () => {
   const [success, setSuccess] = createSignal<undefined | boolean>(undefined)
 
   if (import.meta.env.DEV) {
-    setAppInfo(mock)
+    setAppInfo(mock[0])
   }
 
   const is_appdata_complete = createMemo(() => Object.values(appInfo()).reduce((init, v) => init && !(v === undefined || v === null || v === ''), true))

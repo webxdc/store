@@ -131,9 +131,7 @@ const Shop: Component = () => {
   const [search, setSearch] = createSignal('')
 
   if (import.meta.env.DEV) {
-    for (const index in mock) {
-      setAppInfo(mock[index].id, mock[index])
-    }
+    setAppInfo(mock)
   }
 
   if (appInfo === undefined) {
