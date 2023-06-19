@@ -34,6 +34,75 @@ jobs:
           npx pnpm run lint
         working-directory: frontend
 
+  build_dist:
+    name: Build the distribution tarball
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Cache Rust builds
+        uses: swatinem/rust-cache@v2
+
+      - name: Build the tarball
+        run: bash -x scripts/dist.sh
+
+      - name: Upload the tarball
+        uses: actions/upload-artifact@v3
+        with:
+          name: appstore-bot.tar.gz
+          path: dist/appstore-bot.tar.gz
+
+      - name: Get Pull Request ID
+        id: prepare
+        if: ${{ github.event_name == 'pull_request' }}
+        run: |
+          export PULLREQUEST_ID=$(echo "${{ github.ref }}" | cut -d "/" -f3)
+          echo "prid=$PULLREQUEST_ID" >> $GITHUB_OUTPUT
+
+      - name: Upload preview
+        if: ${{ github.event_name == 'pull_request' }}
+        run: |
+          mkdir -p "$HOME/.ssh"
+          echo "${{ secrets.KEY }}" >__KEY
+          chmod 600 __KEY
+          scp -o StrictHostKeyChecking=no -v -i __KEY dist/appstore-bot.tar.gz "${{ secrets.USERNAME }}@download.delta.chat:/var/www/html/download/store/preview/appstore-bot-${{ steps.prepare.outputs.prid }}.tar.gz"
+
+      - name: Post link to comments
+        if: ${{ github.event_name == 'pull_request' }}
+        uses: actions/github-script@v6
+        with:
+          script: |
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: "Download the preview at https://download.delta.chat/store/preview/appstore-bot-${{ steps.prepare.outputs.prid }}.tar.gz"
+            })
+
+  python_tests_dist:
+    name: Download distribution tarball and test it
+    needs: build_dist
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout the tests and tox.ini
+        uses: actions/checkout@v3
+
+      - name: Download the tarball
+        uses: actions/download-artifact@v3
+        with:
+          name: appstore-bot.tar.gz
+
+      - name: Unpack the tarball
+        run: tar -xf appstore-bot.tar.gz
+
+      - name: Install tox
+        run: pip install tox
+
+      - name: Run the tests
+        env:
+          DCC_NEW_TMP_EMAIL: ${{ secrets.DCC_NEW_TMP_EMAIL }}
+        run: tox
+
   python_tests:
     name: Python tests
     runs-on: ubuntu-latest
