@@ -1,31 +1,54 @@
-## Appstore Bot for DeltaChat
-Welcome to the DeltaChat Appstore Bot. You can start using it today by contacting it at this `<email>`. The appstore bot acts both as distribution platform as well as publishing service.
+## Webxdc app store 
 
-## Using the Appstore Bot
-**Downloading Apps**: When sending a message to the bot, it will reply with the appstore webxdc. You can then clicke the `add` button and the bot will send you the requested webxdc.
+**Status: ALPHA, use at your own risk**
 
-**Publishing Apps**: The `appstore` also provides a platform for developers to publish their own applications. Here's a step-by-step guide on how to do it:
+Welcome to the Webxdc app store (xdcstore for short) which currently consists of: 
 
-1. Send your webxdc to the bot.
-2. The bot will then create a group chat for your submission and upon receiving all neccessary information a dedicated review chat.
-5. Once all requirements are met, the publisher will publish your app to the appstore.
+- a Rust-implemented bot which operates on an e-mail address for Delta Chat users 
 
-### App Publishing Requirements:
-The following structure outlines the essential information needed for publishing an app:
+- a "store.xdc" for users to search and discover apps and to
+  forward/share them with user-selected chats 
 
-```rust
-Copy code
-pub struct AppInfo {
-    pub name: String,                    // Taken from manifest.toml
-    pub description: String,             // Taken from manifest.toml
-    pub image: String,                   // Taken from .xdc file
-    pub app_id: String,                  // Taken from manifest.toml (alphanumeric & pascal_case)
-    pub version: String,                 // Taken from manifest.toml
-    pub author_uri: Option<String>,      // Taken from manifest.toml
-    pub source_code_url: Option<String>, // Taken from manifest.toml
-    pub submitter_uri: Option<String>,
-}
-```
+- a command line interface to import/make apps available 
+
+
+## Getting started with sharing a first app to a chat group 
+
+TODO: make bot available via sending a message to: xdcstore@testrun.org 
+
+TODO: insert QR code here for setting up contact with the xdcstore bot
+
+After establishing initial contact the bot will send a "xdc store" app which provides
+the central point of interaction for users: 
+
+- scroll the app index list and hit the "share/sendToChat/forward" button on any app 
+  of your likening 
+
+- select the chat where you want to share the app 
+
+- the webxdc app will appear in draft mode in the selected chat so that
+  you can modify the message and send it to your chat partners 
+
+- everyone in the chat can now start the app (the other chat members don't
+  need to talk to the store bot or use the xdc). 
+
+- if you just want to test it for yourself select the "Saved Message"
+  chat for sharing the app 
+
+## Some notes regarding the store bot 
+
+- at the top right of the xdc store app you can trigger an update of the "app index" 
+  to make sure you have the latest versions 
+
+- when hitting the "sendToChat/sendToChat/forward" button on any app for
+  the first time a download will be triggered (using the send/receive message webxdc APIs). 
+
+- for now, any message you send to the store bot will trigger it to send 
+  the current store xdc in a new message. Later on we rather want to use 
+  an update mechanism so multiple xdc store messages will be avoided. 
+
+- see `PUBLISHING.md` for some preliminiary info about alternative ways
+  to submit application instead of the current admin-CLI importing one 
 
 ## Setting Up the Bot
 
