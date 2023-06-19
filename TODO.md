@@ -5,6 +5,8 @@
 - [ ] Close submit helper webxdc on submit
 - [ ] What happens if people think they should upgrade-submit their apps into the 1:1 chat?
 - [ ] Handle upgrade-submit in submit-chats.
+- [ ] Remove unused fields in app-modal
+- [ ] Reimagine updating
 
 ## Make appstore happy path run:
 1. [x] bot admin configures the bot with QRCode
