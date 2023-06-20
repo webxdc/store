@@ -1,4 +1,4 @@
-lockfileVersion: '6.1'
+lockfileVersion: '6.0'
 
 settings:
   autoInstallPeers: true
@@ -8,6 +8,9 @@ dependencies:
   '@iconify-json/carbon':
     specifier: ^1.1.17
     version: 1.1.17
+  '@iconify-json/material-symbols':
+    specifier: ^1.1.48
+    version: 1.1.48
   '@unocss/reset':
     specifier: ^0.53.0
     version: 0.53.0
@@ -729,6 +732,12 @@ packages:
 
   /@iconify-json/carbon@1.1.17:
     resolution: {integrity: sha512-FJCHUNP+iEGZILqu5YjByV+RBrWCsMo7YWXBJSpRMvaeVH3yjK3TI8UIc7lmPGI1NRmjThiaqjxMqe7CgQY55Q==}
+    dependencies:
+      '@iconify/types': 2.0.0
+    dev: false
+
+  /@iconify-json/material-symbols@1.1.48:
+    resolution: {integrity: sha512-v/DU4vMefRWxCFJzmhtiiWIukQLgRZ6aVGwFxSy7oGFJzuimt+ZldrvmwpkQcBiV9is9fTg+fQf+U1E/FTkG/A==}
     dependencies:
       '@iconify/types': 2.0.0
     dev: false
