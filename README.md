@@ -39,7 +39,7 @@ the central point of interaction for users:
 
 ## Usability notes regarding store bot xdc frontend 
 
-- At the top right of the xdc store app you can trigger an update of the "app index" 
+- At the top right of the store xdc app you can trigger an update of the "app index" 
   to make sure you have the latest versions. 
 
 - When hitting the "sendToChat/sendToChat/forward" button on any app for
