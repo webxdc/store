@@ -21,34 +21,32 @@ TODO: insert QR code here for setting up contact with the xdcstore bot
 After establishing initial contact the bot will send a "xdc store" app which provides
 the central point of interaction for users: 
 
-- scroll the app index list and hit the "share/sendToChat/forward" button on any app 
-  of your liking
+- Scroll the app index list and hit the "share/sendToChat/forward"
+  button on any app. 
 
-- select the chat where you want to share the app 
+- Select the chat where you want to share the app.
 
-- the webxdc app will appear in draft mode in the selected chat so that
-  you can modify the message and send it to your chat partners 
+- The webxdc app will appear in draft mode in the selected chat so that
+  you can modify the message and send it to your chat partners.
 
-- everyone in the chat can now start the app (the other chat members don't
-  need to talk to the store bot or use the xdc). 
+- Everyone in the chat can now start the app but the other chat members don't
+  need to interact with the store bot at all. 
 
-- if you just want to test it for yourself select the "Saved Message"
-  chat for sharing the app 
+- If you just want to test an app for yourself select the "Saved Message"
+  chat for sharing the app. 
 
-## Some notes regarding the store bot 
 
-- at the top right of the xdc store app you can trigger an update of the "app index" 
-  to make sure you have the latest versions 
+## Usability notes regarding store bot xdc frontend 
 
-- when hitting the "sendToChat/sendToChat/forward" button on any app for
+- At the top right of the xdc store app you can trigger an update of the "app index" 
+  to make sure you have the latest versions. 
+
+- When hitting the "sendToChat/sendToChat/forward" button on any app for
   the first time a download will be triggered (using the send/receive message webxdc APIs). 
 
-- for now, any message you send to the store bot will trigger it to send 
+- For now, any message you send to the store bot will trigger it to send 
   the current store xdc in a new message. Later on we rather want to use 
   an update mechanism so multiple xdc store messages will be avoided. 
-
-- see `PUBLISHING.md` for some preliminiary info about alternative ways
-  to submit application instead of the current admin-CLI importing one 
 
 ## Setting Up the Bot
 
@@ -72,17 +70,19 @@ with files `appstore.xdc`, `review-helpr.xdc` and `submit-helper.xdc`.
 To run the bot, set the environment variables
 `addr` and `mail_pw` with the login and password
 and use the command `start`:
+
 ```
-addr=bot@example.org mail_pw=My_P4ssword cargo run -- start
+    addr=bot@example.org mail_pw=My_P4ssword cargo run -- start
 ```
+
 The environment variables need to be set the first time you start the bot
 and will be saved into the bot account database afterwards.
 
-Set the `RUST_LOG=info` environment variable to get detailed logging from the bot.
+You may set the `RUST_LOG=info` environment variable to get detailed logging from the bot.
 
 ### Importing apps
 
-You can import example applications into the bot:
+To import example applications into the bot:
 
 ```
     mkdir import
