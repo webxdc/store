@@ -1,15 +1,18 @@
-## Webxdc app store 
+## Webxdc store: discover and share the latest apps to your chats 
 
 **Status: ALPHA, use at your own risk**
 
-Welcome to the Webxdc app store (xdcstore for short) which currently consists of: 
+Welcome to the Webxdc store (also xdc store for short) which currently consists of: 
 
-- a Rust-implemented bot which operates on an e-mail address for Delta Chat users 
+- **Store bot**: a Rust-implemented bot which operates on an e-mail
+  address and sends out a store xdc app. 
 
-- a "store.xdc" sent from the bot to users supporting search and
-  discovery of apps, including forwarding/sharing them with user-chosen chats 
+- **Store xdc**: gets sent from the bot to users when they setup contact
+  or send the bot a message.  The store xdc supports search and
+  discovery of the **app index**, including forwarding/sharing an app into user-chosen chats. 
 
-- a command line interface to import/make apps available 
+- The store bot command line interface allows to import apps to 
+  make them available in the **app index** which is presented by the store xdc. 
 
 
 ## Getting started with sharing a first app to a chat group 
@@ -21,19 +24,17 @@ TODO: insert QR code here for setting up contact with the xdcstore bot
 After establishing initial contact the bot will send a "xdc store" app which provides
 the central point of interaction for users: 
 
-- Scroll the app index list and hit the "share/sendToChat/forward"
-  button on any app. 
+1. Scroll the app index and hit the "share/sendToChat/forward"
+   button on any app. 
 
-- Select the chat where you want to share the app.
+2. Select the chat where you want to share the app.
+   If you just want to test an app yourself select the "Saved Message" chat. 
 
-- The webxdc app will appear in draft mode in the selected chat so that
-  you can modify the message and send it to your chat partners.
+3. The app will now appear in the selected chat in draft mode so that
+   you can modify the text message and send the app to your chat partners.
 
-- Everyone in the chat can now start the app but the other chat members don't
-  need to interact with the store bot at all. 
-
-- If you just want to test an app for yourself select the "Saved Message"
-  chat for sharing the app. 
+4. Everyone in the chat can now start the app. The other chat members don't
+   need to interact with the store bot at all. 
 
 
 ## Usability notes regarding store bot xdc frontend 
