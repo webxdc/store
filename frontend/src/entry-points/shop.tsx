@@ -228,12 +228,12 @@ const Shop: Component = () => {
             <Show when={isUpdating()} fallback={
               <button class="flex items-center gap-2" onclick={handleUpdate}>
                 <span>{formatDuration(timeSinceLastUpdate(), { delimiter: ',' }).split(',')[0]} ago</span>
-                <div class="border border-blue-500 rounded" i-carbon-reset></div>
+                <div class="border border-blue-500 rounded" i-material-symbols-sync></div>
               </button>
             }>
               <div class="flex items-center gap-2">
                 <span>Updating..</span>
-                <div class="loading-spinner border border-blue-500 rounded" i-carbon-reset></div>
+                <div class="loading-spinner border border-blue-500 rounded" i-material-symbols-sync></div>
               </div>
             </Show>
           </div>
