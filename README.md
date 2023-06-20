@@ -90,9 +90,9 @@ To import example applications into the bot:
     cargo run -- import
 ```
 
-### App metadata requirements 
+### Per-App metadata 
 
-The store bot processes the following meta data for each xdc app,
+The store bot uses the following meta data for each xdc app,
 noted down in rust-struct style for now: 
 
 ```
@@ -101,27 +101,33 @@ noted down in rust-struct style for now:
     pub image: String,                   // Taken from .xdc file
     pub source_code_url: Option<String>, // Taken from manifest.toml
 
-    // Fields not yet specified yet but needed/useful for store bot 
+    // Fields not specified yet but required for store bot purposes 
     pub description: String,             // Taken from manifest.toml
     pub app_id: String,                  // Taken from manifest.toml 
     pub version: String,                 // Taken from manifest.toml 
 
-    pub author_uri: Option<String>,      // Taken from manifest.toml
-
-    // derived data (not coming from manifest or xdc file) 
+    // Derived data (not coming from manifest.toml or .xdc file) 
     pub submitter_uri: Option<String>,   // determined by bot during interaction 
-    pub submission_date: Date,           // filled out by bot 
+    pub submission_date: Date,           // time of submission, filled out by bot
 ```
 
 Notes: 
 
-- `app_id` and `version` fields are used by the bot to sort submitted apps so that 
-  each app occurs with the latest version. 
+- The `app_id` and `version` fields are used by the bot to sort submitted apps so that 
+  the store xdc can offer the latest version of each app to users. 
 
-- `app_id` MUST be alphanumberic && case-insensitive and only "." is
-  allowed as special character 
+- The `app_id` field MUST be ASCII-alphanumberic with only `.` allowed as special character. 
+  Casing doesn't matter and will be ignored by the bot when doing `app_id` comparisons. 
 
-- `version` MUST adhere to https://semver.org/ 
+- The `version` field MUST adhere to https://semver.org/ -- i.e. be a 
+
+- The `submitter_uri` can be a URL, a mailto or xmpp URI and is
+  determined by the bot at submission time which is also recorded in `submission_date`. 
+
+- We do not define "authorship" yet because it likely is better to
+  introduce together with code signing so that the information is authenticated. 
+  However, the `source_code_url` already provides an (unauthenticated) 
+  way to point to the author(s). 
 
 
 ### Running automated tests 
