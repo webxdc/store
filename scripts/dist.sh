@@ -10,7 +10,7 @@ cd "$SRC/frontend"
 npx pnpm install
 
 TMP="$(mktemp -d)"
-export DESTDIR="$TMP/appstore-bot"
+export DESTDIR="$TMP/xdcstore"
 mkdir "$DESTDIR"
 
 npm run build
@@ -19,12 +19,11 @@ npm run build
 cd "$SRC"
 cargo build --release
 
-cp target/release/github-bot "$DESTDIR/appstore-bot"
-git describe --always >"$DESTDIR/bot-data/VERSION"
+cp target/release/github-bot "$DESTDIR/xdcstore"
 
 mkdir -p "$SRC/dist"
-OUT="$SRC/dist/appstore-bot.tar.gz"
-tar -C "$TMP" -czf "$OUT" appstore-bot
+OUT="$SRC/dist/xdcstore.tar.gz"
+tar -C "$TMP" -czf "$OUT" xdcstore 
 
 echo Distribution tarball is built at $OUT >&2
 

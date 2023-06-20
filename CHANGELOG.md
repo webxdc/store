@@ -1,4 +1,4 @@
-- No automatic update in appstore
+- No automatic update in xdcstore
 - Serial based updating (74924be9c6b0231c28eed919a1f263a977fb42ca)
 - Remove surrealdb (#15)
 - Add download confirm (72a4b0315823b1fa49c3964adfde85db4a8dbbf6)

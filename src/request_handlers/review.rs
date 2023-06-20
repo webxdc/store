@@ -199,7 +199,7 @@ pub async fn handle_status_update(
                 chat::send_text_msg(
                     context,
                     review_chat.submit_chat,
-                    "Your app has been accepted and published to the appstore!".into(),
+                    "Your app has been accepted and published to the store!".into(),
                 )
                 .await?;
             }
