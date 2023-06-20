@@ -97,7 +97,7 @@ To import example applications into the bot:
 The store bot uses the following meta data for each xdc app,
 noted down in rust-struct style for now: 
 
-```
+```rust
     // Fields specified in https://docs.webxdc.org/spec.html#the-manifesttoml-file
     pub name: String,                    // Taken from manifest.toml
     pub image: String,                   // Taken from .xdc file
