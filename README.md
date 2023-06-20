@@ -6,8 +6,8 @@ Welcome to the Webxdc app store (xdcstore for short) which currently consists of
 
 - a Rust-implemented bot which operates on an e-mail address for Delta Chat users 
 
-- a "store.xdc" for users to search and discover apps and to
-  forward/share them with user-selected chats 
+- a "store.xdc" sent from the bot to users supporting search and
+  discovery of apps, including forwarding/sharing them with user-chosen chats 
 
 - a command line interface to import/make apps available 
 
@@ -57,7 +57,7 @@ the central point of interaction for users:
 You need to have `rust` and `node` installed.
 Optionally, have [pnpm](https://pnpm.io/) installed.
 
-### Setup
+### Setting up the bot 
 
 Go to the `frontend` folder and install the packages using `pnpm install` or `pnpm i`.
 If you do not have `pnpm` installed, you can run `npx pnpm install` to use `pnpm` 
@@ -78,16 +78,53 @@ addr=bot@example.org mail_pw=My_P4ssword cargo run -- start
 The environment variables need to be set the first time you start the bot
 and will be saved into the bot account database afterwards.
 
-Optionally, import example applications into the bot:
+Set the `RUST_LOG=info` environment variable to get detailed logging from the bot.
+
+### Importing apps
+
+You can import example applications into the bot:
+
 ```
-mkdir import
-cp example-xdcs/*.xdc import/
-cargo run -- import
+    mkdir import
+    cp example-xdcs/*.xdc import/
+    cargo run -- import
 ```
 
-You can set the `RUST_LOG=info` environment variable to get detailed logging from the bot.
+### App metadata requirements 
 
-### Testing
+The store bot processes the following meta data for each xdc app,
+noted down in rust-struct style for now: 
+
+```
+    // Fields specified in https://docs.webxdc.org/spec.html#the-manifesttoml-file
+    pub name: String,                    // Taken from manifest.toml
+    pub image: String,                   // Taken from .xdc file
+    pub source_code_url: Option<String>, // Taken from manifest.toml
+
+    // Fields not yet specified yet but needed/useful for store bot 
+    pub description: String,             // Taken from manifest.toml
+    pub app_id: String,                  // Taken from manifest.toml 
+    pub version: String,                 // Taken from manifest.toml 
+
+    pub author_uri: Option<String>,      // Taken from manifest.toml
+
+    // derived data (not coming from manifest or xdc file) 
+    pub submitter_uri: Option<String>,   // determined by bot during interaction 
+    pub submission_date: Date,           // filled out by bot 
+```
+
+Notes: 
+
+- `app_id` and `version` fields are used by the bot to sort submitted apps so that 
+  each app occurs with the latest version. 
+
+- `app_id` MUST be alphanumberic && case-insensitive and only "." is
+  allowed as special character 
+
+- `version` MUST adhere to https://semver.org/ 
+
+
+### Running automated tests 
 
 Tests are using [pytest](https://pytest.org/).
 
