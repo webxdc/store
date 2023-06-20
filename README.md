@@ -21,7 +21,7 @@ TODO: make bot available via sending a message to: xdcstore@testrun.org
 
 TODO: insert QR code here for setting up contact with the xdcstore bot
 
-After establishing initial contact the bot will send a "xdc store" app which provides
+After establishing initial contact the bot will send a store xdc app which provides
 the central point of interaction for users: 
 
 1. Scroll the app index and hit the "share/sendToChat/forward"
@@ -47,7 +47,8 @@ the central point of interaction for users:
 
 - For now, any message you send to the store bot will trigger it to send 
   the current store xdc in a new message. Later on we rather want to use 
-  an update mechanism so multiple xdc store messages will be avoided. 
+  an update mechanism so there will only need to be a single store xdc app in
+  the store bot chat. 
 
 ## Setting Up the Bot
 
