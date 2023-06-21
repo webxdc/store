@@ -45,7 +45,7 @@ pub struct AppInfo {
     #[serde(skip)]
     pub originator: RecordId, // bot
     #[serde(skip)]
-    pub active: bool, // bot
+    pub active: bool,  // bot
 }
 
 impl AppInfo {
