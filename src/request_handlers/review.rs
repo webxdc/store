@@ -7,8 +7,7 @@ use crate::{
     db::{self, RecordId},
     messages::creat_review_group_init_message,
     request_handlers::WebxdcStatusUpdate,
-    utils::{get_contact_name, send_app_info, send_update_payload_only, send_webxdc},
-    REVIEW_HELPER_XDC,
+    utils::{get_contact_name, send_app_info, send_update_payload_only, send_webxdc, Webxdc},
 };
 use deltachat::{
     chat::{self, ChatId, ProtectionStatus},
@@ -124,7 +123,8 @@ impl ReviewChat {
         )
         .await?;
 
-        let review_helper = send_webxdc(context, chat_id, REVIEW_HELPER_XDC, None).await?;
+        let review_helper =
+            send_webxdc(context, state.clone(), chat_id, Webxdc::Review, None).await?;
         send_app_info(context, &app_info, review_helper).await?;
 
         let review_chat = ReviewChat {

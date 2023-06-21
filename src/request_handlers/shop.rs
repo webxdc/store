@@ -4,8 +4,7 @@ use crate::{
     db,
     messages::store_message,
     request_handlers::{self, submit::SubmitChat, ChatType},
-    utils::{send_app_info, send_newest_updates, send_update_payload_only, send_webxdc},
-    SHOP_XDC, SUBMIT_HELPER_XDC,
+    utils::{send_app_info, send_newest_updates, send_update_payload_only, send_webxdc, Webxdc},
 };
 use anyhow::Context as _;
 use base64::encode;
@@ -64,7 +63,14 @@ pub async fn handle_message(
 ) -> anyhow::Result<()> {
     let chat = chat::Chat::load_from_db(context, chat_id).await?;
     if let constants::Chattype::Single = chat.typ {
-        let msg = send_webxdc(context, chat_id, SHOP_XDC, Some(store_message())).await?;
+        let msg = send_webxdc(
+            context,
+            state.clone(),
+            chat_id,
+            Webxdc::Shop,
+            Some(store_message()),
+        )
+        .await?;
         send_newest_updates(context, msg, &mut *state.db.acquire().await?, 0).await?;
     }
     Ok(())
@@ -92,7 +98,7 @@ pub async fn handle_webxdc(
     chat::add_contact_to_chat(context, chat_id, creator).await?;
 
     chat::forward_msgs(context, &[msg.get_id()], chat_id).await?;
-    let creator_webxdc = send_webxdc(context, chat_id, SUBMIT_HELPER_XDC, None).await?;
+    let creator_webxdc = send_webxdc(context, state.clone(), chat_id, Webxdc::Submit, None).await?;
     send_app_info(context, &app_info, creator_webxdc).await?;
 
     db::create_submit_chat(

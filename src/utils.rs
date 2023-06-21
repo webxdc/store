@@ -1,6 +1,6 @@
 //! Utility functions
 
-use anyhow::{Context as _, Result};
+use anyhow::{bail, Context as _, Ok, Result};
 use async_zip::tokio::read::fs::ZipFileReader;
 use deltachat::{
     chat::{self, ChatId},
@@ -9,13 +9,22 @@ use deltachat::{
     context::Context,
     message::{Message, MsgId, Viewtype},
 };
+use futures::future::join_all;
+use itertools::Itertools;
 use serde::Serialize;
-use sqlx::SqliteConnection;
-use std::env;
+use sqlx::{SqliteConnection, Type};
+use std::{
+    env,
+    path::{Path, PathBuf},
+    sync::Arc,
+};
+use tokio::task::JoinHandle;
 
 use crate::{
+    bot::State,
     db,
-    request_handlers::{shop::ShopResponse, AppInfo},
+    request_handlers::{shop::ShopResponse, AppInfo, WexbdcManifest},
+    REVIEW_HELPER_XDC, SHOP_XDC, SUBMIT_HELPER_XDC,
 };
 
 pub async fn configure_from_env(ctx: &Context) -> Result<()> {
@@ -34,16 +43,26 @@ pub async fn configure_from_env(ctx: &Context) -> Result<()> {
 /// Send a webxdc to a chat.
 pub async fn send_webxdc(
     context: &Context,
+    state: Arc<State>,
     chat_id: ChatId,
-    path: &str,
+    webxdc: Webxdc,
     text: Option<&str>,
 ) -> anyhow::Result<MsgId> {
     let mut webxdc_msg = Message::new(Viewtype::Webxdc);
     if let Some(text) = text {
         webxdc_msg.set_text(Some(text.to_string()));
     }
-    webxdc_msg.set_file(path, None);
-    chat::send_msg(context, chat_id, &mut webxdc_msg).await
+    webxdc_msg.set_file(webxdc.get_str_path(), None);
+    let msg_id = chat::send_msg(context, chat_id, &mut webxdc_msg).await?;
+    let versions = db::get_current_webxdc_versions(&mut *state.db.acquire().await?).await?;
+    db::set_webxdc_version(
+        &mut *state.db.acquire().await?,
+        msg_id,
+        versions.get(webxdc).to_string(),
+        webxdc,
+    )
+    .await?;
+    Ok(msg_id)
 }
 
 /// Sends a [deltachat::webxdc::StatusUpdateItem] with all [AppInfo]s greater than the given serial.
@@ -111,4 +130,114 @@ pub async fn send_update_payload_only<T: Serialize>(
         )
         .await?;
     Ok(())
+}
+
+pub async fn get_webxdc_manifest(reader: &ZipFileReader) -> anyhow::Result<WexbdcManifest> {
+    let entries = reader.file().entries();
+    let manifest_index = entries
+        .iter()
+        .enumerate()
+        .find(|(_, entry)| {
+            entry
+                .entry()
+                .filename()
+                .as_str()
+                .map(|name| name == "manifest.toml")
+                .unwrap_or_default()
+        })
+        .map(|a| a.0)
+        .context("Can't find manifest.toml")?;
+
+    Ok(toml::from_str(
+        &read_string(&reader, manifest_index).await?,
+    )?)
+}
+
+pub async fn get_webxdc_version<T: AsRef<Path>>(file: T) -> anyhow::Result<String> {
+    let reader = ZipFileReader::new(file).await.unwrap();
+    let manifest = get_webxdc_manifest(&reader).await.unwrap();
+    Ok(manifest.version)
+}
+
+#[derive(Clone, Copy, Type)]
+pub enum Webxdc {
+    Shop,
+    Submit,
+    Review,
+}
+
+impl Webxdc {
+    pub fn get_str_path(&self) -> &'static str {
+        match self {
+            Webxdc::Shop => SHOP_XDC,
+            Webxdc::Submit => SUBMIT_HELPER_XDC,
+            Webxdc::Review => REVIEW_HELPER_XDC,
+        }
+    }
+
+    pub fn get_path(&self) -> PathBuf {
+        PathBuf::from(self.get_str_path())
+    }
+
+    pub fn iter() -> impl Iterator<Item = Webxdc> {
+        [Webxdc::Shop, Webxdc::Submit, Webxdc::Review]
+            .iter()
+            .copied()
+    }
+}
+
+#[derive(Debug, PartialEq, Eq)]
+pub struct WebxdcVersions {
+    pub shop: String,
+    pub submit: String,
+    pub review: String,
+}
+
+impl WebxdcVersions {
+    pub fn set(&mut self, webxdc: Webxdc, version: String) {
+        match webxdc {
+            Webxdc::Shop => self.shop = version,
+            Webxdc::Submit => self.submit = version,
+            Webxdc::Review => self.review = version,
+        }
+    }
+
+    pub fn get(&self, webxdc: Webxdc) -> &str {
+        match webxdc {
+            Webxdc::Shop => &self.shop,
+            Webxdc::Submit => &self.submit,
+            Webxdc::Review => &self.review,
+        }
+    }
+}
+
+pub async fn read_webxdc_versions() -> anyhow::Result<WebxdcVersions> {
+    let required_files = Webxdc::iter().map(|webxdc| webxdc.get_path()).collect_vec();
+
+    let required_files_present = required_files
+        .iter()
+        .all(|path| path.try_exists().unwrap_or_default());
+
+    if !required_files_present {
+        bail!("It seems like the frontend hasn't been build yet! Look at the readme for further instructions.")
+    }
+
+    let mut futures: Vec<JoinHandle<anyhow::Result<(Webxdc, String)>>> = vec![];
+    for webxdc in Webxdc::iter() {
+        futures.push(tokio::spawn(async move {
+            let version = get_webxdc_version(&webxdc.get_str_path()).await?;
+            Ok((webxdc, version))
+        }))
+    }
+
+    let mut versions = WebxdcVersions {
+        shop: String::new(),
+        submit: String::new(),
+        review: String::new(),
+    };
+    for result in join_all(futures).await {
+        let (webxdc, version) = result??;
+        versions.set(webxdc, version);
+    }
+    Ok(versions)
 }

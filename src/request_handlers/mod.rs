@@ -1,7 +1,7 @@
 //! Handlers for the different messages the bot receives
 use crate::{
     db::RecordId,
-    utils::{read_string, read_vec},
+    utils::{get_webxdc_manifest, read_vec},
 };
 use async_zip::tokio::read::fs::ZipFileReader;
 use base64::encode;
@@ -74,33 +74,18 @@ impl AppInfo {
         let mut upgraded = false;
         let reader = ZipFileReader::new(&file).await?;
         let entries = reader.file().entries();
-        let manifest = entries
-            .iter()
-            .enumerate()
-            .find(|(_, entry)| {
-                entry
-                    .entry()
-                    .filename()
-                    .as_str()
-                    .map(|name| name == "manifest.toml")
-                    .unwrap_or_default()
-            })
-            .map(|a| a.0);
+        let manifest = get_webxdc_manifest(&reader).await?;
 
-        if let Some(index) = manifest {
-            let res = read_string(&reader, index).await?;
-            let manifest: WexbdcManifest = toml::from_str(&res)?;
-            self.app_id = manifest.app_id;
-            if self.version != manifest.version {
-                upgraded = true
-            }
-            self.version = manifest.version;
-            self.name = manifest.name;
-            self.description = manifest.description;
-            self.source_code_url = manifest.source_code_url;
-            self.submitter_uri = manifest.submitter_uri;
-            // self.submission_date = manifest.submission_date;
+        self.app_id = manifest.app_id;
+        if self.version != manifest.version {
+            upgraded = true
         }
+        self.version = manifest.version;
+        self.name = manifest.name;
+        self.description = manifest.description;
+        self.source_code_url = manifest.source_code_url;
+        self.submitter_uri = manifest.submitter_uri;
+        // self.submission_date = manifest.submission_date;
 
         self.xdc_blob_dir = file;
 
@@ -147,4 +132,10 @@ pub enum ChatType {
 #[derive(Deserialize)]
 pub struct WebxdcStatusUpdate<T> {
     payload: T,
+}
+
+#[derive(Serialize)]
+pub struct WebxdcOutdatedResponse<'a> {
+    pub critical: bool,
+    pub version: &'a str,
 }
