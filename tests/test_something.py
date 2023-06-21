@@ -28,7 +28,7 @@ class BotProcess:
 @pytest.fixture
 def bot_binary_path():
     for path in [
-        Path.cwd() / "target/debug/github-bot",
+        Path.cwd() / "target/debug/xdcstore",
         Path.cwd() / "xdcstore" / "xdcstore",
     ]:
         if path.exists():
@@ -75,7 +75,7 @@ def storebot_example(acfactory, bot_path, bot_binary_path):
         ],
         cwd=bot_path,
         env={
-            "RUST_LOG": "github_bot=trace",
+            "RUST_LOG": "xdcstore=trace",
             "addr": config["addr"],
             "mail_pw": config["mail_pw"],
         },
