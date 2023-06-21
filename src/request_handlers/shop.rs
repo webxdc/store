@@ -65,7 +65,7 @@ pub async fn handle_message(
     if let constants::Chattype::Single = chat.typ {
         let msg = send_webxdc(
             context,
-            state.clone(),
+            &state,
             chat_id,
             Webxdc::Shop,
             Some(store_message()),
@@ -98,7 +98,7 @@ pub async fn handle_webxdc(
     chat::add_contact_to_chat(context, chat_id, creator).await?;
 
     chat::forward_msgs(context, &[msg.get_id()], chat_id).await?;
-    let creator_webxdc = send_webxdc(context, state.clone(), chat_id, Webxdc::Submit, None).await?;
+    let creator_webxdc = send_webxdc(context, &state, chat_id, Webxdc::Submit, None).await?;
     send_app_info(context, &app_info, creator_webxdc).await?;
 
     db::create_submit_chat(

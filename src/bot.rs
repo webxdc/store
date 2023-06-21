@@ -307,7 +307,7 @@ impl Bot {
                         db::set_chat_type(conn, chat_id, ChatType::Shop).await?;
                         let msg = send_webxdc(
                             context,
-                            state.clone(),
+                            &state,
                             chat_id,
                             Webxdc::Shop,
                             Some(store_message()),
@@ -393,14 +393,8 @@ impl Bot {
         let newest_versions = db::get_current_webxdc_versions(conn).await?;
 
         if serde_json::from_str::<WebxdcStatusUpdate<UpdateRequest>>(&update).is_ok() {
-            let msg = send_webxdc(
-                context,
-                state.clone(),
-                chat_id,
-                webxdc,
-                Some(store_message()),
-            )
-            .await?;
+            let msg =
+                send_webxdc(context, &state, chat_id, webxdc, Some(store_message())).await?;
             send_newest_updates(context, msg, &mut *state.db.acquire().await?, 0).await?;
             return Ok(());
         }

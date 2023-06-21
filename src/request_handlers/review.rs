@@ -123,8 +123,7 @@ impl ReviewChat {
         )
         .await?;
 
-        let review_helper =
-            send_webxdc(context, state.clone(), chat_id, Webxdc::Review, None).await?;
+        let review_helper = send_webxdc(context, &state, chat_id, Webxdc::Review, None).await?;
         send_app_info(context, &app_info, review_helper).await?;
 
         let review_chat = ReviewChat {

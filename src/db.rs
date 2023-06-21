@@ -451,7 +451,7 @@ pub async fn get_last_serial(c: &mut SqliteConnection) -> sqlx::Result<i32> {
         .map(|a| a.get("serial"))
 }
 
-/// Set webxdc version for some sent webxdc.
+/// Sets the webxdc version for some sent webxdc.
 pub async fn set_webxdc_version(
     c: &mut SqliteConnection,
     msg: MsgId,
@@ -469,7 +469,7 @@ pub async fn set_webxdc_version(
     Ok(())
 }
 
-/// Get webxdc version for some sent webxdc.
+/// Gets the webxdc version for some sent webxdc.
 pub async fn get_webxdc_version(
     c: &mut SqliteConnection,
     msg: MsgId,
@@ -481,7 +481,7 @@ pub async fn get_webxdc_version(
         .map(|a| (a.get("webxdc"), a.get("version")))
 }
 
-/// Set newest webxdc versions.
+/// Sets the newest webxdc versions.
 pub async fn set_current_webxdc_versions(
     c: &mut SqliteConnection,
     versions: &WebxdcVersions,
@@ -497,7 +497,7 @@ pub async fn set_current_webxdc_versions(
     Ok(())
 }
 
-/// Get newest webxdc versions.
+/// Gets the newest webxdc versions.
 pub async fn get_current_webxdc_versions(c: &mut SqliteConnection) -> sqlx::Result<WebxdcVersions> {
     sqlx::query("SELECT shop_xdc_version, submit_xdc_version, review_xdc_version FROM config")
         .fetch_one(c)

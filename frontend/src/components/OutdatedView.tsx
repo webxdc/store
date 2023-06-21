@@ -2,6 +2,7 @@ import { type Component, createSignal } from 'solid-js'
 import type { UpdateRequest } from '../bindings/UpdateRequest'
 
 interface OutdatedViewProps {
+  // If critical, the webxdc should stop working.
   critical: boolean
   children: any
 }

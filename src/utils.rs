@@ -1,6 +1,6 @@
 //! Utility functions
 
-use anyhow::{bail, Context as _, Ok, Result};
+use anyhow::{bail, Context as _, Result};
 use async_zip::tokio::read::fs::ZipFileReader;
 use deltachat::{
     chat::{self, ChatId},
@@ -16,7 +16,6 @@ use sqlx::{SqliteConnection, Type};
 use std::{
     env,
     path::{Path, PathBuf},
-    sync::Arc,
 };
 use tokio::task::JoinHandle;
 
@@ -43,7 +42,7 @@ pub async fn configure_from_env(ctx: &Context) -> Result<()> {
 /// Send a webxdc to a chat.
 pub async fn send_webxdc(
     context: &Context,
-    state: Arc<State>,
+    state: &State,
     chat_id: ChatId,
     webxdc: Webxdc,
     text: Option<&str>,
@@ -54,14 +53,9 @@ pub async fn send_webxdc(
     }
     webxdc_msg.set_file(webxdc.get_str_path(), None);
     let msg_id = chat::send_msg(context, chat_id, &mut webxdc_msg).await?;
-    let versions = db::get_current_webxdc_versions(&mut *state.db.acquire().await?).await?;
-    db::set_webxdc_version(
-        &mut *state.db.acquire().await?,
-        msg_id,
-        versions.get(webxdc).to_string(),
-        webxdc,
-    )
-    .await?;
+    let conn = &mut *state.db.acquire().await?;
+    let versions = db::get_current_webxdc_versions(conn).await?;
+    db::set_webxdc_version(conn, msg_id, versions.get(webxdc).to_string(), webxdc).await?;
     Ok(msg_id)
 }
 
@@ -148,14 +142,12 @@ pub async fn get_webxdc_manifest(reader: &ZipFileReader) -> anyhow::Result<Wexbd
         .map(|a| a.0)
         .context("Can't find manifest.toml")?;
 
-    Ok(toml::from_str(
-        &read_string(&reader, manifest_index).await?,
-    )?)
+    Ok(toml::from_str(&read_string(reader, manifest_index).await?)?)
 }
 
-pub async fn get_webxdc_version<T: AsRef<Path>>(file: T) -> anyhow::Result<String> {
-    let reader = ZipFileReader::new(file).await.unwrap();
-    let manifest = get_webxdc_manifest(&reader).await.unwrap();
+pub async fn get_webxdc_version(file: impl AsRef<Path>) -> anyhow::Result<String> {
+    let reader = ZipFileReader::new(file).await?;
+    let manifest = get_webxdc_manifest(&reader).await?;
     Ok(manifest.version)
 }
 
