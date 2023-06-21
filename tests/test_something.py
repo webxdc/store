@@ -18,7 +18,7 @@ class BotProcess:
         self.process = Popen(
             [binary_path, "start"],
             cwd=path,
-            env={"addr": addr, "mail_pw": password, "RUST_LOG": "github_bot=trace"},
+            env={"addr": addr, "mail_pw": password, "RUST_LOG": "xdcstore=trace"},
         )
 
     def __del__(self):
