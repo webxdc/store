@@ -31,18 +31,22 @@ def bot_binary_path():
         Path.cwd() / "target/debug/xdcstore",
         Path.cwd() / "xdcstore" / "xdcstore",
     ]:
+        print("trying", path)
         if path.exists():
             return path
+    pytest.fail("could not determine bot_binary_path")
 
 
 @pytest.fixture
 def bot_assets_path():
     for path in [
         Path.cwd() / "bot-data",
-        Path.cwd() / "xdcstore " / "bot-data",
+        Path.cwd() / "xdcstore" / "bot-data",
     ]:
+        print("trying", path)
         if path.exists():
             return path
+    pytest.fail("could not determine bot_assets_path")
 
 
 @pytest.fixture
