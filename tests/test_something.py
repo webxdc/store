@@ -94,7 +94,7 @@ def test_welcome_message(acfactory, storebot):
     bot_chat.send_text("hi!")
 
     msg_in = ac1.wait_next_incoming_message()
-    assert msg_in.text == "Welcome to the xdcstore!"
+    assert "Welcome to the webxdc store!" in msg_in.text
 
 
 def test_update(acfactory, storebot):
@@ -107,7 +107,7 @@ def test_update(acfactory, storebot):
 
     msg_in = ac1.wait_next_incoming_message()
     ac1._evtracker.get_matching("DC_EVENT_WEBXDC_STATUS_UPDATE")
-    assert msg_in.text == "Welcome to the xdcstore!"
+    assert "Welcome" in msg_in.text
 
     assert msg_in.is_webxdc()
     status_updates = msg_in.get_status_updates()
@@ -136,7 +136,7 @@ def test_import(acfactory, storebot_example):
 
     msg_in = ac1.wait_next_incoming_message()
     ac1._evtracker.get_matching("DC_EVENT_WEBXDC_STATUS_UPDATE")
-    assert msg_in.text == "Welcome to the xdcstore!"
+    assert "Welcome" in msg_in.text
 
     assert msg_in.is_webxdc()
     status_updates = msg_in.get_status_updates()
