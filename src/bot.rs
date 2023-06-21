@@ -20,6 +20,7 @@ use crate::{
     db::{self, MIGRATOR},
     messages::store_message,
     request_handlers::{genisis, review, shop, submit, ChatType, WebxdcOutdatedResponse},
+    request_handlers::{UpdateRequest, WebxdcStatusUpdate},
     utils::{
         configure_from_env, read_webxdc_versions, send_newest_updates, send_update_payload_only,
         send_webxdc, Webxdc,
@@ -158,6 +159,7 @@ impl Bot {
         let state = self.state.clone();
 
         let versions = read_webxdc_versions().await?;
+        info!("Loaded webxdc versions: {:?}", versions);
         db::set_current_webxdc_versions(&mut *state.db.acquire().await?, &versions).await?;
 
         tokio::spawn(async move {
@@ -390,20 +392,36 @@ impl Bot {
         let (webxdc, version) = db::get_webxdc_version(conn, msg.get_id()).await?;
         let newest_versions = db::get_current_webxdc_versions(conn).await?;
 
-        if version != newest_versions.get(webxdc) {
-            info!("Webxdc version mismatch, updating");
-            send_update_payload_only(
+        if serde_json::from_str::<WebxdcStatusUpdate<UpdateRequest>>(&update).is_ok() {
+            let msg = send_webxdc(
                 context,
-                msg_id,
-                WebxdcOutdatedResponse {
-                    version: newest_versions.get(webxdc),
-                    critical: true,
-                },
+                state.clone(),
+                chat_id,
+                webxdc,
+                Some(store_message()),
             )
             .await?;
-
-            let msg = send_webxdc(context, state.clone(), chat_id, webxdc, None).await?;
             send_newest_updates(context, msg, &mut *state.db.acquire().await?, 0).await?;
+            return Ok(());
+        }
+
+        if version != newest_versions.get(webxdc) {
+            info!("Webxdc version mismatch, updating");
+
+            // Only try to upgrade version, if the webxdc event is _not_ an update response already
+            if serde_json::from_str::<WebxdcStatusUpdate<WebxdcOutdatedResponse>>(&update).is_err()
+            {
+                send_update_payload_only(
+                    context,
+                    msg_id,
+                    WebxdcOutdatedResponse {
+                        version: newest_versions.get(webxdc).to_string(),
+                        critical: true,
+                    },
+                )
+                .await?;
+            };
+            return Ok(());
         }
 
         match chat_type {

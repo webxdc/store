@@ -15,6 +15,9 @@ import '../index.sass'
 import 'virtual:uno.css'
 import '@unocss/reset/tailwind.css'
 import { AppInfoDB } from '../db/shop_db'
+import type { AppInfo } from '../bindings/AppInfo'
+import OutdatedView from '../components/OutdatedView'
+import { isOutdatedResponse } from '../utils'
 
 const fuse_options = {
   keys: [
@@ -148,6 +151,7 @@ function to_app_infos_by_id(app_infos: AppInfoWithState[]): AppInfosById {
 const Shop: Component = () => {
   const [appInfo, setAppInfo] = createStore({} as AppInfosById)
   const [lastSerial, setlastSerial] = useStorage('last-serial', 0)
+  const [updateNeeded, setUpdateNeeded] = useStorage('update-needed', false)
   const [lastUpdateSerial, setlastUpdateSerial] = useStorage('last-update-serial', 0)
   const [lastUpdate, setlastUpdate] = useStorage('last-update', new Date())
   const timeSinceLastUpdate = createMemo(() => intervalToDuration({
@@ -219,6 +223,10 @@ const Shop: Component = () => {
       // @ts-expect-error waduheck
       setAppInfo(resp.payload.id, 'state', AppState.DownloadCancelled)
     }
+    else if (isOutdatedResponse(resp.payload)) {
+      console.log('Current version is outdated')
+      setUpdateNeeded(true)
+    }
   }, lastSerial())
 
   async function handleUpdate() {
@@ -245,41 +253,43 @@ const Shop: Component = () => {
   }
 
   return (
-    <div class="c-grid p-3">
-      <div class="min-width">
-        <div class="flex justify-between gap-2">
-          <h1 class="text-2xl font-bold">Webxdc Appstore</h1>
-          <div class="rounded-xl bg-gray-100 p-2 unimportant text-gray-500">
-            <Show when={isUpdating()} fallback={
-              <button class="flex items-center gap-2" onclick={handleUpdate}>
-                <span>{formatDuration(timeSinceLastUpdate(), { delimiter: ',' }).split(',')[0] || '0 sec'} ago</span>
-                <div class="border border-blue-500 rounded" i-material-symbols-sync></div>
-              </button>
-            }>
-              <div class="flex items-center gap-2">
-                <span>Updating..</span>
-                <div class="loading-spinner border border-blue-500 rounded" i-material-symbols-sync></div>
-              </div>
-            </Show>
+    <OutdatedView critical={updateNeeded()}>
+      <div class="c-grid p-3">
+        <div class="min-width">
+          <div class="flex justify-between gap-2">
+            <h1 class="text-2xl font-bold">Webxdc Appstore</h1>
+            <div class="rounded-xl bg-gray-100 p-2 unimportant text-gray-500">
+              <Show when={isUpdating()} fallback={
+                <button class="flex items-center gap-2" onclick={handleUpdate}>
+                  <span>{formatDuration(timeSinceLastUpdate(), { delimiter: ',' }).split(',')[0] || '0 sec'} ago</span>
+                  <div class="border border-blue-500 rounded" i-material-symbols-sync></div>
+                </button>
+              }>
+                <div class="flex items-center gap-2">
+                  <span>Updating..</span>
+                  <div class="loading-spinner border border-blue-500 rounded" i-material-symbols-sync></div>
+                </div>
+              </Show>
+            </div>
           </div>
-        </div>
 
-        <div class="p-4">
-          <ul class="w-full flex flex-col gap-2">
-            <li class="my-5 w-full flex items-center justify-center gap-2">
-              <input class="border-2 rounded-2xl" onInput={event => setSearch((event.target as HTMLInputElement).value)} />
-              <button class="rounded-1/2 p-2 btn">
-                <div class="i-carbon-search" />
-              </button>
-            </li>
-            <AppList items={Object.values(appInfo)} search={search()} onDownload={handleDownload} onForward={handleForward} ></AppList>
-            <li class="mt-3">
-              <PublishButton></PublishButton>
-            </li>
-          </ul>
-        </div>
-      </div >
-    </div>
+          <div class="p-4">
+            <ul class="w-full flex flex-col gap-2">
+              <li class="my-5 w-full flex items-center justify-center gap-2">
+                <input class="border-2 rounded-2xl" onInput={event => setSearch((event.target as HTMLInputElement).value)} />
+                <button class="rounded-1/2 p-2 btn">
+                  <div class="i-carbon-search" />
+                </button>
+              </li>
+              <AppList items={Object.values(appInfo)} search={search()} onDownload={handleDownload} onForward={handleForward} ></AppList>
+              <li class="mt-3">
+                <PublishButton></PublishButton>
+              </li>
+            </ul>
+          </div>
+        </div >
+      </div>
+    </OutdatedView>
   )
 }
 

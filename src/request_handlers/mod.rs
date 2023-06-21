@@ -134,8 +134,17 @@ pub struct WebxdcStatusUpdate<T> {
     payload: T,
 }
 
-#[derive(Serialize)]
-pub struct WebxdcOutdatedResponse<'a> {
+#[derive(Serialize, Deserialize, TS)]
+#[ts(export)]
+#[ts(export_to = "frontend/src/bindings/")]
+pub struct WebxdcOutdatedResponse {
     pub critical: bool,
-    pub version: &'a str,
+    pub version: String,
+}
+
+#[derive(Deserialize, TS)]
+#[ts(export)]
+#[ts(export_to = "frontend/src/bindings/")]
+pub struct UpdateRequest {
+    pub update: bool,
 }
