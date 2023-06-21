@@ -1,7 +1,7 @@
 [package]
-name = "github-bot"
+name = "xdcstore"
 version = "1.0.1"
-authors = ["DeltaChatBot Contributers<https://github.com/deltachat-bot>"]
+authors = ["DeltaChat team <https://github.com/deltachat-bot>"]
 edition = "2021"
 
 [dependencies]

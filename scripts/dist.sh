@@ -19,7 +19,7 @@ npm run build
 cd "$SRC"
 cargo build --release
 
-cp target/release/github-bot "$DESTDIR/xdcstore"
+cp target/release/xdcstore "$DESTDIR/xdcstore"
 
 mkdir -p "$SRC/dist"
 OUT="$SRC/dist/xdcstore.tar.gz"
