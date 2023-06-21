@@ -7,16 +7,15 @@ use crate::{
         review::{HandlePublishError, ReviewChat},
         WebxdcStatusUpdate,
     },
+    utils::send_update_payload_only,
 };
 use deltachat::{
     chat::{self, ChatId},
     context::Context,
     message::{Message, MsgId},
-    webxdc::StatusUpdateItem,
 };
 use log::info;
 use serde::{Deserialize, Serialize};
-use serde_json::json;
 use sqlx::SqliteConnection;
 use ts_rs::TS;
 
@@ -64,27 +63,9 @@ pub async fn create_review_chat(
             e => return Err(anyhow::anyhow!(e)),
         };
         chat::send_text_msg(context, state.config.genesis_group, msg).await?;
-        context
-            .send_webxdc_status_update_struct(
-                submit_helper,
-                StatusUpdateItem {
-                    payload: json!(SubmitResponse { okay: false }),
-                    ..Default::default()
-                },
-                "",
-            )
-            .await?;
+        send_update_payload_only(context, submit_helper, SubmitResponse { okay: false }).await?;
     } else {
-        context
-            .send_webxdc_status_update_struct(
-                submit_helper,
-                StatusUpdateItem {
-                    payload: json!(SubmitResponse { okay: true }),
-                    ..Default::default()
-                },
-                "",
-            )
-            .await?;
+        send_update_payload_only(context, submit_helper, SubmitResponse { okay: true }).await?;
     };
     Ok(())
 }
