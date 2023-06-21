@@ -225,8 +225,8 @@ impl Bot {
                         "Chat {chat_id} is not in the database, adding it as chat with type shop"
                     );
                         db::set_chat_type(conn, chat_id, ChatType::Shop).await?;
-                        let msg = send_webxdc(context, chat_id, SHOP_XDC, Some(store_message()))
-                            .await?;
+                        let msg =
+                            send_webxdc(context, chat_id, SHOP_XDC, Some(store_message())).await?;
                         send_newest_updates(context, msg, &mut *state.db.acquire().await?, 0)
                             .await?;
                     }
