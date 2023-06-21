@@ -15,7 +15,7 @@
 use crate::{
     bot::BotConfig,
     request_handlers::{review::ReviewChat, submit::SubmitChat, AppInfo, ChatType},
-    utils::{Webxdc, WebxdcVersions},
+    utils::Webxdc,
 };
 use deltachat::{chat::ChatId, contact::ContactId, message::MsgId};
 use sqlx::{migrate::Migrator, Connection, FromRow, Row, SqliteConnection};
@@ -481,34 +481,6 @@ pub async fn get_webxdc_version(
         .map(|a| (a.get("webxdc"), a.get("version")))
 }
 
-/// Sets the newest webxdc versions.
-pub async fn set_current_webxdc_versions(
-    c: &mut SqliteConnection,
-    versions: &WebxdcVersions,
-) -> sqlx::Result<()> {
-    sqlx::query(
-        "UPDATE config SET shop_xdc_version = ?, submit_xdc_version = ?, review_xdc_version = ?",
-    )
-    .bind(&versions.shop)
-    .bind(&versions.submit)
-    .bind(&versions.review)
-    .execute(c)
-    .await?;
-    Ok(())
-}
-
-/// Gets the newest webxdc versions.
-pub async fn get_current_webxdc_versions(c: &mut SqliteConnection) -> sqlx::Result<WebxdcVersions> {
-    sqlx::query("SELECT shop_xdc_version, submit_xdc_version, review_xdc_version FROM config")
-        .fetch_one(c)
-        .await
-        .map(|a| WebxdcVersions {
-            shop: a.get("shop_xdc_version"),
-            submit: a.get("submit_xdc_version"),
-            review: a.get("review_xdc_version"),
-        })
-}
-
 #[cfg(test)]
 #[allow(clippy::unwrap_used)]
 mod tests {
@@ -720,25 +692,5 @@ mod tests {
             .unwrap();
         let (_, loaded_version) = get_webxdc_version(&mut conn, msg).await.unwrap();
         assert_eq!(loaded_version, "1.0.0".to_string());
-    }
-
-    #[tokio::test]
-    async fn webxdc_newest_versions_set_get() {
-        let mut conn = SqliteConnection::connect("sqlite::memory:").await.unwrap();
-        MIGRATOR.run(&mut conn).await.unwrap();
-
-        set_config(&mut conn, &BotConfig::default()).await.unwrap();
-
-        let versions = WebxdcVersions {
-            shop: "1.1.0".to_string(),
-            submit: "1.0.1".to_string(),
-            review: "1.1.1".to_string(),
-        };
-
-        set_current_webxdc_versions(&mut conn, &versions)
-            .await
-            .unwrap();
-        let loaded_versions = get_current_webxdc_versions(&mut conn).await.unwrap();
-        assert_eq!(loaded_versions, versions);
     }
 }

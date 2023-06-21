@@ -54,8 +54,13 @@ pub async fn send_webxdc(
     webxdc_msg.set_file(webxdc.get_str_path(), None);
     let msg_id = chat::send_msg(context, chat_id, &mut webxdc_msg).await?;
     let conn = &mut *state.db.acquire().await?;
-    let versions = db::get_current_webxdc_versions(conn).await?;
-    db::set_webxdc_version(conn, msg_id, versions.get(webxdc).to_string(), webxdc).await?;
+    db::set_webxdc_version(
+        conn,
+        msg_id,
+        state.webxdc_versions.get(webxdc).to_string(),
+        webxdc,
+    )
+    .await?;
     Ok(msg_id)
 }
 
@@ -178,7 +183,7 @@ impl Webxdc {
     }
 }
 
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Debug, PartialEq, Eq, Default)]
 pub struct WebxdcVersions {
     pub shop: String,
     pub submit: String,

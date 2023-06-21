@@ -23,7 +23,7 @@ use crate::{
     request_handlers::{UpdateRequest, WebxdcStatusUpdate},
     utils::{
         configure_from_env, read_webxdc_versions, send_newest_updates, send_update_payload_only,
-        send_webxdc, Webxdc,
+        send_webxdc, Webxdc, WebxdcVersions,
     },
     DB_URL, DC_DB_PATH, GENESIS_QR, INVITE_QR, VERSION,
 };
@@ -45,6 +45,7 @@ pub struct BotConfig {
 pub struct State {
     pub db: SqlitePool,
     pub config: BotConfig,
+    pub webxdc_versions: WebxdcVersions,
 }
 
 /// Github Bot
@@ -117,9 +118,16 @@ impl Bot {
             }
         };
 
+        let versions = read_webxdc_versions().await?;
+        info!("Loaded webxdc versions: {:?}", versions);
+
         Ok(Self {
             dc_ctx: context,
-            state: Arc::new(State { db, config }),
+            state: Arc::new(State {
+                db,
+                config,
+                webxdc_versions: Default::default(),
+            }),
         })
     }
 
@@ -157,10 +165,6 @@ impl Bot {
         let events_emitter = self.dc_ctx.get_event_emitter();
         let ctx = self.dc_ctx.clone();
         let state = self.state.clone();
-
-        let versions = read_webxdc_versions().await?;
-        info!("Loaded webxdc versions: {:?}", versions);
-        db::set_current_webxdc_versions(&mut *state.db.acquire().await?, &versions).await?;
 
         tokio::spawn(async move {
             while let Some(event) = events_emitter.recv().await {
@@ -390,16 +394,14 @@ impl Bot {
         let conn = &mut *state.db.acquire().await?;
         let chat_type = db::get_chat_type(conn, chat_id).await?;
         let (webxdc, version) = db::get_webxdc_version(conn, msg.get_id()).await?;
-        let newest_versions = db::get_current_webxdc_versions(conn).await?;
 
         if serde_json::from_str::<WebxdcStatusUpdate<UpdateRequest>>(&update).is_ok() {
-            let msg =
-                send_webxdc(context, &state, chat_id, webxdc, Some(store_message())).await?;
+            let msg = send_webxdc(context, &state, chat_id, webxdc, Some(store_message())).await?;
             send_newest_updates(context, msg, &mut *state.db.acquire().await?, 0).await?;
             return Ok(());
         }
 
-        if version != newest_versions.get(webxdc) {
+        if version != *state.webxdc_versions.get(webxdc) {
             info!("Webxdc version mismatch, updating");
 
             // Only try to upgrade version, if the webxdc event is _not_ an update response already
@@ -409,7 +411,7 @@ impl Bot {
                     context,
                     msg_id,
                     WebxdcOutdatedResponse {
-                        version: newest_versions.get(webxdc).to_string(),
+                        version: state.webxdc_versions.get(webxdc).to_string(),
                         critical: true,
                     },
                 )
