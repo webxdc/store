@@ -28,7 +28,7 @@ class BotProcess:
 @pytest.fixture
 def bot_binary_path():
     for path in [
-        Path.cwd() / "target/debug/xdcstore",
+        Path.cwd() / "target" / "debug" / "xdcstore",
         Path.cwd() / "xdcstore" / "xdcstore",
     ]:
         print("trying", path)
