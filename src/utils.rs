@@ -9,7 +9,7 @@ use deltachat::{
     context::Context,
     message::{Message, MsgId, Viewtype},
 };
-use serde_json::json;
+use serde::Serialize;
 use sqlx::SqliteConnection;
 use std::env;
 use tokio::fs;
@@ -59,16 +59,7 @@ pub async fn send_newest_updates(
 
     let serial = db::get_last_serial(db).await?;
     let resp = UpdateResponse { app_infos, serial };
-    context
-        .send_webxdc_status_update_struct(
-            msg_id,
-            deltachat::webxdc::StatusUpdateItem {
-                payload: json! {resp},
-                ..Default::default()
-            },
-            "",
-        )
-        .await?;
+    send_update_payload_only(context, msg_id, resp).await?;
     Ok(())
 }
 
@@ -108,16 +99,7 @@ pub async fn send_app_info(
     app_info: &AppInfo,
     msg_id: MsgId,
 ) -> anyhow::Result<()> {
-    context
-        .send_webxdc_status_update_struct(
-            msg_id,
-            deltachat::webxdc::StatusUpdateItem {
-                payload: json! {app_info},
-                ..Default::default()
-            },
-            "",
-        )
-        .await
+    send_update_payload_only(context, msg_id, app_info).await
 }
 
 /// Updates a value and update changed accordingly.
@@ -152,4 +134,22 @@ pub fn ne_assign_option<T: PartialEq>(
 /// Returns the version taken from the `bot-data/VERSION` file.
 pub async fn get_version() -> anyhow::Result<String> {
     Ok(fs::read_to_string("bot-data/VERSION").await?)
+}
+
+pub async fn send_update_payload_only<T: Serialize>(
+    context: &Context,
+    msg_id: MsgId,
+    payload: T,
+) -> anyhow::Result<()> {
+    context
+        .send_webxdc_status_update_struct(
+            msg_id,
+            deltachat::webxdc::StatusUpdateItem {
+                payload: serde_json::to_value(payload)?,
+                ..Default::default()
+            },
+            "",
+        )
+        .await?;
+    Ok(())
 }

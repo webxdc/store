@@ -4,7 +4,7 @@ use crate::{
     db,
     messages::appstore_message,
     request_handlers::{self, submit::SubmitChat, ChatType},
-    utils::{send_app_info, send_newest_updates, send_webxdc},
+    utils::{send_app_info, send_newest_updates, send_update_payload_only, send_webxdc},
     SHOP_XDC, SUBMIT_HELPER_XDC,
 };
 use anyhow::{bail, Context as _};
@@ -15,11 +15,9 @@ use deltachat::{
     contact::Contact,
     context::Context,
     message::{Message, MsgId},
-    webxdc::StatusUpdateItem,
 };
 use log::{info, warn};
 use serde::{Deserialize, Serialize};
-use serde_json::json;
 use std::sync::Arc;
 use ts_rs::TS;
 
@@ -147,16 +145,7 @@ pub async fn handle_status_update(
                     }
                 };
 
-                context
-                    .send_webxdc_status_update_struct(
-                        msg_id,
-                        StatusUpdateItem {
-                            payload: json! { resp },
-                            ..Default::default()
-                        },
-                        "",
-                    )
-                    .await?;
+                send_update_payload_only(context, msg_id, resp).await?;
             }
         }
     } else {

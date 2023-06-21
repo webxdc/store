@@ -1,4 +1,3 @@
-use serde_json::json;
 use sqlx::SqliteConnection;
 use std::sync::Arc;
 use thiserror::Error;
@@ -9,7 +8,7 @@ use crate::{
     db::{self, RecordId},
     messages::creat_review_group_init_message,
     request_handlers::WebxdcStatusUpdate,
-    utils::{get_contact_name, send_app_info, send_webxdc},
+    utils::{get_contact_name, send_app_info, send_update_payload_only, send_webxdc},
     REVIEW_HELPER_XDC,
 };
 use deltachat::{
@@ -17,7 +16,6 @@ use deltachat::{
     contact::ContactId,
     context::Context,
     message::{Message, MsgId},
-    webxdc::StatusUpdateItem,
 };
 use log::info;
 use serde::{Deserialize, Serialize};
@@ -191,16 +189,13 @@ pub async fn handle_status_update(
                 let conn = &mut *state.db.acquire().await?;
                 db::publish_app_info(conn, app_info).await?;
                 let review_chat = db::get_review_chat(conn, chat_id).await?;
-                context
-                    .send_webxdc_status_update_struct(
-                        review_chat.review_helper,
-                        StatusUpdateItem {
-                            payload: json!(ReviewResponse { okay: true }),
-                            ..Default::default()
-                        },
-                        "",
-                    )
-                    .await?;
+
+                send_update_payload_only(
+                    context,
+                    review_chat.review_helper,
+                    ReviewResponse { okay: true },
+                )
+                .await?;
                 chat::send_text_msg(
                     context,
                     review_chat.submit_chat,
