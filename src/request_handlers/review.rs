@@ -1,4 +1,3 @@
-use sqlx::SqliteConnection;
 use std::sync::Arc;
 use thiserror::Error;
 use ts_rs::TS;
@@ -20,7 +19,7 @@ use deltachat::{
 use log::info;
 use serde::{Deserialize, Serialize};
 
-use super::{submit::SubmitChat, AppInfo};
+use super::submit::SubmitChat;
 
 #[derive(Serialize, Deserialize, Default, Debug, PartialEq)]
 pub struct ReviewChat {
@@ -143,10 +142,6 @@ impl ReviewChat {
         db::set_chat_type(conn, chat_id, super::ChatType::Review).await?;
 
         Ok(review_chat)
-    }
-
-    pub async fn _get_app_info(&self, conn: &mut SqliteConnection) -> sqlx::Result<AppInfo> {
-        db::get_app_info(conn, self.app_info).await
     }
 }
 
