@@ -67,7 +67,7 @@ instead of the ones listed in the `frontend/pnpm-lock.yaml` file.
 
 Build the frontend by running `npm run build` or `pnpm run build`.
 This step creates a `bot-data` directory in the root of the repository
-with files `appstore.xdc`, `review-helpr.xdc` and `submit-helper.xdc`.
+with files `store.xdc`, `review-helpr.xdc` and `submit-helper.xdc`.
 
 To run the bot, set the environment variables
 `addr` and `mail_pw` with the login and password

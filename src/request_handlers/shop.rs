@@ -2,7 +2,7 @@ use super::{AppInfo, WebxdcStatusUpdate};
 use crate::{
     bot::State,
     db,
-    messages::appstore_message,
+    messages::store_message,
     request_handlers::{self, submit::SubmitChat, ChatType},
     utils::{send_app_info, send_newest_updates, send_update_payload_only, send_webxdc},
     SHOP_XDC, SUBMIT_HELPER_XDC,
@@ -68,7 +68,7 @@ pub async fn handle_message(
 ) -> anyhow::Result<()> {
     let chat = chat::Chat::load_from_db(context, chat_id).await?;
     if let constants::Chattype::Single = chat.typ {
-        let msg = send_webxdc(context, chat_id, SHOP_XDC, Some(appstore_message())).await?;
+        let msg = send_webxdc(context, chat_id, SHOP_XDC, Some(store_message())).await?;
         send_newest_updates(context, msg, &mut *state.db.acquire().await?, 0).await?;
     }
     Ok(())
