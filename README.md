@@ -1,8 +1,8 @@
-## Webxdc store: discover and share the latest apps to your chats 
+## WebXDC store: discover and share the latest apps to your chats
 
 **Status: ALPHA, use at your own risk**
 
-Welcome to the Webxdc store (also xdc store for short) which currently consists of: 
+Welcome to the WebXDC store (also xdc store for short) which currently consists of:
 
 - **Store bot**: a Rust-implemented bot which operates on an e-mail
   address and sends out a store xdc app. 
@@ -43,7 +43,7 @@ the central point of interaction for users:
   to make sure you have the latest versions. 
 
 - When hitting the "sendToChat/sendToChat/forward" button on any app for
-  the first time a download will be triggered (using the send/receive message webxdc APIs). 
+  the first time a download will be triggered (using the send/receive message WebXDC APIs).
 
 - For now, any message you send to the store bot will trigger it to send 
   the current store xdc in a new message. Later on we rather want to use 
