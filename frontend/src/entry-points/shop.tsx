@@ -68,7 +68,7 @@ function AppInfoModal(item: AppInfoWithState, onDownload: () => void, onForward:
           </Match>
           <Match when={item.state === AppState.Downloading}>
             <button class="send-button bg-gray-500" onClick={onDownload}>
-              <div class="i-eos-icons:three-dots-loading text-white"></div>
+              <div class="i-eos-icons:bubble-loading text-white"></div>
             </button>
           </Match><Match when={item.state === AppState.DownloadCancelled}>
             <button class="send-button bg-red-500" >
@@ -88,7 +88,7 @@ function AppInfoModal(item: AppInfoWithState, onDownload: () => void, onForward:
             <p class="my-4 text-gray-600">{item.description}</p>
             <div class="my-2">
               <p class="text-sm text-gray-600"><span class="font-bold"> Submitter:</span> {item.submitter_uri}</p>
-              <p class="text-sm text-gray-600"><span class="font-bold"> Source code:</span>  {item.source_code_url}</p>
+              <p class="break-words text-sm text-gray-600"><span class="font-bold"> Source code:</span>  {item.source_code_url}</p>
             </div>
           </>
         )
@@ -216,6 +216,7 @@ const Shop: Component = () => {
       setAppInfo(resp.payload.id, 'state', AppState.Received)
     }
     else if (isDownloadResponseError(resp.payload)) {
+      // @ts-expect-error waduheck
       setAppInfo(resp.payload.id, 'state', AppState.DownloadCancelled)
     }
   }, lastSerial())
@@ -251,7 +252,7 @@ const Shop: Component = () => {
           <div class="rounded-xl bg-gray-100 p-2 unimportant text-gray-500">
             <Show when={isUpdating()} fallback={
               <button class="flex items-center gap-2" onclick={handleUpdate}>
-                <span>{formatDuration(timeSinceLastUpdate(), { delimiter: ',' }).split(',')[0]} ago</span>
+                <span>{formatDuration(timeSinceLastUpdate(), { delimiter: ',' }).split(',')[0] || '0 sec'} ago</span>
                 <div class="border border-blue-500 rounded" i-material-symbols-sync></div>
               </button>
             }>
