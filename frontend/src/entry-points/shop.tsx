@@ -1,5 +1,5 @@
 import type { Component } from 'solid-js'
-import { Show, createEffect, createMemo, createSignal } from 'solid-js'
+import { Match, Show, Switch, createEffect, createMemo, createSignal } from 'solid-js'
 import { For, render } from 'solid-js/web'
 import { useStorage } from 'solidjs-use'
 import { formatDuration, intervalToDuration } from 'date-fns'
@@ -15,7 +15,6 @@ import '../index.sass'
 import 'virtual:uno.css'
 import '@unocss/reset/tailwind.css'
 import { AppInfoDB } from '../db/shop_db'
-import type { AppInfo } from '../bindings/AppInfo'
 
 const fuse_options = {
   keys: [
@@ -50,7 +49,7 @@ function isUpdateResponse(p: any): p is UpdateResponse {
   return p.type === 'Update'
 }
 
-function AppInfoModal(item: AppInfoWithState, onDownload: () => void) {
+function AppInfoModal(item: AppInfoWithState, onDownload: () => void, onForward: () => void) {
   const [isExpanded, setIsExpanded] = createSignal(false)
 
   return (
@@ -61,10 +60,28 @@ function AppInfoModal(item: AppInfoWithState, onDownload: () => void) {
           <h2 class="text-xl font-semibold">{item.name}</h2>
           <p class="max-width-text truncate text-gray-600">{item.description}</p>
         </div>
-        {item.state === AppState.Initial && <button id="send-button" class="rounded-half aspect-1 flex items-center justify-center justify-self-center rounded-1/2 bg-blue-500 p-3 px-2" onClick={onDownload}> <div class="i-material-symbols:forward text-white"></div> </button>}
-        {item.state === AppState.Downloading && <p class="unimportant"> Downloading.. </p>}
-        {item.state === AppState.DownloadCancelled && <p class="text-red"> Download cancelled </p>}
-      </div>
+        <Switch>
+          <Match when={item.state === AppState.Initial}>
+            <button class="send-button bg-blue-500" onClick={onDownload}>
+              <div class="i-material-symbols:download text-white"></div>
+            </button>
+          </Match>
+          <Match when={item.state === AppState.Downloading}>
+            <button class="send-button bg-gray-500" onClick={onDownload}>
+              <div class="i-eos-icons:three-dots-loading text-white"></div>
+            </button>
+          </Match><Match when={item.state === AppState.DownloadCancelled}>
+            <button class="send-button bg-red-500" >
+              <div class="i-material-symbols:error text-white"></div>
+            </button>
+          </Match>
+          <Match when={item.state === AppState.Received}>
+            <button class="send-button bg-green-500" onClick={onForward}>
+              <div class="i-material-symbols:forward text-white"></div>
+            </button>
+          </Match>
+        </Switch>
+      </div >
       {
         isExpanded() && (
           <>
@@ -95,7 +112,7 @@ const PublishButton: Component = () => {
   )
 }
 
-const AppList: Component<{ items: AppInfoWithState[]; search: string; onDownload: (id: number) => void }> = (props) => {
+const AppList: Component<{ items: AppInfoWithState[]; search: string; onDownload: (id: number) => void; onForward: (id: number) => void }> = (props) => {
   let fuse: Fuse<AppInfoWithState> = new Fuse(props.items, fuse_options)
 
   createEffect(() => {
@@ -115,17 +132,16 @@ const AppList: Component<{ items: AppInfoWithState[]; search: string; onDownload
     <Show when={props.items.length !== 0} fallback={<p class="text-center unimportant">Loading Apps..</p>}>
       <For each={filtered_items() || props.items}>
         {
-          item => AppInfoModal(item, () => { props.onDownload(item.id) })
+          item => AppInfoModal(item, () => props.onDownload(item.id), () => { props.onForward(item.id) })
         }
       </For>
     </Show>
   )
 }
 
-function to_app_infos_by_id(app_infos: AppInfo[]): AppInfosById {
+function to_app_infos_by_id(app_infos: AppInfoWithState[]): AppInfosById {
   return app_infos.reduce((acc, appinfo) => {
-    const index = appinfo.id
-    acc[index] = { ...appinfo, state: AppState.Initial }
+    acc[appinfo.id] = appinfo
     return acc
   }, {} as AppInfosById)
 }
@@ -153,9 +169,7 @@ const Shop: Component = () => {
   // query could overwrite app updates. For now, this should be fine.
   db.get_all().then((apps) => {
     const app_infos = to_app_infos_by_id(apps)
-    if (apps.length > 0) {
-      setAppInfo(app_infos)
-    }
+    setAppInfo(app_infos)
 
     if (import.meta.env.DEV) {
       setAppInfo(mock)
@@ -164,15 +178,16 @@ const Shop: Component = () => {
 
   window.webxdc.setUpdateListener(async (resp: ReceivedStatusUpdate<UpdateResponse | DownloadResponseOkay>) => {
     setlastSerial(resp.serial)
-    // Skip events that have a request_type and are hence self-send
     if (isUpdateResponse(resp.payload)) {
       console.log('Received Update')
-      const app_infos = to_app_infos_by_id(resp.payload.app_infos)
+      const app_infos = to_app_infos_by_id(resp.payload.app_infos.map((app_info) => {
+        return { ...app_info, state: AppState.Initial }
+      }))
 
       if (isEmpty(appInfo)) {
         // initially write the newest update to state
         setAppInfo(app_infos)
-        db.insertMultiple(resp.payload.app_infos)
+        db.insertMultiple(Object.values(app_infos))
       }
       else {
         // all but the first update only overwrite existing properties
@@ -198,7 +213,8 @@ const Shop: Component = () => {
     else if (isDownloadResponseOkay(resp.payload)) {
       const file = { base64: resp.payload.data, name: `${resp.payload.name}.xdc` }
       db.add_webxdc(file, resp.payload.id)
-      window.webxdc.sendToChat({ file })
+      db.update({ ...appInfo[resp.payload.id], state: AppState.Received })
+      setAppInfo(resp.payload.id, 'state', AppState.Received)
     }
     else if (isDownloadResponseError(resp.payload)) {
       setAppInfo(resp.payload.id, 'state', AppState.DownloadCancelled)
@@ -213,19 +229,19 @@ const Shop: Component = () => {
   }
 
   async function handleDownload(app_id: number) {
-    try {
-      const file = await db.get_webxdc(app_id)
-      if (file === undefined) {
-        throw new Error('No cached file found')
-      }
-      window.webxdc.sendToChat({ file })
+    setAppInfo(Number(app_id), 'state', AppState.Downloading)
+    db.update({ ...appInfo[app_id], state: AppState.Downloading })
+    window.webxdc.sendUpdate({
+      payload: { Download: { app_id } } as ShopRequest,
+    }, '')
+  }
+
+  async function handleForward(app_id: number) {
+    const file = await db.get_webxdc(app_id)
+    if (file === undefined) {
+      throw new Error('No cached file found')
     }
-    catch (e) {
-      setAppInfo(Number(app_id), 'state', AppState.Downloading)
-      window.webxdc.sendUpdate({
-        payload: { Download: { app_id } } as ShopRequest,
-      }, '')
-    }
+    window.webxdc.sendToChat({ file })
   }
 
   return (
@@ -256,7 +272,7 @@ const Shop: Component = () => {
                 <div class="i-carbon-search" />
               </button>
             </li>
-            <AppList items={Object.values(appInfo)} search={search()} onDownload={handleDownload} ></AppList>
+            <AppList items={Object.values(appInfo)} search={search()} onDownload={handleDownload} onForward={handleForward} ></AppList>
             <li class="mt-3">
               <PublishButton></PublishButton>
             </li>

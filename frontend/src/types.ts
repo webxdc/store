@@ -4,6 +4,7 @@ export enum AppState {
   Initial,
   Downloading,
   DownloadCancelled,
+  Received,
 }
 
 export interface AppInfoWithState extends AppInfo {
