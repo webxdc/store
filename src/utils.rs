@@ -12,7 +12,6 @@ use deltachat::{
 use serde::Serialize;
 use sqlx::SqliteConnection;
 use std::env;
-use tokio::fs;
 
 use crate::{
     db,
@@ -129,11 +128,6 @@ pub fn ne_assign_option<T: PartialEq>(
             *changed = true;
         }
     }
-}
-
-/// Returns the version taken from the `bot-data/VERSION` file.
-pub async fn get_version() -> anyhow::Result<String> {
-    Ok(fs::read_to_string("bot-data/VERSION").await?)
 }
 
 pub async fn send_update_payload_only<T: Serialize>(

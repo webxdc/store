@@ -23,3 +23,8 @@ base64-compat = "1.0.0"
 qrcode-generator = "4.1.8"
 qr2term = "0.3.1"
 sqlx = { git = "https://github.com/launchbadge/sqlx.git", features = [ "runtime-tokio", "migrate", "sqlite" ] }
+futures= "*"
+build_script_file_gen = "0.6.1"
+
+[build-dependencies]
+build_script_file_gen = "0.6.1"

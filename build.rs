@@ -1,4 +1,5 @@
-use std::{fs, path::PathBuf, process::Command};
+use build_script_file_gen::gen_file_str;
+use std::process::Command;
 
 fn main() {
     let description = Command::new("git")
@@ -7,9 +8,5 @@ fn main() {
         .expect("git has to be installed")
         .stdout;
 
-    if !PathBuf::from("bot-data").exists() {
-        fs::create_dir("bot-data").unwrap();
-    }
-
-    fs::write("bot-data/VERSION", description).unwrap()
+    gen_file_str("VERSION", &String::from_utf8(description).unwrap());
 }

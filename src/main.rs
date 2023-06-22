@@ -12,11 +12,11 @@ use std::path::PathBuf;
 
 use anyhow::Context;
 use bot::Bot;
+use build_script_file_gen::include_file_str;
 use clap::Parser;
 use cli::{BotActions, BotCli};
 use log::info;
 use tokio::signal;
-use utils::get_version;
 
 use crate::request_handlers::AppInfo;
 
@@ -27,6 +27,7 @@ const INVITE_QR: &str = "./bot-data/1o1_invite_qr.png";
 const SHOP_XDC: &str = "./bot-data/store.xdc";
 const SUBMIT_HELPER_XDC: &str = "./bot-data/submit-helper.xdc";
 const REVIEW_HELPER_XDC: &str = "./bot-data/review-helper.xdc";
+const VERSION: &str = include_file_str!("VERSION");
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
@@ -118,7 +119,7 @@ async fn main() -> anyhow::Result<()> {
                 Err(_) => println!("Bot not configured yet, start the bot first."),
             }
         }
-        BotActions::Version => print!("{}", get_version().await?),
+        BotActions::Version => print!("{}", VERSION),
         BotActions::Start => {
             let mut bot = Bot::new().await.context("failed to create bot")?;
             bot.start().await;
