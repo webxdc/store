@@ -28,7 +28,7 @@ the central point of interaction for users:
    button on any app. 
 
 2. Select the chat where you want to share the app.
-   If you just want to test an app yourself select the "Saved Message" chat. 
+   If you just want to test an app yourself select the "Saved Messages" chat. 
 
 3. The app will now appear in the selected chat in draft mode so that
    you can modify the text message and send the app to your chat partners.
@@ -118,10 +118,10 @@ Notes:
 - The `app_id` and `version` fields are used by the bot to sort submitted apps so that 
   the store xdc can offer the latest version of each app to users. 
 
-- The `app_id` field MUST be ASCII-alphanumberic with only `.` allowed as special character. 
+- The `app_id` field MUST be ASCII-alphanumeric with only `.` allowed as special character. 
   Casing doesn't matter and will be ignored by the bot when doing `app_id` comparisons. 
 
-- The `version` field MUST adhere to https://semver.org/ -- i.e. be a 
+- The `version` field MUST adhere to https://semver.org/ -- i.e. be 1.2.3
 
 - The `submitter_uri` can be a URL, a mailto or xmpp URI and is
   determined by the bot at submission time which is also recorded in `submission_date`. 
