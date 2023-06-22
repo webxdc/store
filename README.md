@@ -94,7 +94,7 @@ To import WebXDC applications into the app index:
 
 where `/path/to/xdc_apps/` is a folder with WebXDC files you want to import.
 
-### Per-App metadata 
+### Per-app metadata
 
 The store bot uses the following meta data for each xdc app,
 noted down in rust-struct style for now: 
@@ -133,7 +133,7 @@ Notes:
   However, the `source_code_url` already provides an (unauthenticated) 
   way to point to the author(s). 
 
-## Developing / Building from source
+## Developing / building from source
 
 ### Requirements
 
@@ -175,7 +175,7 @@ For testing, there are some apps in the folder `example-xdcs` you can import:
     cargo run -- import imported_apps
 ```
 
-### Building Pull Requests
+### Building pull requests
 
 The CI automatically builds releases tarballs for testing for every GitHub Pull Request branch, the
 download link can be found in the CI checks details section at the bottom of the Pull Request page.
