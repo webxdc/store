@@ -66,8 +66,7 @@ To check the program is installed correctly run:
 
 You should see the version code printed on the screen.
 
-If you want to install from source code, read:
-https://github.com/webxdc/store#developing--building-from-source
+If you want to install from source code, read [Developing / Building from source](#developing--building-from-source)
 
 ### Running the bot
 
