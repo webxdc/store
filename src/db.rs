@@ -169,8 +169,7 @@ pub async fn set_review_chat_publisher(
     Ok(())
 }
 
-#[allow(unused)]
-/// Used only for testing.
+#[cfg(test)]
 pub async fn create_review_chat(
     c: &mut SqliteConnection,
     review_chat: &ReviewChat,
