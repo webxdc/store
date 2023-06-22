@@ -20,7 +20,6 @@ cd "$SRC"
 cargo build --release
 
 cp target/release/xdcstore "$DESTDIR/xdcstore"
-git describe --always >"$DESTDIR/bot-data/VERSION"
 
 mkdir -p "$SRC/dist"
 OUT="$SRC/dist/xdcstore.tar.gz"
