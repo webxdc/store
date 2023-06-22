@@ -157,7 +157,7 @@ with files `store.xdc`, `review-helper.xdc` and `submit-helper.xdc`.
 cargo build
 ```
 
-the binary will be available in `./target/debug/` folder
+The binary will be available in `./target/debug/` folder.
 
 While developing it is easier to build and run the bot in a single step with:
 
