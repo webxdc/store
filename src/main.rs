@@ -35,7 +35,7 @@ async fn main() -> anyhow::Result<()> {
     let cli = BotCli::parse();
 
     match &cli.action {
-        BotActions::Import { path, keep_files } => {
+        BotActions::Import { path } => {
             let bot = Bot::new().await.context("failed to create bot")?;
             let path = path.as_deref().unwrap_or("import/");
             info!("Importing webxdcs from {path}");
@@ -74,23 +74,14 @@ async fn main() -> anyhow::Result<()> {
                             let mut new_path = PathBuf::from("./bot-data/xdcs");
                             new_path.push(file.file_name().context("Direntry has no filename")?);
 
-                            if keep_files.unwrap_or_default() {
-                                fs::copy(file, &new_path).with_context(|| {
-                                    format!(
-                                        "failed to copy {} to {}",
-                                        file.display(),
-                                        new_path.display()
-                                    )
-                                })?;
-                            } else {
-                                fs::rename(file, &new_path).with_context(|| {
-                                    format!(
-                                        "failed to move {} to {}",
-                                        file.display(),
-                                        new_path.display()
-                                    )
-                                })?;
-                            }
+                            fs::copy(file, &new_path).with_context(|| {
+                                format!(
+                                    "failed to copy {} to {}",
+                                    file.display(),
+                                    new_path.display()
+                                )
+                            })?;
+
                             app_info.xdc_blob_dir = new_path;
                             db::create_app_info(
                                 &mut *bot.get_db_connection().await?,

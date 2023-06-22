@@ -73,7 +73,6 @@ def storebot_example(acfactory, bot_path, bot_binary_path):
             bot_binary_path,
             "import",
             Path.cwd() / "example-xdcs",
-            "true",
         ],
         cwd=bot_path,
         env={
