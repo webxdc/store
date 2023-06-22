@@ -28,7 +28,7 @@ const AppInfoPreview: Component<AppInfoPreviewProps> = (props) => {
       <input class="mb-3" name="source_code_url" value={props.appinfo.source_code_url ?? ''} disabled placeholder="Source Code URL" />
       <label>Version</label>
       <input class="mb-3" name="version" value={props.appinfo.version} disabled placeholder="Version" />
-      <div class="flex gap-2 items-center">
+      <div class="flex items-center gap-2">
         <label>I own all rights to publish this software</label>
         <input type="checkbox" name="rights_provided" disabled={props.disable_all} />
       </div>
