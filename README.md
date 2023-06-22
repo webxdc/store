@@ -143,10 +143,10 @@ with files `store.xdc`, `review-helpr.xdc` and `submit-helper.xdc`.
 ### Building the bot
 
 ```
-cargo build --release
+cargo build
 ```
 
-the binary will be available in `./target/release/` folder
+the binary will be available in `./target/debug/` folder
 
 ### Testing the frontend
 
