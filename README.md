@@ -170,9 +170,7 @@ addr=bot@example.org mail_pw=My_P4ssword cargo run -- start
 For testing, there are some apps in the folder `example-xdcs` you can import:
 
 ```
-    mkdir imported_apps
-    cp example-xdcs/*.xdc imported_apps/
-    cargo run -- import imported_apps
+    cargo run -- import example-xdcs
 ```
 
 ### Building pull requests
