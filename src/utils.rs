@@ -15,7 +15,7 @@ use std::env;
 
 use crate::{
     db,
-    request_handlers::{shop::UpdateResponse, AppInfo},
+    request_handlers::{shop::ShopResponse, AppInfo},
 };
 
 pub async fn configure_from_env(ctx: &Context) -> Result<()> {
@@ -57,7 +57,7 @@ pub async fn send_newest_updates(
         .collect();
 
     let serial = db::get_last_serial(db).await?;
-    let resp = UpdateResponse { app_infos, serial };
+    let resp = ShopResponse::Update { app_infos, serial };
     send_update_payload_only(context, msg_id, resp).await?;
     Ok(())
 }

@@ -38,26 +38,22 @@ enum ShopRequest {
 #[derive(TS, Serialize)]
 #[ts(export)]
 #[ts(export_to = "frontend/src/bindings/")]
-pub struct UpdateResponse {
-    pub app_infos: Vec<AppInfo>,
-    pub serial: i32,
-}
-
-#[derive(TS, Serialize)]
-#[ts(export)]
-#[ts(export_to = "frontend/src/bindings/")]
 #[serde(tag = "type")]
-pub enum DownloadResponse {
-    Okay {
+pub enum ShopResponse {
+    DownloadOkay {
         id: i32,
         /// Name to be used as filename in `sendToChat`.
         name: String,
         /// Base64 encoded webxdc.
         data: String,
     },
-    Error {
+    DownloadError {
         id: i32,
         error: String,
+    },
+    Update {
+        app_infos: Vec<AppInfo>,
+        serial: i32,
     },
 }
 
@@ -131,14 +127,14 @@ pub async fn handle_status_update(
                 info!("Handling store download");
 
                 let resp = match handle_download_request(state, app_id).await {
-                    Ok((data, name)) => DownloadResponse::Okay {
+                    Ok((data, name)) => ShopResponse::DownloadOkay {
                         data,
                         name,
                         id: app_id,
                     },
                     Err(e) => {
                         warn!("Error while handling download request: {}", e);
-                        DownloadResponse::Error {
+                        ShopResponse::DownloadError {
                             error: e.to_string(),
                             id: app_id,
                         }

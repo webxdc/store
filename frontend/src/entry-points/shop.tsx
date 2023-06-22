@@ -6,8 +6,7 @@ import { formatDuration, intervalToDuration } from 'date-fns'
 import Fuse from 'fuse.js'
 import { createStore, produce } from 'solid-js/store'
 import type { ReceivedStatusUpdate } from '../webxdc'
-import type { DownloadResponse } from '../bindings/DownloadResponse'
-import type { UpdateResponse } from '../bindings/UpdateResponse'
+import type { ShopResponse } from '../bindings/ShopResponse'
 import type { ShopRequest } from '../bindings/ShopRequest'
 import mock from '../mock'
 import type { AppInfoWithState, AppInfosById } from '../types'
@@ -35,19 +34,20 @@ function isEmpty(obj: any) {
   return true
 }
 
-type DownloadResponseOkay = Extract<DownloadResponse, { type: 'Okay' }>
-type DownloadResponseError = Extract<DownloadResponse, { type: 'Error' }>
+type DownloadResponseOkay = Extract<ShopResponse, { type: 'DownloadOkay' }>
+type DownloadResponseError = Extract<ShopResponse, { type: 'DownloadError' }>
+type UpdateResponse = Extract<ShopResponse, { type: 'Update' }>
 
 function isDownloadResponseOkay(p: any): p is DownloadResponseOkay {
-  return Object.prototype.hasOwnProperty.call(p, 'data')
+  return p.type === 'DownloadOkay'
 }
 
 function isDownloadResponseError(p: any): p is DownloadResponseError {
-  return Object.prototype.hasOwnProperty.call(p, 'error')
+  return p.type === 'DownloadError'
 }
 
 function isUpdateResponse(p: any): p is UpdateResponse {
-  return Object.prototype.hasOwnProperty.call(p, 'app_infos')
+  return p.type === 'Update'
 }
 
 function AppInfoModal(item: AppInfoWithState, onDownload: () => void) {
@@ -61,7 +61,7 @@ function AppInfoModal(item: AppInfoWithState, onDownload: () => void) {
           <h2 class="text-xl font-semibold">{item.name}</h2>
           <p class="max-width-text truncate text-gray-600">{item.description}</p>
         </div>
-        {item.state === AppState.Initial && <button id="send-button" class="flex items-center justify-center justify-self-center px-2 bg-blue-500 rounded-half rounded-1/2 aspect-1 p-3" onClick={onDownload}> <div class="i-material-symbols:forward text-white"></div> </button>}
+        {item.state === AppState.Initial && <button id="send-button" class="rounded-half aspect-1 flex items-center justify-center justify-self-center rounded-1/2 bg-blue-500 p-3 px-2" onClick={onDownload}> <div class="i-material-symbols:forward text-white"></div> </button>}
         {item.state === AppState.Downloading && <p class="unimportant"> Downloading.. </p>}
         {item.state === AppState.DownloadCancelled && <p class="text-red"> Download cancelled </p>}
       </div>
@@ -162,7 +162,7 @@ const Shop: Component = () => {
     }
   })
 
-  window.webxdc.setUpdateListener(async (resp: ReceivedStatusUpdate<UpdateResponse | DownloadResponse>) => {
+  window.webxdc.setUpdateListener(async (resp: ReceivedStatusUpdate<UpdateResponse | DownloadResponseOkay>) => {
     setlastSerial(resp.serial)
     // Skip events that have a request_type and are hence self-send
     if (isUpdateResponse(resp.payload)) {
