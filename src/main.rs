@@ -97,7 +97,7 @@ async fn main() -> anyhow::Result<()> {
                                 &mut app_info,
                             )
                             .await?;
-                            println!("Added {:?}({}) to apps", file, app_info.name);
+                            println!("Added {}({}) to apps", file.display(), app_info.name);
                         }
                         Err(e) => {
                             println!("Failed to import {:?} \n{}", file, e);

@@ -17,7 +17,7 @@ pub mod submit;
 
 #[derive(Deserialize)]
 pub struct WexbdcManifest {
-    /// Webxcd application identifier.
+    /// Webxdc application identifier.
     pub app_id: String,
 
     /// Version of the application.
