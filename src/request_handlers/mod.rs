@@ -131,20 +131,22 @@ pub enum ChatType {
 /// A generic webxdc update
 #[derive(Deserialize)]
 pub struct WebxdcStatusUpdate<T> {
-    payload: T,
+    pub payload: T,
 }
 
 #[derive(Serialize, Deserialize, TS)]
 #[ts(export)]
 #[ts(export_to = "frontend/src/bindings/")]
-pub struct WebxdcOutdatedResponse {
-    pub critical: bool,
-    pub version: String,
+#[serde(tag = "type")]
+
+pub enum GeneralFrontendResponse {
+    Outdated { critical: bool, version: String },
 }
 
 #[derive(Deserialize, TS)]
 #[ts(export)]
 #[ts(export_to = "frontend/src/bindings/")]
-pub struct UpdateRequest {
-    pub update: bool,
+#[serde(tag = "type")]
+pub enum GeneralFrontendRequest {
+    UpdateWebxdc,
 }

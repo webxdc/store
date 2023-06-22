@@ -1,10 +1,12 @@
 import type { AppInfo } from './bindings/AppInfo'
-import type { WebxdcOutdatedResponse } from './bindings/WebxdcOutdatedResponse'
+import type { GeneralFrontendResponse } from './bindings/GeneralFrontendResponse'
 
 export function isAppInfo(p: any): p is AppInfo {
   return Object.prototype.hasOwnProperty.call(p, 'version')
 }
 
+export type WebxdcOutdatedResponse = Extract<GeneralFrontendResponse, { type: 'Outdated' }>
+
 export function isOutdatedResponse(p: any): p is WebxdcOutdatedResponse {
-  return Object.prototype.hasOwnProperty.call(p, 'critical')
+  return p.type === 'Outdated'
 }

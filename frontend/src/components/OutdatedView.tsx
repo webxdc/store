@@ -1,5 +1,5 @@
 import { type Component, createSignal } from 'solid-js'
-import type { UpdateRequest } from '../bindings/UpdateRequest'
+import type { GeneralFrontendRequest } from '../bindings/GeneralFrontendRequest'
 
 interface OutdatedViewProps {
   // If critical, the webxdc should stop working.
@@ -7,11 +7,13 @@ interface OutdatedViewProps {
   children: any
 }
 
+type UpdateRequest = Extract<GeneralFrontendRequest, { type: 'UpdateWebxdc' }>
+
 const AppInfoPreview: Component<OutdatedViewProps> = (props) => {
   const [buttonUsed, setButtonUsed] = createSignal(false)
 
   const update_req = () => {
-    window.webxdc.sendUpdate({ payload: { update: true } as UpdateRequest }, '')
+    window.webxdc.sendUpdate({ payload: { type: 'UpdateWebxdc' } as UpdateRequest }, '')
     setButtonUsed(true)
   }
   return (

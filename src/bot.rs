@@ -19,8 +19,10 @@ use std::{collections::HashSet, fs, path::PathBuf, sync::Arc};
 use crate::{
     db::{self, MIGRATOR},
     messages::store_message,
-    request_handlers::{genisis, review, shop, submit, ChatType, WebxdcOutdatedResponse},
-    request_handlers::{UpdateRequest, WebxdcStatusUpdate},
+    request_handlers::{
+        genisis, review, shop, submit, ChatType, GeneralFrontendRequest, GeneralFrontendResponse,
+        WebxdcStatusUpdate,
+    },
     utils::{
         configure_from_env, read_webxdc_versions, send_newest_updates, send_update_payload_only,
         send_webxdc, Webxdc, WebxdcVersions,
@@ -397,22 +399,29 @@ impl Bot {
         let chat_type = db::get_chat_type(conn, chat_id).await?;
         let (webxdc, version) = db::get_webxdc_version(conn, msg.get_id()).await?;
 
-        if serde_json::from_str::<WebxdcStatusUpdate<UpdateRequest>>(&update).is_ok() {
-            let msg = send_webxdc(context, &state, chat_id, webxdc, Some(store_message())).await?;
-            send_newest_updates(context, msg, &mut *state.db.acquire().await?, 0).await?;
-            return Ok(());
-        }
+        if let Ok(request) =
+            serde_json::from_str::<WebxdcStatusUpdate<GeneralFrontendRequest>>(&update)
+        {
+            match request.payload {
+                GeneralFrontendRequest::UpdateWebxdc => {
+                    let msg = send_webxdc(context, &state, chat_id, webxdc, Some(store_message()))
+                        .await?;
+                    send_newest_updates(context, msg, &mut *state.db.acquire().await?, 0).await?;
+                    return Ok(());
+                }
+            }
+        };
 
         if version != *state.webxdc_versions.get(webxdc) {
             info!("Webxdc version mismatch, updating");
 
             // Only try to upgrade version, if the webxdc event is _not_ an update response already
-            if serde_json::from_str::<WebxdcStatusUpdate<WebxdcOutdatedResponse>>(&update).is_err()
+            if serde_json::from_str::<WebxdcStatusUpdate<GeneralFrontendRequest>>(&update).is_err()
             {
                 send_update_payload_only(
                     context,
                     msg_id,
-                    WebxdcOutdatedResponse {
+                    GeneralFrontendResponse::Outdated {
                         version: state.webxdc_versions.get(webxdc).to_string(),
                         critical: true,
                     },
