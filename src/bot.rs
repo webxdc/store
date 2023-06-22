@@ -349,9 +349,7 @@ impl Bot {
                             submit::handle_webxdc(context, chat_id, state, msg).await?;
                         }
                     }
-                    ChatType::Review => {
-                        review::handle_message(context, chat_id, state, msg_id).await?;
-                    }
+                    ChatType::Review => {}
                     ChatType::Genesis => {
                         genisis::handle_message(context, state, chat_id, msg_id).await?
                     }

@@ -12,30 +12,27 @@
 //!
 //! See migrations folder for further details.
 
-use std::path::PathBuf;
-
-use anyhow::Context;
-use deltachat::{chat::ChatId, contact::ContactId, message::MsgId};
-use sqlx::{migrate::Migrator, Connection, FromRow, Row, SqliteConnection};
-
 use crate::{
     bot::BotConfig,
     request_handlers::{review::ReviewChat, submit::SubmitChat, AppInfo, ChatType},
 };
+use deltachat::{chat::ChatId, contact::ContactId, message::MsgId};
+use sqlx::{migrate::Migrator, Connection, FromRow, Row, SqliteConnection};
+use std::path::PathBuf;
 
 pub static MIGRATOR: Migrator = sqlx::migrate!();
 
 #[derive(FromRow)]
 pub struct DBAppInfo {
     pub id: RecordId,
+    pub app_id: String,
     pub name: String,                    // manifest
-    pub author_name: String,             // bot
-    pub author_email: String,            // bot
+    pub submitter_uri: Option<String>,   // bot
     pub source_code_url: Option<String>, // manifest
-    pub image: Option<String>,           // webxdc
-    pub description: Option<String>,     // submit
-    pub xdc_blob_dir: Option<String>,    // bot
-    pub version: Option<String>,         // manifest
+    pub image: String,                   // webxdc
+    pub description: String,             // submit
+    pub xdc_blob_dir: String,            // bot
+    pub version: String,                 // manifest
     pub originator: RecordId,            // bot
     pub active: bool,                    // bot
 }
@@ -44,13 +41,13 @@ impl From<DBAppInfo> for AppInfo {
     fn from(db_app: DBAppInfo) -> Self {
         Self {
             id: db_app.id,
+            app_id: db_app.app_id,
             name: db_app.name,
-            author_name: db_app.author_name,
-            author_email: db_app.author_email,
+            submitter_uri: db_app.submitter_uri,
             source_code_url: db_app.source_code_url,
             image: db_app.image,
             description: db_app.description,
-            xdc_blob_dir: db_app.xdc_blob_dir.map(PathBuf::from),
+            xdc_blob_dir: PathBuf::from(db_app.xdc_blob_dir),
             version: db_app.version,
             originator: db_app.originator,
             active: db_app.active,
@@ -363,19 +360,14 @@ pub async fn create_app_info(
     app_info: &mut AppInfo,
 ) -> anyhow::Result<()> {
     let next_serial = increase_get_serial(c).await?;
-    let blob_dir = if let Some(dir) = &app_info.xdc_blob_dir {
-        Some(dir.to_str().context("Can't convert to str")?)
-    } else {
-        None
-    };
-    let res = sqlx::query("INSERT INTO app_infos (name, description, version, image, author_name, author_email, xdc_blob_dir, active, originator, source_code_url, serial) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)")
+    let res = sqlx::query("INSERT INTO app_infos (app_id, name, description, version, image, submitter_uri, xdc_blob_dir, active, originator, source_code_url, serial) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)")
+        .bind(app_info.app_id.as_str())
         .bind(app_info.name.as_str())
         .bind(&app_info.description)
         .bind(&app_info.version)
         .bind(&app_info.image)
-        .bind(&app_info.author_name)
-        .bind(&app_info.author_email)
-        .bind(blob_dir)
+        .bind(&app_info.submitter_uri)
+        .bind(&app_info.xdc_blob_dir.to_str())
         .bind(app_info.active)
         .bind(app_info.originator)
         .bind(&app_info.source_code_url)
@@ -388,19 +380,14 @@ pub async fn create_app_info(
 }
 
 pub async fn update_app_info(c: &mut SqliteConnection, app_info: &AppInfo) -> anyhow::Result<()> {
-    let blob_dir = if let Some(dir) = &app_info.xdc_blob_dir {
-        Some(dir.to_str().context("Can't convert to str")?)
-    } else {
-        None
-    };
-    sqlx::query("UPDATE app_infos SET name = ?, description = ?, version = ?, image = ?, author_name = ?, author_email = ?, xdc_blob_dir = ?, active = ?, originator = ?, source_code_url = ? WHERE id = ?")
+    sqlx::query("UPDATE app_infos SET name = ?, app_id = ?, description = ?, version = ?, image = ?, author_name = ?, xdc_blob_dir = ?, active = ?, originator = ?, source_code_url = ? WHERE id = ?")
         .bind(app_info.name.as_str())
+        .bind(&app_info.app_id)
         .bind(&app_info.description)
         .bind(&app_info.version)
         .bind(&app_info.image)
-        .bind(&app_info.author_name)
-        .bind(&app_info.author_email)
-        .bind(blob_dir)
+        .bind(&app_info.submitter_uri)
+        .bind(&app_info.xdc_blob_dir.to_str())
         .bind(app_info.active)
         .bind(app_info.originator)
         .bind(&app_info.source_code_url)

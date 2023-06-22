@@ -101,33 +101,9 @@ pub async fn send_app_info(
     send_update_payload_only(context, msg_id, app_info).await
 }
 
-/// Updates a value and update changed accordingly.
-pub fn ne_assign<T: PartialEq>(original: &mut T, new: Option<T>, changed: &mut bool) {
-    if let Some(new) = new {
-        if *original != new {
-            *original = new;
-            *changed = true;
-        }
-    }
-}
-
-/// Updates a value and update `changed` accordingly.
-pub fn ne_assign_option<T: PartialEq>(
-    original: &mut Option<T>,
-    new: Option<T>,
-    changed: &mut bool,
-) {
-    if let Some(new) = new {
-        if let Some(original) = original {
-            if *original != new {
-                *original = new;
-                *changed = true;
-            }
-        } else {
-            *original = Some(new);
-            *changed = true;
-        }
-    }
+/// Returns the version taken from the `bot-data/VERSION` file.
+pub async fn get_version() -> anyhow::Result<String> {
+    Ok(fs::read_to_string("bot-data/VERSION").await?)
 }
 
 pub async fn send_update_payload_only<T: Serialize>(

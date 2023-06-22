@@ -66,44 +66,43 @@ async fn main() -> anyhow::Result<()> {
                     .context("Can't get filename for imported file")?
                     .ends_with(".xdc")
                 {
-                    let mut app_info = AppInfo::from_xdc(file).await?;
-                    app_info.active = true;
-                    app_info.author_name = "xdcstore".to_string();
-                    app_info.author_email = "xdcstore@testrun.org".to_string();
+                    match AppInfo::from_xdc(file).await {
+                        Ok(mut app_info) => {
+                            app_info.active = true;
+                            app_info.submitter_uri = Some("xdcstore".to_string());
 
-                    let missing = app_info.generate_missing_list();
-                    if missing.is_empty() {
-                        let mut new_path = PathBuf::from("./bot-data/xdcs");
-                        new_path.push(file.file_name().context("Direntry has no filename")?);
+                            let mut new_path = PathBuf::from("./bot-data/xdcs");
+                            new_path.push(file.file_name().context("Direntry has no filename")?);
 
-                        if keep_files.unwrap_or_default() {
-                            fs::copy(file, &new_path).with_context(|| {
-                                format!(
-                                    "failed to copy {} to {}",
-                                    file.display(),
-                                    new_path.display()
-                                )
-                            })?;
-                        } else {
-                            fs::rename(file, &new_path).with_context(|| {
-                                format!(
-                                    "failed to move {} to {}",
-                                    file.display(),
-                                    new_path.display()
-                                )
-                            })?;
-                        }
-                        app_info.xdc_blob_dir = Some(new_path);
-                        db::create_app_info(&mut *bot.get_db_connection().await?, &mut app_info)
+                            if keep_files.unwrap_or_default() {
+                                fs::copy(file, &new_path).with_context(|| {
+                                    format!(
+                                        "failed to copy {} to {}",
+                                        file.display(),
+                                        new_path.display()
+                                    )
+                                })?;
+                            } else {
+                                fs::rename(file, &new_path).with_context(|| {
+                                    format!(
+                                        "failed to move {} to {}",
+                                        file.display(),
+                                        new_path.display()
+                                    )
+                                })?;
+                            }
+                            app_info.xdc_blob_dir = new_path;
+                            db::create_app_info(
+                                &mut *bot.get_db_connection().await?,
+                                &mut app_info,
+                            )
                             .await?;
-                        println!("Added {:?}({}) to apps", file, app_info.name);
-                    } else {
-                        println!(
-                            "The app {} is missing some data: {:?}",
-                            file.as_os_str().to_str().context("Can't convert to str")?,
-                            missing
-                        )
-                    }
+                            println!("Added {:?}({}) to apps", file, app_info.name);
+                        }
+                        Err(e) => {
+                            println!("Failed to import {:?} \n{}", file, e);
+                        }
+                    };
                 }
             }
         }

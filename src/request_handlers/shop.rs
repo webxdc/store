@@ -7,7 +7,7 @@ use crate::{
     utils::{send_app_info, send_newest_updates, send_update_payload_only, send_webxdc},
     SHOP_XDC, SUBMIT_HELPER_XDC,
 };
-use anyhow::{bail, Context as _};
+use anyhow::Context as _;
 use base64::encode;
 use deltachat::{
     chat::{self, ChatId, ProtectionStatus},
@@ -80,8 +80,7 @@ pub async fn handle_webxdc(
     let mut app_info = AppInfo::from_xdc(&msg.get_file(context).context("Can't get file")?).await?;
     let contact = Contact::load_from_db(context, msg.get_from_id()).await?;
 
-    app_info.author_email = contact.get_addr().to_string();
-    app_info.author_name = contact.get_authname().to_string();
+    app_info.submitter_uri = Some(contact.get_authname().to_string());
 
     db::create_app_info(conn, &mut app_info).await?;
 
@@ -160,18 +159,15 @@ async fn handle_download_request(
     app_id: i32,
 ) -> anyhow::Result<(String, String)> {
     let app = db::get_app_info(&mut *state.db.acquire().await?, app_id).await?;
-    if let Some(file) = app.xdc_blob_dir {
-        Ok((
-            encode(
-                &tokio::fs::read(
-                    file.to_str()
-                        .context("Can't covert file '{file:?}' to str")?,
-                )
-                .await?,
-            ),
-            app.name,
-        ))
-    } else {
-        bail!("Appinfo {} has no xdc_blob_dir", app.name)
-    }
+    Ok((
+        encode(
+            &tokio::fs::read(
+                app.xdc_blob_dir
+                    .to_str()
+                    .context("Can't covert file '{file:?}' to str")?,
+            )
+            .await?,
+        ),
+        app.name,
+    ))
 }
