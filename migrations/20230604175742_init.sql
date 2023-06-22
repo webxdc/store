@@ -35,14 +35,14 @@ CREATE TABLE IF NOT EXISTS users (
 
 CREATE TABLE IF NOT EXISTS app_infos (
     id INTEGER PRIMARY KEY NOT NULL,
+    app_id TEXT NOT NULL,
     name TEXT NOT NULL,
-    author_name TEXT NOT NULL,
-    author_email TEXT NOT NULL,
+    submitter_uri TEXT,
     source_code_url TEXT,
-    image TEXT,
-    description TEXT,
-    xdc_blob_dir TEXT,
-    version TEXT,
+    image TEXT NOT NULL,
+    description TEXT NOT NULL,
+    xdc_blob_dir TEXT NOT NULL,
+    version TEXT NOT NULL,
     originator INTEGER NOT NULL,
     active BOOLEAN NOT NULL,
     serial INTEGER NOT NULL

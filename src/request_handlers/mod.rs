@@ -1,11 +1,10 @@
 //! Handlers for the different messages the bot receives
 use crate::{
     db::RecordId,
-    utils::{ne_assign, ne_assign_option, read_string, read_vec},
+    utils::{read_string, read_vec},
 };
 use async_zip::tokio::read::fs::ZipFileReader;
 use base64::encode;
-use deltachat::webxdc::WebxdcManifest;
 use serde::{Deserialize, Serialize};
 use sqlx::Type;
 use std::path::{Path, PathBuf};
@@ -17,15 +16,24 @@ pub mod shop;
 pub mod submit;
 
 #[derive(Deserialize)]
-pub struct ExtendedWebxdcManifest {
-    #[serde(flatten)]
-    webxdc_manifest: WebxdcManifest,
+pub struct WexbdcManifest {
+    /// Webxcd application identifier.
+    pub app_id: String,
 
     /// Version of the application.
-    pub version: Option<String>,
+    pub version: String,
+
+    /// Webxdc name, used on icons or page titles.
+    pub name: String,
 
     /// Description of the application.
-    pub description: Option<String>,
+    pub description: String,
+
+    /// URL of webxdc source code.
+    pub source_code_url: Option<String>,
+
+    /// Uri of the submitter.
+    pub submitter_uri: Option<String>,
 }
 
 #[derive(TS, Deserialize, Serialize, Clone, Debug, Default, PartialEq)]
@@ -33,15 +41,16 @@ pub struct ExtendedWebxdcManifest {
 #[ts(export_to = "frontend/src/bindings/")]
 pub struct AppInfo {
     pub id: RecordId,
-    pub name: String,                    // manifest
-    pub author_name: String,             // bot
-    pub author_email: String,            // bot
-    pub source_code_url: Option<String>, // manifest
-    pub image: Option<String>,           // webxdc
-    pub description: Option<String>,     // submit
-    pub version: Option<String>,         // manifest
     #[serde(skip)]
-    pub xdc_blob_dir: Option<PathBuf>, // bot
+    pub app_id: String, // manifest
+    pub version: String,                 // manifest
+    pub name: String,                    // manifest
+    pub submitter_uri: Option<String>,   // bot
+    pub source_code_url: Option<String>, // manifest
+    pub image: String,                   // webxdc
+    pub description: String,             // submit
+    #[serde(skip)]
+    pub xdc_blob_dir: PathBuf, // bot
     #[serde(skip)]
     pub originator: RecordId, // bot
     #[serde(skip)]
@@ -52,7 +61,7 @@ impl AppInfo {
     /// Create appinfo from webxdc file.
     pub async fn from_xdc(file: &Path) -> anyhow::Result<Self> {
         let mut app = AppInfo {
-            xdc_blob_dir: Some(file.to_path_buf()),
+            xdc_blob_dir: file.to_path_buf(),
             ..Default::default()
         };
         app.update_from_xdc(file.to_path_buf()).await?;
@@ -60,12 +69,9 @@ impl AppInfo {
     }
 
     /// Reads a webxdc file and overwrites current fields.
-    /// Returns whether the xdc was `changed` and `upgraded`
-    /// Upgrade means the version has changed.
-    pub async fn update_from_xdc(&mut self, file: PathBuf) -> anyhow::Result<(bool, bool)> {
+    /// Returns true if the version has changed.
+    pub async fn update_from_xdc(&mut self, file: PathBuf) -> anyhow::Result<bool> {
         let mut upgraded = false;
-        let mut changed = false;
-
         let reader = ZipFileReader::new(&file).await?;
         let entries = reader.file().entries();
         let manifest = entries
@@ -83,22 +89,20 @@ impl AppInfo {
 
         if let Some(index) = manifest {
             let res = read_string(&reader, index).await?;
-            let manifest: ExtendedWebxdcManifest = toml::from_str(&res)?;
-
-            ne_assign(&mut self.name, manifest.webxdc_manifest.name, &mut changed);
-            ne_assign_option(
-                &mut self.source_code_url,
-                manifest.webxdc_manifest.source_code_url,
-                &mut changed,
-            );
-            ne_assign_option(&mut self.version, manifest.version, &mut upgraded);
-            if upgraded {
-                changed = true
+            let manifest: WexbdcManifest = toml::from_str(&res)?;
+            self.app_id = manifest.app_id;
+            if self.version != manifest.version {
+                upgraded = true
             }
-            ne_assign_option(&mut self.description, manifest.description, &mut changed);
+            self.version = manifest.version;
+            self.name = manifest.name;
+            self.description = manifest.description;
+            self.source_code_url = manifest.source_code_url;
+            self.submitter_uri = manifest.submitter_uri;
+            // self.submission_date = manifest.submission_date;
         }
 
-        ne_assign_option(&mut self.xdc_blob_dir, Some(file), &mut changed);
+        self.xdc_blob_dir = file;
 
         let icon = entries
             .iter()
@@ -115,56 +119,16 @@ impl AppInfo {
 
         if let Some(index) = icon {
             let res = read_vec(&reader, index).await?;
-            ne_assign_option(&mut self.image, Some(encode(&res)), &mut changed);
+            self.image = encode(&res)
         }
-        Ok((changed, upgraded))
+        Ok(upgraded)
     }
 
     pub fn update_from_request(self, app_info: AppInfo) -> Self {
         Self {
-            id: self.id,
-            name: app_info.name,
-            author_name: app_info.author_name,
-            author_email: self.author_email,
-            source_code_url: self.source_code_url,
-            image: self.image,
-            description: app_info.description,
-            version: self.version,
-            xdc_blob_dir: self.xdc_blob_dir,
-            originator: self.originator,
-            active: self.active,
+            submitter_uri: app_info.submitter_uri,
+            ..self
         }
-    }
-
-    /// Generates a list of missing values from the appinfo.
-    pub fn generate_missing_list(&self) -> Vec<String> {
-        let mut missing: Vec<String> = vec![];
-        if self.name.is_empty() {
-            missing.push("name".to_string());
-        }
-        if self.author_name.is_empty() {
-            missing.push("author name".to_string());
-        }
-        if self.author_email.is_empty() {
-            missing.push("author email".to_string());
-        }
-        if self.description.is_none() {
-            missing.push("description".to_string());
-        }
-        if self.image.is_none() {
-            missing.push("image".to_string());
-        }
-        if self.source_code_url.is_none() {
-            missing.push("source_code_url".to_string());
-        }
-        if self.version.is_none() {
-            missing.push("version".to_string());
-        }
-        missing
-    }
-
-    pub fn is_complete(&self) -> bool {
-        self.generate_missing_list().is_empty()
     }
 }
 

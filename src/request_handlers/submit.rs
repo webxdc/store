@@ -90,11 +90,11 @@ pub async fn handle_webxdc(
     ))?;
 
     // TODO: Verify update
-    let (changed, upgraded) = app_info.update_from_xdc(file).await?;
+    let upgraded = app_info.update_from_xdc(file).await?;
     if upgraded {
         info!("Upgrading app info: {:?}", app_info.id)
         // TODO: Handle upgrade
-    } else if changed && check_app_info(context, &app_info, chat_id).await? {
+    } else {
         info!("Updating app info: {:?}", app_info.id);
         db::update_app_info(&mut *state.db.acquire().await?, &app_info).await?;
     }
@@ -116,9 +116,7 @@ pub async fn handle_status_update(
             SubmitRequest::Submit { app_info } => {
                 let current_app_info = submit_chat.get_app_info(conn).await?;
                 let new_app_info = current_app_info.update_from_request(app_info);
-                if check_app_info(context, &new_app_info, chat_id).await? {
-                    db::update_app_info(conn, &new_app_info).await?;
-                }
+                db::update_app_info(conn, &new_app_info).await?;
                 create_review_chat(context, state, submit_chat, chat_id).await?;
             }
         }
@@ -129,22 +127,4 @@ pub async fn handle_status_update(
         )
     }
     Ok(())
-}
-
-/// Checkes if all fields for appinfo are presents and sends a message about the outcome to chat_id.
-pub async fn check_app_info(
-    context: &Context,
-    app_info: &AppInfo,
-    chat_id: ChatId,
-) -> anyhow::Result<bool> {
-    let missing = app_info.generate_missing_list();
-    if !missing.is_empty() {
-        chat::send_text_msg(
-            context,
-            chat_id,
-            format!("Missing fields: {}", missing.join(", ")),
-        )
-        .await?;
-    }
-    Ok(true)
 }

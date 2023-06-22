@@ -15,7 +15,7 @@ use deltachat::{
     chat::{self, ChatId, ProtectionStatus},
     contact::ContactId,
     context::Context,
-    message::{Message, MsgId},
+    message::MsgId,
 };
 use log::info;
 use serde::{Deserialize, Serialize};
@@ -145,42 +145,9 @@ impl ReviewChat {
         Ok(review_chat)
     }
 
-    pub async fn get_app_info(&self, conn: &mut SqliteConnection) -> sqlx::Result<AppInfo> {
+    pub async fn _get_app_info(&self, conn: &mut SqliteConnection) -> sqlx::Result<AppInfo> {
         db::get_app_info(conn, self.app_info).await
     }
-}
-
-pub async fn handle_message(
-    context: &Context,
-    chat_id: ChatId,
-    state: Arc<State>,
-    message_id: MsgId,
-) -> anyhow::Result<()> {
-    info!("Handling review message");
-    let msg = Message::load_from_db(context, message_id).await?;
-    if let Some(msg_text) = msg.get_text() {
-        if msg_text == "/release" {
-            let conn = &mut *state.db.acquire().await?;
-            let review_chat = db::get_review_chat(conn, chat_id).await?;
-            let app_info = review_chat.get_app_info(conn).await?;
-            if app_info.is_complete() {
-                db::publish_app_info(conn, review_chat.app_info).await?;
-                chat::send_text_msg(context, chat_id, "App published".into()).await?;
-            } else {
-                let missing = app_info.generate_missing_list();
-                chat::send_text_msg(
-                    context,
-                    chat_id,
-                    format!(
-                        "You still are still missing some required fields: {}",
-                        missing.join(", ")
-                    ),
-                )
-                .await?;
-            }
-        }
-    }
-    Ok(())
 }
 
 pub async fn handle_status_update(

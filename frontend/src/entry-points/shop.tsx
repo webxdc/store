@@ -87,8 +87,7 @@ function AppInfoModal(item: AppInfoWithState, onDownload: () => void, onForward:
           <>
             <p class="my-4 text-gray-600">{item.description}</p>
             <div class="my-2">
-              <p class="text-sm text-gray-600"><span class="font-bold"> Author:</span> {item.author_name}</p>
-              <p class="text-sm text-gray-600"><span class="font-bold"> Contact:</span>  {item.author_email}</p>
+              <p class="text-sm text-gray-600"><span class="font-bold"> Submitter:</span> {item.submitter_uri}</p>
               <p class="text-sm text-gray-600"><span class="font-bold"> Source code:</span>  {item.source_code_url}</p>
             </div>
           </>
