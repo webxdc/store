@@ -133,12 +133,12 @@ You need to have installed:
 
 ### Building the frontend
 
-The bot uses a WebXDC app as "frontend" to interact with users.
+The bot uses WebXDC apps as "frontend" to interact with users.
 Go to the `frontend` folder and install the packages using `pnpm install`.
 
 Build the frontend by running `pnpm build`.
 This step creates a `bot-data` directory in the root of the repository
-with files `appstore.xdc`, `review-helpr.xdc` and `submit-helper.xdc`.
+with files `store.xdc`, `review-helpr.xdc` and `submit-helper.xdc`.
 
 ### Building the bot
 

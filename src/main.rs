@@ -24,7 +24,7 @@ const DB_URL: &str = "sqlite://bot-db/bot.db";
 const DC_DB_PATH: &str = "./deltachat.db";
 const GENESIS_QR: &str = "./bot-data/genesis_invite_qr.png";
 const INVITE_QR: &str = "./bot-data/1o1_invite_qr.png";
-const SHOP_XDC: &str = "./bot-data/appstore.xdc";
+const SHOP_XDC: &str = "./bot-data/store.xdc";
 const SUBMIT_HELPER_XDC: &str = "./bot-data/submit-helper.xdc";
 const REVIEW_HELPER_XDC: &str = "./bot-data/review-helper.xdc";
 
@@ -67,8 +67,8 @@ async fn main() -> anyhow::Result<()> {
                 {
                     let mut app_info = AppInfo::from_xdc(file).await?;
                     app_info.active = true;
-                    app_info.author_name = "Appstore bot".to_string();
-                    app_info.author_email = "appstorebot@testrun.org".to_string();
+                    app_info.author_name = "xdcstore".to_string();
+                    app_info.author_email = "xdcstore@testrun.org".to_string();
 
                     let missing = app_info.generate_missing_list();
                     if missing.is_empty() {

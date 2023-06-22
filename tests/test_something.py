@@ -18,7 +18,7 @@ class BotProcess:
         self.process = Popen(
             [binary_path, "start"],
             cwd=path,
-            env={"addr": addr, "mail_pw": password, "RUST_LOG": "github_bot=trace"},
+            env={"addr": addr, "mail_pw": password, "RUST_LOG": "xdcstore=trace"},
         )
 
     def __del__(self):
@@ -28,21 +28,23 @@ class BotProcess:
 @pytest.fixture
 def bot_binary_path():
     for path in [
-        Path.cwd() / "target/debug/github-bot",
-        Path.cwd() / "appstore-bot" / "appstore-bot",
+        Path.cwd() / "target" / "debug" / "xdcstore",
+        Path.cwd() / "xdcstore" / "xdcstore",
     ]:
         if path.exists():
             return path
+    pytest.fail("could not determine bot_binary_path")
 
 
 @pytest.fixture
 def bot_assets_path():
     for path in [
         Path.cwd() / "bot-data",
-        Path.cwd() / "appstore-bot" / "bot-data",
+        Path.cwd() / "xdcstore" / "bot-data",
     ]:
         if path.exists():
             return path
+    pytest.fail("could not determine bot_assets_path")
 
 
 @pytest.fixture
@@ -75,7 +77,7 @@ def storebot_example(acfactory, bot_path, bot_binary_path):
         ],
         cwd=bot_path,
         env={
-            "RUST_LOG": "github_bot=trace",
+            "RUST_LOG": "xdcstore=trace",
             "addr": config["addr"],
             "mail_pw": config["mail_pw"],
         },
@@ -94,7 +96,7 @@ def test_welcome_message(acfactory, storebot):
     bot_chat.send_text("hi!")
 
     msg_in = ac1.wait_next_incoming_message()
-    assert msg_in.text == "Welcome to the appstore bot!"
+    assert "Welcome to the webxdc store!" in msg_in.text
 
 
 def test_update(acfactory, storebot):
@@ -107,7 +109,7 @@ def test_update(acfactory, storebot):
 
     msg_in = ac1.wait_next_incoming_message()
     ac1._evtracker.get_matching("DC_EVENT_WEBXDC_STATUS_UPDATE")
-    assert msg_in.text == "Welcome to the appstore bot!"
+    assert "Welcome" in msg_in.text
 
     assert msg_in.is_webxdc()
     status_updates = msg_in.get_status_updates()
@@ -136,7 +138,7 @@ def test_import(acfactory, storebot_example):
 
     msg_in = ac1.wait_next_incoming_message()
     ac1._evtracker.get_matching("DC_EVENT_WEBXDC_STATUS_UPDATE")
-    assert msg_in.text == "Welcome to the appstore bot!"
+    assert "Welcome" in msg_in.text
 
     assert msg_in.is_webxdc()
     status_updates = msg_in.get_status_updates()

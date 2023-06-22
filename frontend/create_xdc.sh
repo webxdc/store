@@ -7,12 +7,12 @@ DESTDIR="$DESTDIR/bot-data"
 mkdir -p "$DESTDIR"
 cd dist
 
-echo "Building appstore.xdc"
+echo "Building store.xdc"
 cd shop
 mv shop.html index.html
 cp ../../build-files/shop/* .
-zip -9 --recurse-paths "appstore.xdc" *
-cp appstore.xdc "$DESTDIR"
+zip -9 --recurse-paths "store.xdc" *
+cp store.xdc "$DESTDIR"
 cd ..
 
 echo "Building submit-helper.xdc"
