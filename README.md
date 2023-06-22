@@ -1,8 +1,8 @@
-## Webxdc store: discover and share the latest apps to your chats 
+## WebXDC store: discover and share the latest apps to your chats
 
 **Status: ALPHA, use at your own risk**
 
-Welcome to the Webxdc store (also xdc store for short) which currently consists of: 
+Welcome to the WebXDC store (also xdc store for short) which currently consists of:
 
 - **Store bot**: a Rust-implemented bot which operates on an e-mail
   address and sends out a store xdc app. 
@@ -31,7 +31,7 @@ the central point of interaction for users:
    If you just want to test an app yourself select the "Saved Messages" chat. 
 
 3. The app will now appear in the selected chat in draft mode so that
-   you can modify the text message and send the app to your chat partners.
+   you can set a text message and send the app to your chat partners.
 
 4. Everyone in the chat can now start the app. The other chat members don't
    need to interact with the store bot at all. 
@@ -43,38 +43,40 @@ the central point of interaction for users:
   to make sure you have the latest versions. 
 
 - When hitting the "sendToChat/sendToChat/forward" button on any app for
-  the first time a download will be triggered (using the send/receive message webxdc APIs). 
+  the first time a download will be triggered (using the send/receive message WebXDC APIs).
 
 - For now, any message you send to the store bot will trigger it to send 
   the current store xdc in a new message. Later on we rather want to use 
   an update mechanism so there will only need to be a single store xdc app in
   the store bot chat. 
 
-## Setting Up the Bot
+## Setting up the bot
 
-### Requirements
+### Installing pre-built binary releases
 
-You need to have `rust` and `node` installed.
-Optionally, have [pnpm](https://pnpm.io/) installed.
+TODO: Download the latest release from https://github.com/webxdc/store/releases,
+extract the compressed archive to the desired location, it containts the bot command line
+program and required assets. In the following steps it is assumed that you added the program
+to your PATH variable, but you can run the binary directly.
 
-### Setting up the bot 
+To check the program is installed correctly run:
 
-Go to the `frontend` folder and install the packages using `pnpm install` or `pnpm i`.
-If you do not have `pnpm` installed, you can run `npx pnpm install` to use `pnpm` 
-without installing it globally or use `npm install` instead.
-However, if you use `npm install`, the latest versions of dependencies will be installed
-instead of the ones listed in the `frontend/pnpm-lock.yaml` file.
+```
+xdcstore version
+```
 
-Build the frontend by running `npm run build` or `pnpm run build`.
-This step creates a `bot-data` directory in the root of the repository
-with files `store.xdc`, `review-helpr.xdc` and `submit-helper.xdc`.
+You should see the version code printed on the screen.
+
+If you want to install from source code, read [Developing / Building from source](#developing--building-from-source)
+
+### Running the bot
 
 To run the bot, set the environment variables
 `addr` and `mail_pw` with the login and password
 and use the command `start`:
 
 ```
-    addr=bot@example.org mail_pw=My_P4ssword cargo run -- start
+    addr=bot@example.org mail_pw=My_P4ssword xdcstore start
 ```
 
 The environment variables need to be set the first time you start the bot
@@ -84,15 +86,15 @@ You may set the `RUST_LOG=info` environment variable to get detailed logging fro
 
 ### Importing apps
 
-To import example applications into the bot:
+To import WebXDC applications into the app index:
 
 ```
-    mkdir import
-    cp example-xdcs/*.xdc import/
-    cargo run -- import
+    xdcstore import /path/to/xdc_apps/
 ```
 
-### Per-App metadata 
+where `/path/to/xdc_apps/` is a folder with WebXDC files you want to import.
+
+### Per-app metadata
 
 The store bot uses the following meta data for each xdc app,
 noted down in rust-struct style for now: 
@@ -131,6 +133,55 @@ Notes:
   However, the `source_code_url` already provides an (unauthenticated) 
   way to point to the author(s). 
 
+## Developing / building from source
+
+### Requirements
+
+You need to have installed:
+- `rust` (https://www.rust-lang.org/tools/install)
+- `node` (https://docs.npmjs.com/downloading-and-installing-node-js-and-npm)
+- `pnpm` (https://pnpm.io/installation)
+
+### Building the frontend
+
+The bot uses WebXDC apps as "frontend" to interact with users.
+Go to the `frontend` folder and install the packages using `pnpm install`.
+
+Build the frontend by running `pnpm build`.
+This step creates a `bot-data` directory in the root of the repository
+with files `store.xdc`, `review-helper.xdc` and `submit-helper.xdc`.
+
+### Building the bot
+
+```
+cargo build
+```
+
+The binary will be available in `./target/debug/` folder.
+
+While developing it is easier to build and run the bot in a single step with:
+
+```
+addr=bot@example.org mail_pw=My_P4ssword cargo run -- start
+```
+
+### Importing test apps
+
+For testing, there are some apps in the folder `example-xdcs` you can import:
+
+```
+    cargo run -- import example-xdcs
+```
+
+### Building pull requests
+
+The CI automatically builds releases tarballs for testing for every GitHub Pull Request branch, the
+download link can be found in the CI checks details section at the bottom of the Pull Request page.
+
+### Testing the frontend
+
+While developing the frontend, run `pnpm dev` in the `frontend` folder to test your changes in a
+small emulator with mock data.
 
 ### Running automated tests 
 
@@ -145,3 +196,9 @@ Executing `tox` will run the tests.
 
 To develop the tests, create a development environment with `tox -e py --devenv env`
 and activate it with `. env/bin/activate`. Afterwards run `pytest`.
+
+### Releasing
+
+TODO: create the tarball and a GitHub release on version tags.
+
+To create locally the distribution tarball run the script at `./scripts/dist.sh`
