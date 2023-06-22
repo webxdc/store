@@ -114,7 +114,7 @@ def test_update(acfactory, storebot):
     assert msg_in.is_webxdc()
     status_updates = msg_in.get_status_updates()
     assert len(status_updates) == 1
-    assert status_updates[0]["payload"] == {"app_infos": [], "serial": 0}
+    assert status_updates[0]["payload"] == {"type": "Update", "app_infos": [], "serial": 0}
 
     # Request updates.
     assert msg_in.send_status_update({"payload": {"Update": {"serial": 0}}}, "update")
@@ -125,7 +125,7 @@ def test_update(acfactory, storebot):
     status_updates = msg_in.get_status_updates()
     assert len(status_updates) == 3
     payload = status_updates[-1]["payload"]
-    assert payload == {"app_infos": [], "serial": 0}
+    assert payload == {"type": "Update", "app_infos": [], "serial": 0}
 
 
 def test_import(acfactory, storebot_example):
@@ -144,6 +144,7 @@ def test_import(acfactory, storebot_example):
     status_updates = msg_in.get_status_updates()
     assert len(status_updates) == 1
     payload = status_updates[0]["payload"]
+    print( status_updates[0]["payload"])
     app_infos = payload["app_infos"]
     assert len(app_infos) == 4
 
@@ -192,7 +193,7 @@ def test_download(acfactory, storebot_example):
     # Test download response for existing app.
     status_updates = msg_in.get_status_updates()
     payload = status_updates[2]["payload"]
-    assert payload["type"] == "Okay"
+    assert payload["type"] == "DownloadOkay"
     assert payload["id"] == xdc_2040["id"]
     assert payload["name"] == "2048"
     with open(str(Path.cwd()) + "/example-xdcs/2048.xdc", "rb") as f:
@@ -204,5 +205,5 @@ def test_download(acfactory, storebot_example):
     ac1._evtracker.get_matching("DC_EVENT_WEBXDC_STATUS_UPDATE")
     status_updates = msg_in.get_status_updates()
     payload = status_updates[4]["payload"]
-    assert payload["type"] == "Error"
+    assert payload["type"] == "DownloadError"
     assert payload["id"] == 9
