@@ -1,4 +1,5 @@
 import type { AppInfo } from '../bindings/AppInfo'
+import type { AppInfoWithState } from '../types'
 import type { XDCFile } from '../webxdc'
 
 export class AppInfoDB {
@@ -24,7 +25,7 @@ export class AppInfoDB {
     })
   }
 
-  async insert(data: AppInfo): Promise<void> {
+  async insert(data: AppInfoWithState): Promise<void> {
     const db = await this.open()
     return new Promise((resolve, reject) => {
       const transaction = db.transaction('appInfo', 'readwrite')
@@ -35,7 +36,7 @@ export class AppInfoDB {
     })
   }
 
-  async update(data: AppInfo): Promise<void> {
+  async update(data: AppInfoWithState): Promise<void> {
     const db = await this.open()
     return new Promise((resolve, reject) => {
       const transaction = db.transaction('appInfo', 'readwrite')
@@ -46,36 +47,36 @@ export class AppInfoDB {
     })
   }
 
-  async insertMultiple(data: AppInfo[]): Promise<void> {
+  async insertMultiple(data: AppInfoWithState[] | AppInfo[]): Promise<void> {
     const db = await this.open()
     return new Promise((resolve, reject) => {
       const transaction = db.transaction('appInfo', 'readwrite')
       transaction.onerror = () => reject(transaction.error)
       const store = transaction.objectStore('appInfo')
-      data.forEach((item: AppInfo) => store.add(item))
+      data.forEach((item: AppInfoWithState | AppInfo) => store.add(item))
       transaction.oncomplete = () => resolve()
     })
   }
 
-  async updateMultiple(data: AppInfo[]): Promise<void> {
+  async updateMultiple(data: AppInfoWithState[] | AppInfo[]): Promise<void> {
     const db = await this.open()
     return new Promise((resolve, reject) => {
       const transaction = db.transaction('appInfo', 'readwrite')
       transaction.onerror = () => reject(transaction.error)
       const store = transaction.objectStore('appInfo')
-      data.forEach((item: AppInfo) => store.put(item))
+      data.forEach((item: AppInfoWithState | AppInfo) => store.put(item))
       transaction.oncomplete = () => resolve()
     })
   }
 
-  async get_all(): Promise<AppInfo[]> {
+  async get_all(): Promise<AppInfoWithState[]> {
     const db = await this.open()
     return new Promise((resolve, reject) => {
       const transaction = db.transaction('appInfo', 'readonly')
       transaction.onerror = () => reject(transaction.error)
       const store = transaction.objectStore('appInfo')
       const request = store.openCursor()
-      const result: AppInfo[] = []
+      const result: AppInfoWithState[] = []
       request.onsuccess = () => {
         const cursor = request.result
         if (cursor) {
