@@ -56,12 +56,13 @@ the central point of interaction for users:
 
 TODO: Download the latest release from https://github.com/webxdc/store/releases,
 extract the compressed archive to the desired location, it containts the bot command line
-program and required assets.
+program and required assets. In the following steps it is assumed that you added the program
+to your PATH variable, but you can run the binary directly.
 
 To check the program is installed correctly run:
 
 ```
-/path/to/xdcstore version
+xdcstore version
 ```
 
 You should see the version code printed on the screen.
@@ -75,7 +76,7 @@ To run the bot, set the environment variables
 and use the command `start`:
 
 ```
-    addr=bot@example.org mail_pw=My_P4ssword /path/to/xdcstore start
+    addr=bot@example.org mail_pw=My_P4ssword xdcstore start
 ```
 
 The environment variables need to be set the first time you start the bot
@@ -88,7 +89,7 @@ You may set the `RUST_LOG=info` environment variable to get detailed logging fro
 To import WebXDC applications into the app index:
 
 ```
-    /path/to/xdcstore import /path/to/xdc_apps/
+    xdcstore import /path/to/xdc_apps/
 ```
 
 where `/path/to/xdc_apps/` is a folder with WebXDC files you want to import.
