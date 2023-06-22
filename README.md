@@ -58,6 +58,14 @@ TODO: Download the latest release from https://github.com/webxdc/store/releases,
 extract the compressed archive to the desired location, it containts the bot command line
 program and required assets.
 
+To check the program is installed correctly run:
+
+```
+/path/to/xdcstore version
+```
+
+You should see the version code printed on the screen.
+
 If you want to install from source code, read:
 https://github.com/webxdc/store#developing--building-from-source
 
@@ -68,7 +76,7 @@ To run the bot, set the environment variables
 and use the command `start`:
 
 ```
-    addr=bot@example.org mail_pw=My_P4ssword ./xdcstore start
+    addr=bot@example.org mail_pw=My_P4ssword /path/to/xdcstore start
 ```
 
 The environment variables need to be set the first time you start the bot
@@ -78,13 +86,13 @@ You may set the `RUST_LOG=info` environment variable to get detailed logging fro
 
 ### Importing apps
 
-To import example applications into the bot:
+To import WebXDC applications into the app index:
 
 ```
-    mkdir import
-    cp example-xdcs/*.xdc import/
-    ./xdcstore import
+    /path/to/xdcstore import /path/to/xdc_apps/
 ```
+
+where `/path/to/xdc_apps/` is a folder with WebXDC files you want to import.
 
 ### Per-App metadata 
 
@@ -154,7 +162,17 @@ the binary will be available in `./target/debug/` folder
 While developing it is easier to build and run the bot in a single step with:
 
 ```
-cargo run -- start
+addr=bot@example.org mail_pw=My_P4ssword cargo run -- start
+```
+
+### Importing test apps
+
+For testing, there are some apps in the folder `example-xdcs` you can import:
+
+```
+    mkdir imported_apps
+    cp example-xdcs/*.xdc imported_apps/
+    cargo run -- import imported_apps
 ```
 
 ### Building Pull Requests
