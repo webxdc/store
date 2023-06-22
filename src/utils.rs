@@ -101,11 +101,6 @@ pub async fn send_app_info(
     send_update_payload_only(context, msg_id, app_info).await
 }
 
-/// Returns the version taken from the `bot-data/VERSION` file.
-pub async fn get_version() -> anyhow::Result<String> {
-    Ok(fs::read_to_string("bot-data/VERSION").await?)
-}
-
 pub async fn send_update_payload_only<T: Serialize>(
     context: &Context,
     msg_id: MsgId,
