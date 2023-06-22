@@ -138,7 +138,7 @@ Go to the `frontend` folder and install the packages using `pnpm install`.
 
 Build the frontend by running `pnpm build`.
 This step creates a `bot-data` directory in the root of the repository
-with files `store.xdc`, `review-helpr.xdc` and `submit-helper.xdc`.
+with files `store.xdc`, `review-helper.xdc` and `submit-helper.xdc`.
 
 ### Building the bot
 
