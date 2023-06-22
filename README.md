@@ -151,6 +151,17 @@ cargo build
 
 the binary will be available in `./target/debug/` folder
 
+While developing it is easier to build and run the bot in a single step with:
+
+```
+cargo run
+```
+
+### Building Pull Requests
+
+The CI automatically builds releases tarballs for testing for every GitHub Pull Request branch, the
+download link can be found in the CI checks details section at the bottom of the Pull Request page.
+
 ### Testing the frontend
 
 While developing the frontend, run `pnpm dev` in the `frontend` folder to test your changes in a
