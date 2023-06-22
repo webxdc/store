@@ -15,7 +15,6 @@ import '../index.sass'
 import 'virtual:uno.css'
 import '@unocss/reset/tailwind.css'
 import { AppInfoDB } from '../db/shop_db'
-import type { AppInfo } from '../bindings/AppInfo'
 import OutdatedView from '../components/OutdatedView'
 import { isOutdatedResponse } from '../utils'
 

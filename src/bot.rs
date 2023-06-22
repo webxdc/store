@@ -118,15 +118,17 @@ impl Bot {
             }
         };
 
-        let versions = read_webxdc_versions().await?;
-        info!("Loaded webxdc versions: {:?}", versions);
+        let webxdc_versions = read_webxdc_versions().await.map_err(|e| {
+            anyhow::anyhow!("Problem while parsing one of the store `manifests.toml`s: \n {e}")
+        })?;
+        info!("Loaded webxdc versions: {:?}", webxdc_versions);
 
         Ok(Self {
             dc_ctx: context,
             state: Arc::new(State {
                 db,
                 config,
-                webxdc_versions: Default::default(),
+                webxdc_versions,
             }),
         })
     }
