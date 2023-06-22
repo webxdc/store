@@ -529,6 +529,12 @@ dependencies = [
 ]
 
 [[package]]
+name = "build_script_file_gen"
+version = "0.6.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "c2cc0e7b3545776f203a13f562db18101e0d81ca5333ce222356958be55f3afa"
+
+[[package]]
 name = "bumpalo"
 version = "3.12.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -5530,9 +5536,11 @@ dependencies = [
  "anyhow",
  "async_zip 0.0.15",
  "base64-compat",
+ "build_script_file_gen",
  "clap",
  "deltachat",
  "env_logger",
+ "futures",
  "itertools",
  "log",
  "qr2term",

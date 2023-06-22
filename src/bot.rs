@@ -19,8 +19,9 @@ use crate::{
     db::{self, MIGRATOR},
     messages::store_message,
     request_handlers::{genisis, review, shop, submit, ChatType},
-    utils::{configure_from_env, get_version, send_newest_updates, send_webxdc},
+    utils::{configure_from_env, send_newest_updates, send_webxdc},
     DB_URL, DC_DB_PATH, GENESIS_QR, INVITE_QR, REVIEW_HELPER_XDC, SHOP_XDC, SUBMIT_HELPER_XDC,
+    VERSION,
 };
 
 #[derive(Serialize, Deserialize, PartialEq, Debug, Default)]
@@ -249,7 +250,7 @@ impl Bot {
         let msg = Message::load_from_db(context, msg_id).await?;
         if let Some(text) = msg.get_text() {
             if text == "/version" {
-                chat::send_text_msg(context, chat_id, get_version().await?).await?;
+                chat::send_text_msg(context, chat_id, VERSION.to_string()).await?;
                 return Ok(());
             }
         }
