@@ -52,11 +52,14 @@ the central point of interaction for users:
 
 ## Setting up the bot
 
-### Installation
+### Installing pre-built binary releases
 
 TODO: Download the latest release from https://github.com/webxdc/store/releases,
 extract the compressed archive to the desired location, it containts the bot command line
 program and required assets.
+
+If you want to install from source code, read:
+https://github.com/webxdc/store#developing--building-from-source
 
 ### Running the bot
 
