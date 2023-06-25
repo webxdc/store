@@ -39,6 +39,19 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
+        # Checkout pull request HEAD.
+        # This is needed to ensure that `git describe` outputs the hash
+        # which was actually pushed to the PR
+        # rather than automatically created merge commit.
+        #
+        # By default automatically created merge commit is created for testing,
+        # which does not correspond to any commit that ends up in the repository history:
+        # <https://github.com/actions/checkout/issues/426>
+        #
+        # Official documentation can be found at:
+        # https://github.com/actions/checkout/blob/96f53100ba2a5449eb71d2e6604bbcd94b9449b5/README.md#Checkout-pull-request-HEAD-commit-instead-of-merge-commit
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
 
       - run: |
           sudo apt install musl-tools
