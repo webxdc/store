@@ -17,9 +17,10 @@ npm run build
 
 # Build the backend.
 cd "$SRC"
-cargo build --release
 
-cp target/release/xdcstore "$DESTDIR/xdcstore"
+cargo build --target x86_64-unknown-linux-musl --release
+
+cp target/x86_64-unknown-linux-musl/release/xdcstore "$DESTDIR/xdcstore"
 
 mkdir -p "$SRC/dist"
 OUT="$SRC/dist/xdcstore.tar.gz"
