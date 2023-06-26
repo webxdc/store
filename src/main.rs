@@ -18,7 +18,7 @@ use directories::ProjectDirs;
 use log::info;
 use tokio::signal;
 
-use crate::request_handlers::AppInfo;
+use crate::{request_handlers::AppInfo, utils::maybe_upgrade_xdc};
 
 const GENESIS_QR: &str = "genesis_invite_qr.png";
 const INVITE_QR: &str = "1o1_invite_qr.png";
@@ -87,11 +87,10 @@ async fn main() -> anyhow::Result<()> {
                             })?;
 
                             app_info.xdc_blob_dir = new_path;
-                            db::create_app_info(
-                                &mut *bot.get_db_connection().await?,
-                                &mut app_info,
-                            )
-                            .await?;
+
+                            maybe_upgrade_xdc(&mut app_info, &mut *bot.get_db_connection().await?)
+                                .await?;
+
                             println!("Added {}({}) to apps", file.display(), app_info.name);
                         }
                         Err(e) => {

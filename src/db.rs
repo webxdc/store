@@ -369,7 +369,8 @@ pub async fn create_app_info(
     c: &mut SqliteConnection,
     app_info: &mut AppInfo,
 ) -> anyhow::Result<()> {
-    let next_serial = increase_get_serial(c).await?;
+    let mut trans = c.begin().await?;
+    let next_serial = increase_get_serial(&mut *trans).await?;
     let res = sqlx::query("INSERT INTO app_infos (app_id, name, description, version, image, submitter_uri, xdc_blob_dir, active, originator, source_code_url, serial) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)")
         .bind(app_info.app_id.as_str())
         .bind(app_info.name.as_str())
@@ -383,9 +384,10 @@ pub async fn create_app_info(
         .bind(&app_info.source_code_url)
         .bind(next_serial)
         .bind(app_info.id)
-        .execute(c)
+        .execute(&mut *trans)
         .await?;
     app_info.id = i32::try_from(res.last_insert_rowid())?;
+    trans.commit().await?;
     Ok(())
 }
 
@@ -426,8 +428,9 @@ pub async fn get_app_info(
         .map(|app| app.into())
 }
 
-pub async fn _get_active_app_infos(c: &mut SqliteConnection) -> sqlx::Result<Vec<AppInfo>> {
-    sqlx::query_as::<_, DBAppInfo>("SELECT * FROM app_infos WHERE active = true")
+#[cfg(test)]
+pub async fn get_app_infos(c: &mut SqliteConnection) -> sqlx::Result<Vec<AppInfo>> {
+    sqlx::query_as::<_, DBAppInfo>("SELECT * FROM app_infos")
         .fetch_all(c)
         .await
         .map(|app| app.into_iter().map(|a| a.into()).collect())
@@ -435,13 +438,36 @@ pub async fn _get_active_app_infos(c: &mut SqliteConnection) -> sqlx::Result<Vec
 
 pub async fn get_active_app_infos_since(
     c: &mut SqliteConnection,
-    serial: i32,
+    serial: u32,
 ) -> sqlx::Result<Vec<AppInfo>> {
     sqlx::query_as::<_, DBAppInfo>("SELECT * FROM app_infos WHERE active = true AND serial > ?")
         .bind(serial)
         .fetch_all(c)
         .await
         .map(|app| app.into_iter().map(|a| a.into()).collect())
+}
+
+pub async fn get_inactive_app_infos_since(
+    c: &mut SqliteConnection,
+    serial: u32,
+) -> sqlx::Result<Vec<AppInfo>> {
+    sqlx::query_as::<_, DBAppInfo>("SELECT * FROM app_infos WHERE active = false AND serial > ?")
+        .bind(serial)
+        .fetch_all(c)
+        .await
+        .map(|app| app.into_iter().map(|a| a.into()).collect())
+}
+
+pub async fn invalidate_app_info(c: &mut SqliteConnection, app_id: &str) -> sqlx::Result<()> {
+    let mut trans = c.begin().await?;
+    let serial = increase_get_serial(&mut *trans).await?;
+    sqlx::query("UPDATE app_infos SET active = false, serial = ? WHERE app_id = ?")
+        .bind(serial)
+        .bind(app_id)
+        .execute(&mut *trans)
+        .await?;
+    trans.commit().await?;
+    Ok(())
 }
 
 pub async fn get_last_serial(c: &mut SqliteConnection) -> sqlx::Result<i32> {
@@ -486,6 +512,7 @@ pub async fn get_webxdc_version(
 mod tests {
     use super::*;
     use sqlx::{Connection, SqliteConnection};
+    use std::vec;
 
     #[tokio::test]
     async fn test_create_load_config() {
@@ -692,5 +719,56 @@ mod tests {
             .unwrap();
         let (_, loaded_version) = get_webxdc_version(&mut conn, msg).await.unwrap();
         assert_eq!(loaded_version, "1.0.0".to_string());
+    }
+
+    #[tokio::test]
+    async fn upgrade_app() {
+        let mut conn = SqliteConnection::connect("sqlite::memory:").await.unwrap();
+        MIGRATOR.run(&mut conn).await.unwrap();
+        set_config(&mut conn, &BotConfig::default()).await.unwrap();
+
+        let mut app_info = AppInfo {
+            app_id: "testxdc".to_string(),
+            version: "1.0.0".to_string(),
+            active: true,
+            ..Default::default()
+        };
+
+        super::create_app_info(&mut conn, &mut app_info)
+            .await
+            .unwrap();
+
+        assert_eq!(super::get_app_infos(&mut conn).await.unwrap().len(), 1);
+
+        let mut new_app_info = AppInfo {
+            version: "1.0.1".to_string(),
+            ..app_info.clone()
+        };
+
+        crate::utils::maybe_upgrade_xdc(&mut new_app_info, &mut conn)
+            .await
+            .unwrap();
+
+        println!(
+            "infos: {:?}",
+            super::get_app_infos(&mut conn).await.unwrap()
+        );
+
+        assert_eq!(
+            super::get_active_app_infos_since(&mut conn, 1)
+                .await
+                .unwrap(),
+            vec![new_app_info.clone()]
+        );
+
+        assert_eq!(
+            super::get_inactive_app_infos_since(&mut conn, 0)
+                .await
+                .unwrap(),
+            vec![AppInfo {
+                active: false,
+                ..app_info
+            }]
+        );
     }
 }

@@ -26,7 +26,7 @@ use ts_rs::TS;
 enum ShopRequest {
     Update {
         /// Requested update sequence number.
-        serial: i32,
+        serial: u32,
     },
     Download {
         /// ID of the requested application.

@@ -69,7 +69,7 @@ pub async fn send_newest_updates(
     context: &Context,
     msg_id: MsgId,
     db: &mut SqliteConnection,
-    serial: i32,
+    serial: u32,
 ) -> anyhow::Result<()> {
     let app_infos: Vec<_> = db::get_active_app_infos_since(db, serial)
         .await?
@@ -237,4 +237,14 @@ pub async fn read_webxdc_versions() -> anyhow::Result<WebxdcVersions> {
         versions.set(webxdc, version);
     }
     Ok(versions)
+pub async fn maybe_upgrade_xdc(
+    app_info: &mut AppInfo,
+    conn: &mut SqliteConnection,
+) -> anyhow::Result<()> {
+    db::invalidate_app_info(conn, &app_info.app_id)
+        .await
+        .unwrap();
+    db::create_app_info(conn, app_info).await?;
+
+    Ok(())
 }
