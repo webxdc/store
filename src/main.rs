@@ -48,7 +48,7 @@ async fn main() -> anyhow::Result<()> {
                 .collect();
 
             if files.is_empty() {
-                println!("No xdcs to add in {}", path);
+                eprintln!("No xdcs to add in {}", path);
                 return Ok(());
             }
 
