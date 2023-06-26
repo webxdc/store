@@ -48,7 +48,8 @@ async fn main() -> anyhow::Result<()> {
                 .collect();
 
             if files.is_empty() {
-                println!("No xdcs to add in {}", path)
+                println!("No xdcs to add in {}", path);
+                return Ok(());
             }
 
             if !PathBuf::from("./bot-data/xdcs")

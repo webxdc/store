@@ -31,6 +31,7 @@ pub async fn configure_from_env(ctx: &Context) -> Result<()> {
     Ok(())
 }
 
+/// Send a webxdc to a chat.
 pub async fn send_webxdc(
     context: &Context,
     chat_id: ChatId,
@@ -45,6 +46,7 @@ pub async fn send_webxdc(
     chat::send_msg(context, chat_id, &mut webxdc_msg).await
 }
 
+/// Send a message webxd status update with all [AppInfo]s greater than the given serial.
 pub async fn send_newest_updates(
     context: &Context,
     msg_id: MsgId,
@@ -60,15 +62,6 @@ pub async fn send_newest_updates(
     let resp = ShopResponse::Update { app_infos, serial };
     send_update_payload_only(context, msg_id, resp).await?;
     Ok(())
-}
-
-/// Get the contact Id of the other user in an 1:1 chat.
-pub async fn _get_oon_peer(context: &Context, chat_id: ChatId) -> anyhow::Result<ContactId> {
-    let contacts = chat::get_chat_contacts(context, chat_id).await?;
-    contacts
-        .into_iter()
-        .find(|contact| !contact.is_special())
-        .ok_or(anyhow::anyhow!("No other contact"))
 }
 
 pub async fn get_contact_name(context: &Context, contact_id: ContactId) -> String {
@@ -101,6 +94,7 @@ pub async fn send_app_info(
     send_update_payload_only(context, msg_id, app_info).await
 }
 
+/// Sends a webxdc status update with only the given payload.
 pub async fn send_update_payload_only<T: Serialize>(
     context: &Context,
     msg_id: MsgId,
