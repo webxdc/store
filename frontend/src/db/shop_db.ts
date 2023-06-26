@@ -49,6 +49,7 @@ export class AppInfoDB {
 
   async insertMultiple(data: AppInfoWithState[] | AppInfo[]): Promise<void> {
     const db = await this.open()
+
     return new Promise((resolve, reject) => {
       const transaction = db.transaction('appInfo', 'readwrite')
       transaction.onerror = () => reject(transaction.error)
@@ -65,6 +66,17 @@ export class AppInfoDB {
       transaction.onerror = () => reject(transaction.error)
       const store = transaction.objectStore('appInfo')
       data.forEach((item: AppInfoWithState | AppInfo) => store.put(item))
+      transaction.oncomplete = () => resolve()
+    })
+  }
+
+  async remove_multiple(ids: number[]): Promise<void> {
+    const db = await this.open()
+    return new Promise((resolve, reject) => {
+      const transaction = db.transaction('appInfo', 'readwrite')
+      transaction.onerror = () => reject(transaction.error)
+      const store = transaction.objectStore('appInfo')
+      ids.forEach((id: number) => store.delete(id))
       transaction.oncomplete = () => resolve()
     })
   }
