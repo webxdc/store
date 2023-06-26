@@ -52,9 +52,3 @@ Currently three webxdcs are build by the frontdend: `store.xdc`, `submit-helper.
 All of these work on some stripped version of the rusts `AppInfo` struct. Private fields like
 `xdc-blob-dir` are removed, so that only the needed fields are send to the frontend.
 On the frontend the `row-id` (AppInfo::id) is used to distinguish different AppInstances. The store.xdc for example uses this id to handle the caching.
-
-
-
-
-
-
