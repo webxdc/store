@@ -34,7 +34,7 @@ the webxdcs `manifest.toml`. Internally, only the `row-id` is used because `app-
 The newly added `app-id` should only be used to uniquely identify newly added webxdcs and their different versions. When adding a webxdc, the `app-id` is used to distinguish between app-upgrading requests and requests which initially add a new webxdc to the store. Other than that no more use cases are intended as of writing this.
 
 ## Updating the App Index
-Updating the App Index should work two ways:
+Updating the App Index should work in two ways:
 
 1. By importing newer versions with the CLI.
 2. By updating them from a `Submit` chat.
@@ -42,19 +42,19 @@ Updating the App Index should work two ways:
 For the MVP only the first option is needed but the general procedure should be the same.
 For every added webxdcs the `app-id` and `version` are checked and a new  `AppInfo` is created and added to the database. If there already is an `AppInfo` with the same `app-id` but an older version, then this older `AppInfo` will be invalidated (By setting active=false).
 When the frontend requests an update, the row-id of this deactivated webxdc should be sent to the frontend. The implementation of this is not clear yet.
-Also, a serial number is increased with every change to enable partial updates for the frontend. More to this in the section `Synchronizing the App Index`.
+Also, a serial number is increased with every change to enable partial updates for the frontend. For more information look at `Synchronizing the App Index`
 
 ## Frontend
 The frontend is built with `SolidJs` as this framework is compiled and produces very fast and more importantly small webxdcs. Most of the styling is done with uno-css which is a tailwind-like CSS utility framework. Only some exceptions are contained in the `index.sass` file. 
 Currently, three webxdcs are built by the frontend: `store.xdc`, `submit-helper.xdc`, and `review-helper.xdc`.
-All of these work on some stripped version of the Rusts `AppInfo` struct. Private fields like
+All of these work on some stripped version of the Rust `AppInfo` struct. Private fields like
 `xdc-blob-dir` are removed, so that only the needed fields are sent to the frontend.
 On the frontend, the `row-id` (AppInfo::id) is used to distinguish different AppInstances. The store.xdc for example uses this id to handle the caching.
 
 ## Synchronizing the App Index
 The app index describes the list of apps that are shown in the frontend webxdc.
-On initial store.xdc submit, the bot sends an `webxdcStatusUpdate` containing the current list of active `AppInfos` and the latest serial.
-On each following update request which contains store.xds latest serial number, the bot will only send new `AppInfos` with serial greater than that last seen serial. The store.xdc will then add them to the app index and store the newest serial number. Only webxdcs that have been removed from the index will be send in a special - yet to implement - field.
+On initial store.xdc submit, the bot sends a `webxdcStatusUpdate` containing the current list of active `AppInfos` and the latest serial.
+On each following update request which contains store.xds latest serial number, the bot will only send new `AppInfos` with a serial greater than that last seen serial. The store.xdc will then add them to the app index and store the newest serial number. Only webxdcs that have been removed from the index will be sent in a special - yet to implement - field.
 
 --- 
 
