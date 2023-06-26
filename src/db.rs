@@ -370,7 +370,7 @@ pub async fn create_app_info(
     app_info: &mut AppInfo,
 ) -> anyhow::Result<()> {
     let mut trans = c.begin().await?;
-    let next_serial = increase_get_serial(&mut *trans).await?;
+    let next_serial = increase_get_serial(&mut trans).await?;
     let res = sqlx::query("INSERT INTO app_infos (app_id, name, description, version, image, submitter_uri, xdc_blob_dir, active, originator, source_code_url, serial) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)")
         .bind(app_info.app_id.as_str())
         .bind(app_info.name.as_str())
@@ -474,7 +474,7 @@ pub async fn invalidate_app_info(
     app_version: &str,
 ) -> sqlx::Result<bool> {
     let mut trans = c.begin().await?;
-    let serial = increase_get_serial(&mut *trans).await?;
+    let serial = increase_get_serial(&mut trans).await?;
     let res = sqlx::query(
         "UPDATE app_infos SET active = false, serial = ? WHERE app_id = ? AND version < ? AND active = true",
     )
@@ -527,8 +527,8 @@ pub async fn get_webxdc_version(
 #[cfg(test)]
 #[allow(clippy::unwrap_used)]
 mod tests {
-    use crate::utils::AddType;
     use super::*;
+    use crate::utils::AddType;
     use sqlx::{Connection, SqliteConnection};
     use std::vec;
 

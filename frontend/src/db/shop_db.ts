@@ -49,7 +49,6 @@ export class AppInfoDB {
 
   async insertMultiple(data: AppInfoWithState[] | AppInfo[]): Promise<void> {
     const db = await this.open()
-
     return new Promise((resolve, reject) => {
       const transaction = db.transaction('appInfo', 'readwrite')
       transaction.onerror = () => reject(transaction.error)
