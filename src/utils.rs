@@ -46,7 +46,7 @@ pub async fn send_webxdc(
     chat::send_msg(context, chat_id, &mut webxdc_msg).await
 }
 
-/// Send a [deltachat::webxdc::StatusUpdateItem] with all [AppInfo]s greater than the given serial.
+/// Sends a [deltachat::webxdc::StatusUpdateItem] with all [AppInfo]s greater than the given serial.
 pub async fn send_newest_updates(
     context: &Context,
     msg_id: MsgId,
@@ -85,7 +85,7 @@ pub async fn read_vec(reader: &ZipFileReader, index: usize) -> anyhow::Result<Ve
     Ok(data)
 }
 
-/// Send an app_info to the frontend
+/// Sends an app_info to the frontend
 pub async fn send_app_info(
     context: &Context,
     app_info: &AppInfo,
