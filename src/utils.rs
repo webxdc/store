@@ -46,7 +46,7 @@ pub async fn send_webxdc(
     chat::send_msg(context, chat_id, &mut webxdc_msg).await
 }
 
-/// Send a message webxd status update with all [AppInfo]s greater than the given serial.
+/// Send a [deltachat::webxdc::StatusUpdateItem] with all [AppInfo]s greater than the given serial.
 pub async fn send_newest_updates(
     context: &Context,
     msg_id: MsgId,
@@ -94,7 +94,7 @@ pub async fn send_app_info(
     send_update_payload_only(context, msg_id, app_info).await
 }
 
-/// Sends a webxdc status update with only the given payload.
+/// Sends a [deltachat::webxdc::StatusUpdateItem] with only the given payload.
 pub async fn send_update_payload_only<T: Serialize>(
     context: &Context,
     msg_id: MsgId,
