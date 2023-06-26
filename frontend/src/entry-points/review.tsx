@@ -11,6 +11,12 @@ import '@unocss/reset/tailwind.css'
 import { isAppInfo } from '../utils'
 import type { ReviewResponse } from '../bindings/ReviewResponse'
 import type { ReviewRequest } from '../bindings/ReviewRequest'
+import eruda from 'eruda'
+
+if (import.meta.env.DEV) {
+  console.log('Starting eruda')
+  eruda.init()
+}
 
 interface TestStatus {
   android: boolean
