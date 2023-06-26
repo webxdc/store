@@ -71,13 +71,14 @@ pub async fn send_newest_updates(
     db: &mut SqliteConnection,
     serial: u32,
 ) -> anyhow::Result<()> {
-    let app_infos: Vec<_> = db::get_active_app_infos_since(db, serial)
-        .await?
-        .into_iter()
-        .collect();
-
+    let app_infos: Vec<_> = db::get_active_app_infos_since(db, serial).await?;
+    let removed = db::get_inactive_app_infos_since(db, serial).await?;
     let serial = db::get_last_serial(db).await?;
-    let resp = ShopResponse::Update { app_infos, serial };
+    let resp = ShopResponse::Update {
+        app_infos,
+        removed: removed.into_iter().map(|app_info| app_info.id).collect(),
+        serial,
+    };
     send_update_payload_only(context, msg_id, resp).await?;
     Ok(())
 }
@@ -237,14 +238,31 @@ pub async fn read_webxdc_versions() -> anyhow::Result<WebxdcVersions> {
         versions.set(webxdc, version);
     }
     Ok(versions)
+#[derive(Debug, PartialEq)]
+pub enum AddType {
+    /// Add a new app_info
+    Added,
+    /// Update an existing app_info
+    Updated,
+    /// Ignored
+    Ignored,
+}
+
 pub async fn maybe_upgrade_xdc(
     app_info: &mut AppInfo,
     conn: &mut SqliteConnection,
-) -> anyhow::Result<()> {
-    db::invalidate_app_info(conn, &app_info.app_id)
-        .await
-        .unwrap();
-    db::create_app_info(conn, app_info).await?;
-
-    Ok(())
+) -> anyhow::Result<AddType> {
+    Ok(
+        if db::invalidate_app_info(conn, &app_info.app_id, &app_info.version).await? {
+            db::create_app_info(conn, app_info).await?;
+            AddType::Updated
+        } else {
+            if db::app_info_exists(conn, &app_info.app_id).await? {
+                AddType::Ignored
+            } else {
+                db::create_app_info(conn, app_info).await?;
+                AddType::Added
+            }
+        },
+    )
 }

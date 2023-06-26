@@ -62,6 +62,10 @@ async fn main() -> anyhow::Result<()> {
                     .with_context(|| format!("failed to create {}", xdcs_path.display()))?;
             }
 
+            let mut added = Vec::new();
+            let mut updated = Vec::new();
+            let mut ignored = Vec::new();
+
             for file in &files {
                 if file
                     .file_name()
@@ -80,7 +84,7 @@ async fn main() -> anyhow::Result<()> {
 
                             fs::copy(file, &new_path).with_context(|| {
                                 format!(
-                                    "failed to copy {} to {}",
+                                    "Failed to copy {} to {}",
                                     file.display(),
                                     new_path.display()
                                 )
@@ -88,15 +92,36 @@ async fn main() -> anyhow::Result<()> {
 
                             app_info.xdc_blob_dir = new_path;
 
-                            maybe_upgrade_xdc(&mut app_info, &mut *bot.get_db_connection().await?)
-                                .await?;
+                            let state = maybe_upgrade_xdc(
+                                &mut app_info,
+                                &mut *bot.get_db_connection().await?,
+                            )
+                            .await?;
 
-                            println!("Added {}({}) to apps", file.display(), app_info.name);
+                            match state {
+                                utils::AddType::Added => added.push(file.display()),
+                                utils::AddType::Updated => updated.push(file.display()),
+                                utils::AddType::Ignored => ignored.push(file.display()),
+                            }
                         }
                         Err(e) => {
                             println!("Failed to import {:?} \n{}", file, e);
                         }
                     };
+                }
+            }
+
+            for (list, name) in vec![added, updated, ignored]
+                .into_iter()
+                .zip(&["Added", "Updated", "Ignored"])
+            {
+                if list.is_empty() {
+                    println!("{name}: None");
+                } else {
+                    println!("{name}:");
+                    for file in list {
+                        println!("- {}", file);
+                    }
                 }
             }
         }

@@ -458,16 +458,33 @@ pub async fn get_inactive_app_infos_since(
         .map(|app| app.into_iter().map(|a| a.into()).collect())
 }
 
-pub async fn invalidate_app_info(c: &mut SqliteConnection, app_id: &str) -> sqlx::Result<()> {
+pub async fn app_info_exists(c: &mut SqliteConnection, app_id: &str) -> sqlx::Result<bool> {
+    sqlx::query("SELECT EXISTS(SELECT 1 FROM app_infos WHERE app_id = ?)")
+        .bind(app_id)
+        .fetch_one(c)
+        .await
+        .map(|row| row.get(0))
+}
+
+/// Sets active to false for [AppInfo] with id `app_id` and increases the serial.
+/// Returns true if it affected a row.
+pub async fn invalidate_app_info(
+    c: &mut SqliteConnection,
+    app_id: &str,
+    app_version: &str,
+) -> sqlx::Result<bool> {
     let mut trans = c.begin().await?;
     let serial = increase_get_serial(&mut *trans).await?;
-    sqlx::query("UPDATE app_infos SET active = false, serial = ? WHERE app_id = ?")
-        .bind(serial)
-        .bind(app_id)
-        .execute(&mut *trans)
-        .await?;
+    let res = sqlx::query(
+        "UPDATE app_infos SET active = false, serial = ? WHERE app_id = ? AND version < ? AND active = true",
+    )
+    .bind(serial)
+    .bind(app_id)
+    .bind(app_version)
+    .execute(&mut *trans)
+    .await?;
     trans.commit().await?;
-    Ok(())
+    Ok(res.rows_affected() > 0)
 }
 
 pub async fn get_last_serial(c: &mut SqliteConnection) -> sqlx::Result<i32> {
@@ -510,6 +527,7 @@ pub async fn get_webxdc_version(
 #[cfg(test)]
 #[allow(clippy::unwrap_used)]
 mod tests {
+    use crate::utils::AddType;
     use super::*;
     use sqlx::{Connection, SqliteConnection};
     use std::vec;
@@ -745,15 +763,11 @@ mod tests {
             ..app_info.clone()
         };
 
-        crate::utils::maybe_upgrade_xdc(&mut new_app_info, &mut conn)
+        let state = crate::utils::maybe_upgrade_xdc(&mut new_app_info, &mut conn)
             .await
             .unwrap();
 
-        println!(
-            "infos: {:?}",
-            super::get_app_infos(&mut conn).await.unwrap()
-        );
-
+        assert_eq!(state, AddType::Updated);
         assert_eq!(
             super::get_active_app_infos_since(&mut conn, 1)
                 .await
@@ -770,5 +784,30 @@ mod tests {
                 ..app_info
             }]
         );
+
+        let state = crate::utils::maybe_upgrade_xdc(&mut new_app_info, &mut conn)
+            .await
+            .unwrap();
+
+        assert_eq!(state, AddType::Ignored);
+    }
+
+    #[tokio::test]
+    async fn test_app_info_exists() {
+        let mut conn = SqliteConnection::connect("sqlite::memory:").await.unwrap();
+        MIGRATOR.run(&mut conn).await.unwrap();
+        set_config(&mut conn, &BotConfig::default()).await.unwrap();
+
+        let mut app_info = AppInfo {
+            app_id: "testxdc".to_string(),
+            ..Default::default()
+        };
+
+        super::create_app_info(&mut conn, &mut app_info)
+            .await
+            .unwrap();
+
+        assert!(super::app_info_exists(&mut conn, "testxdc").await.unwrap());
+        assert!(!super::app_info_exists(&mut conn, "testxdc2").await.unwrap());
     }
 }

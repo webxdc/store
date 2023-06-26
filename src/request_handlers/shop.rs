@@ -51,7 +51,10 @@ pub enum ShopResponse {
         error: String,
     },
     Update {
+        /// List of new app ids.
         app_infos: Vec<AppInfo>,
+        /// List of removed app ids.
+        removed: Vec<i32>,
         serial: i32,
     },
 }
