@@ -50,6 +50,14 @@ the central point of interaction for users:
   an update mechanism so there will only need to be a single store xdc app in
   the store bot chat. 
 
+## General development ideas
+- The webxdc store runs as a standalone bot so that it can be run by other people for their own needs and on their own e-mail addresses. 
+
+- We want to offer a community store populated with initial apps
+  also to determine what needs to happen with messenger WebXDC APIs and messenger integration. 
+
+- The implementation of the store should be as independent as feasible from Delta Chat specifics so that it could eventually work also for Cheogram, Monocles or other upcoming messengers supporting WebXDC. 
+
 ## Setting up the bot
 
 ### Installing pre-built binary releases

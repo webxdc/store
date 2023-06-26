@@ -67,13 +67,13 @@ function AppInfoModal(item: AppInfoWithState, onDownload: () => void, onForward:
             </button>
           </Match>
           <Match when={item.state === AppState.Downloading}>
-            <button class="send-button bg-gray-500" onClick={onDownload}>
+            <div class="send-button bg-gray-500">
               <div class="i-eos-icons:bubble-loading text-white"></div>
-            </button>
+            </div>
           </Match><Match when={item.state === AppState.DownloadCancelled}>
-            <button class="send-button bg-red-500" >
+            <div class="send-button bg-red-500" >
               <div class="i-material-symbols:error text-white"></div>
-            </button>
+            </div>
           </Match>
           <Match when={item.state === AppState.Received}>
             <button class="send-button bg-green-500" onClick={onForward}>
