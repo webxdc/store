@@ -33,17 +33,16 @@ The bot uses two kinds of ids: One is the database's `row-id` and the other one 
 the webxdcs `manifest.toml`. Internally, only the `row-id` is used because `app-id` was just recently introduced and it's not possible to create a PRIMARY-KEY column of type TEXT in a SQLite database. The `row-id` is used as an unambiguous identifier for each `app-info` which is stored in the database.
 The newly added `app-id` should only be used to uniquely identify newly added webxdcs and their different versions. When adding a webxdc, the `app-id` is used to distinguish between app-upgrading requests and requests which initially add a new webxdc to the store. Other than that no more use cases are intended as of writing this.
 
-## Updating Webxdcs
-Updating should work two ways:
+## Updating the App Index
+Updating the App Index should work two ways:
 
-1. By importing newer versions with the CLI
-2. By updating them from the submit-chat.
+1. By importing newer versions with the CLI.
+2. By updating them from a `Submit` chat.
 
 For the MVP only the first option is needed but the general procedure should be the same.
-For every added webxdcs the `app-id` and `version` are checked and a new  `AppInfo` is created and added to the database. If there already is an `AppInfo` with the same `app-id` but an older version, then this
-older `AppInfo` will be invalidated (By setting active=false). 
-When the frontend requests an update, the row-id of this deactivated webxdc should be
-sent to the frontend. The implementation of this is not clear yet.
+For every added webxdcs the `app-id` and `version` are checked and a new  `AppInfo` is created and added to the database. If there already is an `AppInfo` with the same `app-id` but an older version, then this older `AppInfo` will be invalidated (By setting active=false).
+When the frontend requests an update, the row-id of this deactivated webxdc should be sent to the frontend. The implementation of this is not clear yet.
+Also, a serial number is increased with every change to enable partial updates for the frontend. More to this in the section `Synchronizing the App Index`.
 
 ## Frontend
 The frontend is built with `SolidJs` as this framework is compiled and produces very fast and more importantly small webxdcs. Most of the styling is done with uno-css which is a tailwind-like CSS utility framework. Only some exceptions are contained in the `index.sass` file. 
@@ -56,3 +55,7 @@ On the frontend, the `row-id` (AppInfo::id) is used to distinguish different App
 The app index describes the list of apps that are shown in the frontend webxdc.
 On initial store.xdc submit, the bot sends an `webxdcStatusUpdate` containing the current list of active `AppInfos` and the latest serial.
 On each following update request which contains store.xds latest serial number, the bot will only send new `AppInfos` with serial greater than that last seen serial. The store.xdc will then add them to the app index and store the newest serial number. Only webxdcs that have been removed from the index will be send in a special - yet to implement - field.
+
+--- 
+
+This project is still under heavy development by the webxdc working group. To see the current work go to https://github.com/orgs/deltachat/projects/61/views/1.
