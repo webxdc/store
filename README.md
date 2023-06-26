@@ -50,6 +50,17 @@ the central point of interaction for users:
   an update mechanism so there will only need to be a single store xdc app in
   the store bot chat. 
 
+## General development ideas
+- The webxdc store is not developed as a central service, but rather a platform that can be 
+  hosted by any member of the community, costomized to their own needs.
+
+- Delta Chat is spearheading efforts to make the store used by many people 
+  to determine what needs to happen with messenger WebXDC APIs.
+
+- The implementation should in principleor not be dependent on Delta Chat and thus also 
+  work for other WebXDC providers like cheogram. This might need some future work still.
+
+
 ## Setting up the bot
 
 ### Installing pre-built binary releases
