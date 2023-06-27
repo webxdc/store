@@ -39,3 +39,24 @@
 - [ ] Handle upgrading for webxdcs in submit-chats
 - [ ] Fordward messages between chats
 - [ ] In-place store updating (core support needed)
+
+## Testing
+
+### Python Based
+- [x] Test welcoming message
+- [x] Test updating
+  - [x] Requesting empty updates
+- [x] Test importing 
+  - [x] Test importing example xdcs
+  - [x] Initial setup message contains webxdcs
+- [x] Test `version` subcommand
+  - [x] produces same output for message-based usage as well as CLI
+- [x] Test downloading
+  - [x] Test downloading an existing app
+  - [x] Test downloadin a non-existing app
+- [ ] Test outdated webxdc
+- [ ] 
+### Rust Based
+- [x] Test for close to every DB-function
+- [x] Importing AppInfos
+  - [ ] 
