@@ -54,7 +54,7 @@ On the frontend, the `row-id` (AppInfo::id) is used to distinguish different App
 ## Synchronizing the App Index
 The app index describes the list of apps that are shown in the frontend webxdc.
 When the store.xdc frontend is initially sent to a user's device, the bot also sends a `webxdcStatusUpdate` containing the current list of active `AppInfos` and the latest serial.
-On each following update request which contains store.xds latest serial number, the bot will only send new `AppInfos` with a serial greater than that last seen serial. The store.xdc will then add them to the app index and store the newest serial number. Only webxdcs that have been removed from the index will be sent in a special - yet to implement - field.
+When the store.xdc frontend requests new updates it sends its current app-index serial and the bot will send any new `AppInfos` with a serial greater than that last seen serial. The store.xdc will then add them to the frontend app index along with the newest serial number. Only webxdcs that have been removed from the index will be sent in a special - yet to implement - field.
 
 --- 
 
