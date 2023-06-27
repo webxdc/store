@@ -30,7 +30,7 @@ release cycle.
 
 ## App Ids
 The bot uses two kinds of ids: One is the database's `row-id` and the other one is the `app-id` taken from 
-the webxdcs `manifest.toml`. Internally, only the `row-id` is used because `app-id` was just recently introduced and it's not possible to create a PRIMARY-KEY column of type TEXT in a SQLite database. The `row-id` is used as an unambiguous identifier for each `app-info` which is stored in the database.
+the webxdcs `manifest.toml`. Internally, currently the `row-id` is used as an unambiguous identifier for each `app-info` which is stored in the database. 
 The newly added `app-id` should only be used to uniquely identify newly added webxdcs and their different versions. When adding a webxdc, the `app-id` is used to distinguish between app-upgrading requests and requests which initially add a new webxdc to the store. Other than that no more use cases are intended as of writing this.
 
 ## Updating the App Index
