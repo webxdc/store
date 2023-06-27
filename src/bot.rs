@@ -407,6 +407,8 @@ impl Bot {
                     let msg = send_webxdc(context, &state, chat_id, webxdc, Some(store_message()))
                         .await?;
                     send_newest_updates(context, msg, &mut *state.db.acquire().await?, 0).await?;
+                    send_update_payload_only(context, msg_id, GeneralFrontendResponse::UpdateSent)
+                        .await?;
                     return Ok(());
                 }
             }
@@ -414,6 +416,11 @@ impl Bot {
 
         if version != *state.webxdc_versions.get(webxdc) {
             info!("Webxdc version mismatch, updating");
+
+            if serde_json::from_str::<WebxdcStatusUpdate<GeneralFrontendResponse>>(&update).is_ok()
+            {
+                return Ok(());
+            }
 
             // Only try to upgrade version, if the webxdc event is _not_ an update response already
             if serde_json::from_str::<WebxdcStatusUpdate<GeneralFrontendRequest>>(&update).is_err()

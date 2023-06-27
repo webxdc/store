@@ -141,6 +141,7 @@ pub struct WebxdcStatusUpdate<T> {
 
 pub enum GeneralFrontendResponse {
     Outdated { critical: bool, version: String },
+    UpdateSent,
 }
 
 #[derive(Deserialize, TS)]

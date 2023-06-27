@@ -6,7 +6,12 @@ export function isAppInfo(p: any): p is AppInfo {
 }
 
 export type WebxdcOutdatedResponse = Extract<GeneralFrontendResponse, { type: 'Outdated' }>
+export type WebxdcUpdateSentResponse = Extract<GeneralFrontendResponse, { type: 'UpdateSent' }>
 
 export function isOutdatedResponse(p: any): p is WebxdcOutdatedResponse {
   return p.type === 'Outdated'
+}
+
+export function isUpdateSendResponse(p: any): p is WebxdcUpdateSentResponse {
+  return p.type === 'UpdateSent'
 }

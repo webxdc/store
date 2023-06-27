@@ -16,7 +16,7 @@ import 'virtual:uno.css'
 import '@unocss/reset/tailwind.css'
 import { AppInfoDB } from '../db/shop_db'
 import OutdatedView from '../components/OutdatedView'
-import { isOutdatedResponse } from '../utils'
+import { isOutdatedResponse, isUpdateSendResponse } from '../utils'
 
 const fuse_options = {
   keys: [
@@ -151,6 +151,7 @@ const Shop: Component = () => {
   const [appInfo, setAppInfo] = createStore({} as AppInfosById)
   const [lastSerial, setlastSerial] = useStorage('last-serial', 0)
   const [updateNeeded, setUpdateNeeded] = useStorage('update-needed', false)
+  const [updateReceived, setUpdateReceived] = useStorage('update-received', false)
   const [lastUpdateSerial, setlastUpdateSerial] = useStorage('last-update-serial', 0)
   const [lastUpdate, setlastUpdate] = useStorage('last-update', new Date())
   const timeSinceLastUpdate = createMemo(() => intervalToDuration({
@@ -226,6 +227,9 @@ const Shop: Component = () => {
       console.log('Current version is outdated')
       setUpdateNeeded(true)
     }
+    else if (isUpdateSendResponse(resp.payload)) {
+      setUpdateReceived(true)
+    }
   }, lastSerial())
 
   async function handleUpdate() {
@@ -252,7 +256,7 @@ const Shop: Component = () => {
   }
 
   return (
-    <OutdatedView critical={updateNeeded()}>
+    <OutdatedView critical={updateNeeded()} updated_received={updateReceived()}>
       <div class="c-grid p-3">
         <div class="min-width">
           <div class="flex justify-between gap-2">
