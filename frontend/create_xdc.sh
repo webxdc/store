@@ -2,7 +2,7 @@
 
 : "${DESTDIR:=$PWD/..}"
 
-DESTDIR="$DESTDIR/bot-data"
+DESTDIR="$DESTDIR/assets"
 
 mkdir -p "$DESTDIR"
 cd dist

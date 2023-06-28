@@ -8,18 +8,29 @@ from subprocess import Popen
 import pytest
 
 
+@pytest.fixture
+def bot_home_path(tmp_path_factory):
+    """HOME path for the bot."""
+    return tmp_path_factory.mktemp("bothome")
+
+
 class BotProcess:
     addr: str
     process: Popen
 
-    def __init__(self, addr, password, path, binary_path):
+    def __init__(self, addr, password, path, binary_path, home_path):
         self.addr = addr
         self.path = path
 
         self.process = Popen(
             [binary_path, "start"],
             cwd=path,
-            env={"addr": addr, "mail_pw": password, "RUST_LOG": "xdcstore=trace"},
+            env={
+                "HOME": str(home_path),
+                "addr": addr,
+                "mail_pw": password,
+                "RUST_LOG": "xdcstore=trace",
+            },
         )
 
     def __del__(self):
@@ -40,8 +51,8 @@ def bot_binary_path():
 @pytest.fixture
 def bot_assets_path():
     for path in [
-        Path.cwd() / "bot-data",
-        Path.cwd() / "xdcstore" / "bot-data",
+        Path.cwd() / "assets",
+        Path.cwd() / "xdcstore" / "assets",
     ]:
         if path.exists():
             return path
@@ -51,21 +62,23 @@ def bot_assets_path():
 @pytest.fixture
 def bot_path(tmp_path, bot_assets_path):
     # Copy bot-data to the bot working directory.
-    shutil.copytree(bot_assets_path, tmp_path / "bot-data")
+    shutil.copytree(bot_assets_path, tmp_path / "assets")
 
     return tmp_path
 
 
 @pytest.fixture
-def storebot(acfactory, bot_path, bot_binary_path):
+def storebot(acfactory, bot_path, bot_binary_path, bot_home_path):
     """Store bot without any apps."""
     config = acfactory.get_next_liveconfig()
 
-    return BotProcess(config["addr"], config["mail_pw"], bot_path, bot_binary_path)
+    return BotProcess(
+        config["addr"], config["mail_pw"], bot_path, bot_binary_path, bot_home_path
+    )
 
 
 @pytest.fixture
-def storebot_example(acfactory, bot_path, bot_binary_path):
+def storebot_example(acfactory, bot_path, bot_binary_path, bot_home_path):
     """Store bot with imported example apps."""
     config = acfactory.get_next_liveconfig()
 
@@ -78,13 +91,16 @@ def storebot_example(acfactory, bot_path, bot_binary_path):
         cwd=bot_path,
         env={
             "RUST_LOG": "xdcstore=trace",
+            "HOME": str(bot_home_path),
             "addr": config["addr"],
             "mail_pw": config["mail_pw"],
         },
     )
     res.check_returncode()
 
-    return BotProcess(config["addr"], config["mail_pw"], bot_path, bot_binary_path)
+    return BotProcess(
+        config["addr"], config["mail_pw"], bot_path, bot_binary_path, bot_home_path
+    )
 
 
 def test_welcome_message(acfactory, storebot):
@@ -214,7 +230,7 @@ def test_download(acfactory, storebot_example):
 
 def update_manifest_version(bot_path, new_version):
     temp_zip_file = bot_path + "temp.xdc"
-    zip_file_path = bot_path + "/bot-data/store.xdc"
+    zip_file_path = bot_path + "/assets/store.xdc"
     with zipfile.ZipFile(zip_file_path, "r") as zip_read, zipfile.ZipFile(
         temp_zip_file, "w"
     ) as zip_write:
@@ -243,9 +259,11 @@ def update_manifest_version(bot_path, new_version):
     print("Version field in manifest.toml updated successfully!")
 
 
-def test_frontend_update(acfactory, bot_path, bot_binary_path):
+def test_frontend_update(acfactory, bot_path, bot_binary_path, bot_home_path):
     config = acfactory.get_next_liveconfig()
-    bot = BotProcess(config["addr"], config["mail_pw"], bot_path, bot_binary_path)
+    bot = BotProcess(
+        config["addr"], config["mail_pw"], bot_path, bot_binary_path, bot_home_path
+    )
     (ac1,) = acfactory.get_online_accounts(1)
 
     bot_contact = ac1.create_contact(bot.addr)
@@ -262,7 +280,9 @@ def test_frontend_update(acfactory, bot_path, bot_binary_path):
 
     # Start the bot again to load the newer store.xdc version
     del bot
-    _bot = BotProcess(config["addr"], config["mail_pw"], bot_path, bot_binary_path)
+    _bot = BotProcess(
+        config["addr"], config["mail_pw"], bot_path, bot_binary_path, bot_home_path
+    )
 
     msg_in.send_status_update({"payload": {"Update": {"serial": 0}}}, "")
     ac1._evtracker.get_matching("DC_EVENT_WEBXDC_STATUS_UPDATE")  # Self-sent

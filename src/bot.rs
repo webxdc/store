@@ -19,6 +19,7 @@ use std::{collections::HashSet, fs, path::PathBuf, sync::Arc};
 use crate::{
     db::{self, MIGRATOR},
     messages::store_message,
+    project_dirs,
     request_handlers::{
         genisis, review, shop, submit, ChatType, GeneralFrontendRequest, GeneralFrontendResponse,
         WebxdcStatusUpdate,
@@ -27,7 +28,7 @@ use crate::{
         configure_from_env, read_webxdc_versions, send_newest_updates, send_update_payload_only,
         send_webxdc, Webxdc, WebxdcVersions,
     },
-    DB_URL, DC_DB_PATH, GENESIS_QR, INVITE_QR, VERSION,
+    GENESIS_QR, INVITE_QR, VERSION,
 };
 
 #[derive(Serialize, Deserialize, PartialEq, Debug, Default)]
@@ -60,11 +61,18 @@ impl Bot {
     /// Creates a new instance of the bot.
     /// Handles the configuration for dc and the bot itself.
     pub async fn new() -> Result<Self> {
-        std::fs::create_dir(DC_DB_PATH).ok();
-        let dbfile = PathBuf::from(DC_DB_PATH).join("db.sqlite");
-        let context = Context::new(dbfile.as_path(), 1, Events::new(), StockStrings::new())
-            .await
-            .context("Failed to create context")?;
+        let dirs = project_dirs()?;
+
+        std::fs::create_dir_all(dirs.config_dir())?;
+        let deltachat_db_file = PathBuf::from(dirs.config_dir()).join("deltachat.db");
+        let context = Context::new(
+            deltachat_db_file.as_path(),
+            1,
+            Events::new(),
+            StockStrings::new(),
+        )
+        .await
+        .context("Failed to create context")?;
 
         if !context.get_config_bool(Config::Configured).await? {
             info!("DC: Start configuring...");
@@ -72,18 +80,14 @@ impl Bot {
             info!("DC: Configuration done");
         }
 
-        let db_path = PathBuf::from(
-            DB_URL
-                .split("://")
-                .nth(1)
-                .context("Failed to extract path from db")?,
-        );
-        if !db_path.exists() {
-            fs::create_dir(db_path.parent().context("db_path has no parant")?)?;
-            fs::write(db_path, "")?;
+        let bot_db_file = PathBuf::from(dirs.config_dir()).join("bot.db");
+        if !bot_db_file.exists() {
+            fs::write(&bot_db_file, "")?;
         }
-
-        let db = SqlitePool::connect(DB_URL).await?;
+        let bot_db_url = format!("sqlite://{}", bot_db_file.display());
+        let db = SqlitePool::connect(&bot_db_url)
+            .await
+            .with_context(|| format!("connect to database pool {bot_db_url:?}"))?;
         MIGRATOR.run(&db).await?;
 
         let config = match db::get_config(&mut *db.acquire().await?).await {
@@ -106,16 +110,16 @@ impl Bot {
                     1024,
                     GENESIS_QR,
                 )
-                .context("failed to generate genesis QR")?;
-                println!("Generated genisis group join QR-code at {GENESIS_QR}");
+                .context("failed to generate genesis QR at {GENESIS_QR}")?;
+                eprintln!("Generated genisis group join QR-code at {GENESIS_QR}");
                 qrcode_generator::to_png_to_file(
                     &config.invite_qr,
                     QrCodeEcc::Low,
                     1024,
                     INVITE_QR,
                 )
-                .context("failed to generate invite QR")?;
-                println!("Generated 1:1 invite QR-code at {INVITE_QR}");
+                .context("failed to generate invite QR at {INVITE_QR}")?;
+                eprintln!("Generated 1:1 invite QR-code at {INVITE_QR}");
                 config
             }
         };
