@@ -14,7 +14,7 @@ use log::{debug, error, info, trace, warn};
 use qrcode_generator::QrCodeEcc;
 use serde::{Deserialize, Serialize};
 use sqlx::{pool::PoolConnection, Sqlite, SqlitePool};
-use std::{collections::HashSet, fs, path::PathBuf, sync::Arc};
+use std::{collections::HashSet, fs, sync::Arc};
 
 use crate::{
     db::{self, MIGRATOR},
@@ -64,7 +64,7 @@ impl Bot {
         let dirs = project_dirs()?;
 
         std::fs::create_dir_all(dirs.config_dir())?;
-        let deltachat_db_file = PathBuf::from(dirs.config_dir()).join("deltachat.db");
+        let deltachat_db_file = dirs.config_dir().to_path_buf().join("deltachat.db");
         let context = Context::new(
             deltachat_db_file.as_path(),
             1,
@@ -80,7 +80,7 @@ impl Bot {
             info!("DC: Configuration done");
         }
 
-        let bot_db_file = PathBuf::from(dirs.config_dir()).join("bot.db");
+        let bot_db_file = dirs.config_dir().to_path_buf().join("bot.db");
         if !bot_db_file.exists() {
             fs::write(&bot_db_file, "")?;
         }

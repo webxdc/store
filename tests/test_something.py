@@ -8,36 +8,6 @@ from subprocess import Popen
 import pytest
 
 
-@pytest.fixture
-def bot_home_path(tmp_path_factory):
-    """HOME path for the bot."""
-    return tmp_path_factory.mktemp("bothome")
-
-
-class BotProcess:
-    addr: str
-    process: Popen
-
-    def __init__(self, addr, password, path, binary_path, home_path):
-        self.addr = addr
-        self.path = path
-
-        self.process = Popen(
-            [binary_path, "start"],
-            cwd=path,
-            env={
-                "HOME": str(home_path),
-                "addr": addr,
-                "mail_pw": password,
-                "RUST_LOG": "xdcstore=trace",
-            },
-        )
-
-    def __del__(self):
-        self.process.terminate()
-
-
-@pytest.fixture
 def bot_binary_path():
     for path in [
         Path.cwd() / "target" / "debug" / "xdcstore",
@@ -48,7 +18,6 @@ def bot_binary_path():
     pytest.fail("could not determine bot_binary_path")
 
 
-@pytest.fixture
 def bot_assets_path():
     for path in [
         Path.cwd() / "assets",
@@ -60,47 +29,96 @@ def bot_assets_path():
 
 
 @pytest.fixture
-def bot_path(tmp_path, bot_assets_path):
-    # Copy bot-data to the bot working directory.
-    shutil.copytree(bot_assets_path, tmp_path / "assets")
-
-    return tmp_path
+def bot_home_path(tmp_path_factory):
+    """HOME path for the bot."""
+    return tmp_path_factory.mktemp("bothome")
 
 
 @pytest.fixture
-def storebot(acfactory, bot_path, bot_binary_path, bot_home_path):
+def bot_install_path(tmp_path_factory):
+    """Path where the bot is installed.
+
+    The bot binary is symlinked,
+    but assets can be modified during the test.
+    """
+    tmp = tmp_path_factory.mktemp("botinstall")
+
+    shutil.copyfile(bot_binary_path(), tmp / "xdcstore")
+    (tmp / "xdcstore").chmod(0o700)
+
+    shutil.copytree(bot_assets_path(), tmp / "assets")
+    return tmp
+
+
+class BotProcess:
+    addr: str
+    process: Popen
+
+    def __init__(self, addr, password, binary_path, home_path):
+        self.addr = addr
+        self.password = password
+        self.binary_path = binary_path
+        self.home_path = home_path
+
+    def start(self):
+        self.process = Popen(
+            [self.binary_path, "start"],
+            cwd=self.binary_path.parent,
+            env={
+                "HOME": str(self.home_path),
+                "addr": self.addr,
+                "mail_pw": self.password,
+                "RUST_LOG": "xdcstore=trace",
+            },
+        )
+
+    def stop(self):
+        self.process.terminate()
+
+    def install_examples(self):
+        subprocess.run(
+            [
+                self.binary_path,
+                "import",
+                Path.cwd() / "example-xdcs",
+            ],
+            cwd=self.binary_path.parent,
+            env={
+                "RUST_LOG": "xdcstore=trace",
+                "HOME": str(self.home_path),
+                "addr": self.addr,
+                "mail_pw": self.password,
+            },
+            check=True,
+        )
+
+    def __del__(self):
+        self.stop()
+
+
+@pytest.fixture
+def storebot_stopped(acfactory, bot_install_path, bot_home_path):
+    """Stopped store bot without any apps."""
+    config = acfactory.get_next_liveconfig()
+
+    return BotProcess(
+        config["addr"], config["mail_pw"], bot_install_path / "xdcstore", bot_home_path
+    )
+
+
+@pytest.fixture
+def storebot(acfactory, storebot_stopped):
     """Store bot without any apps."""
-    config = acfactory.get_next_liveconfig()
-
-    return BotProcess(
-        config["addr"], config["mail_pw"], bot_path, bot_binary_path, bot_home_path
-    )
+    storebot_stopped.start()
+    return storebot_stopped
 
 
 @pytest.fixture
-def storebot_example(acfactory, bot_path, bot_binary_path, bot_home_path):
+def storebot_example(acfactory, storebot_stopped):
     """Store bot with imported example apps."""
-    config = acfactory.get_next_liveconfig()
-
-    res = subprocess.run(
-        [
-            bot_binary_path,
-            "import",
-            Path.cwd() / "example-xdcs",
-        ],
-        cwd=bot_path,
-        env={
-            "RUST_LOG": "xdcstore=trace",
-            "HOME": str(bot_home_path),
-            "addr": config["addr"],
-            "mail_pw": config["mail_pw"],
-        },
-    )
-    res.check_returncode()
-
-    return BotProcess(
-        config["addr"], config["mail_pw"], bot_path, bot_binary_path, bot_home_path
-    )
+    storebot_stopped.install_examples()
+    storebot_stopped.start()
+    return storebot_stopped
 
 
 def test_welcome_message(acfactory, storebot):
@@ -167,13 +185,13 @@ def test_import(acfactory, storebot_example):
     assert len(app_infos) == 4
 
 
-def test_version(acfactory, storebot, bot_path, bot_binary_path):
+def test_version(acfactory, storebot):
     """Test /version command."""
 
     (ac1,) = acfactory.get_online_accounts(1)
 
     version_text = subprocess.run(
-        [bot_binary_path, "version"], cwd=bot_path, capture_output=True, check=True
+        [bot_binary_path(), "version"], capture_output=True, check=True
     ).stdout.decode()
 
     bot_contact = ac1.create_contact(storebot.addr)
@@ -228,8 +246,8 @@ def test_download(acfactory, storebot_example):
 
 
 def update_manifest_version(bot_path, new_version):
-    temp_zip_file = bot_path + "temp.xdc"
-    zip_file_path = bot_path + "/assets/store.xdc"
+    temp_zip_file = bot_path / "temp.xdc"
+    zip_file_path = bot_path / "assets" / "store.xdc"
     with zipfile.ZipFile(zip_file_path, "r") as zip_read, zipfile.ZipFile(
         temp_zip_file, "w"
     ) as zip_write:
@@ -251,21 +269,15 @@ def update_manifest_version(bot_path, new_version):
         updated_manifest.compress_type = zipfile.ZIP_DEFLATED
         zip_write.writestr(updated_manifest, updated_content.encode("utf-8"))
 
-    import os
-
-    os.replace(temp_zip_file, zip_file_path)
+    temp_zip_file.replace(zip_file_path)
 
     print("Version field in manifest.toml updated successfully!")
 
 
-def test_frontend_update(acfactory, bot_path, bot_binary_path, bot_home_path):
-    config = acfactory.get_next_liveconfig()
-    bot = BotProcess(
-        config["addr"], config["mail_pw"], bot_path, bot_binary_path, bot_home_path
-    )
+def test_frontend_update(acfactory, storebot):
     (ac1,) = acfactory.get_online_accounts(1)
 
-    bot_contact = ac1.create_contact(bot.addr)
+    bot_contact = ac1.create_contact(storebot.addr)
     bot_chat = bot_contact.create_chat()
     bot_chat.send_text("hi!")
 
@@ -275,13 +287,11 @@ def test_frontend_update(acfactory, bot_path, bot_binary_path, bot_home_path):
     )  # Inital store hydration
     assert msg_in.is_webxdc()
 
-    update_manifest_version(str(bot_path), "1000.0.0")
+    update_manifest_version(storebot.binary_path.parent, "1000.0.0")
 
     # Start the bot again to load the newer store.xdc version
-    del bot
-    _bot = BotProcess(
-        config["addr"], config["mail_pw"], bot_path, bot_binary_path, bot_home_path
-    )
+    storebot.stop()
+    storebot.start()
 
     msg_in.send_status_update({"payload": {"Update": {"serial": 0}}}, "")
     ac1._evtracker.get_matching("DC_EVENT_WEBXDC_STATUS_UPDATE")  # Self-sent

@@ -10,7 +10,6 @@ use deltachat::{
     message::{Message, MsgId, Viewtype},
 };
 use futures::future::join_all;
-use itertools::Itertools;
 use serde::Serialize;
 use sqlx::{SqliteConnection, Type};
 use std::{
@@ -39,6 +38,24 @@ pub async fn configure_from_env(ctx: &Context) -> Result<()> {
     Ok(())
 }
 
+/// Returns the path to assets directory.
+///
+/// Searches for "assets" directory near the bot binary.
+/// If it does not exist, assumes that it is a development setup
+/// and "assets" directory can be found in the current working directory.
+pub(crate) fn assets_path() -> Result<PathBuf> {
+    let exe = std::env::current_exe().context("cannot determine executable path")?;
+    let dir = exe
+        .parent()
+        .with_context(|| format!("cannot determine binary directory for {}", exe.display()))?
+        .join("assets");
+    if dir.exists() {
+        Ok(dir)
+    } else {
+        Ok(PathBuf::from("assets"))
+    }
+}
+
 /// Send a webxdc to a chat.
 pub async fn send_webxdc(
     context: &Context,
@@ -51,7 +68,7 @@ pub async fn send_webxdc(
     if let Some(text) = text {
         webxdc_msg.set_text(Some(text.to_string()));
     }
-    webxdc_msg.set_file(webxdc.get_str_path(), None);
+    webxdc_msg.set_file(webxdc.get_str_path()?, None);
     let msg_id = chat::send_msg(context, chat_id, &mut webxdc_msg).await?;
     let conn = &mut *state.db.acquire().await?;
     db::set_webxdc_version(
@@ -164,16 +181,22 @@ pub enum Webxdc {
 }
 
 impl Webxdc {
-    pub fn get_str_path(&self) -> &'static str {
-        match self {
+    pub fn get_path(&self) -> Result<PathBuf> {
+        let filename = match self {
             Webxdc::Shop => STORE_XDC,
             Webxdc::Submit => SUBMIT_HELPER_XDC,
             Webxdc::Review => REVIEW_HELPER_XDC,
-        }
+        };
+        let path = assets_path()?.join(filename);
+        Ok(path)
     }
 
-    pub fn get_path(&self) -> PathBuf {
-        PathBuf::from(self.get_str_path())
+    pub fn get_str_path(&self) -> Result<String> {
+        let path = self.get_path()?;
+        let s = path
+            .to_str()
+            .with_context(|| format!("cannot convert path {} to string", path.display()))?;
+        Ok(s.to_string())
     }
 
     pub fn iter() -> impl Iterator<Item = Webxdc> {
@@ -209,20 +232,17 @@ impl WebxdcVersions {
 }
 
 pub async fn read_webxdc_versions() -> anyhow::Result<WebxdcVersions> {
-    let required_files = Webxdc::iter().map(|webxdc| webxdc.get_path()).collect_vec();
-
-    let required_files_present = required_files
-        .iter()
-        .all(|path| path.try_exists().unwrap_or_default());
-
-    if !required_files_present {
-        bail!("It seems like the frontend hasn't been build yet! Look at the readme for further instructions.")
+    for webxdc in Webxdc::iter() {
+        let webxdc_path = webxdc.get_path().context("cannot get webxdc path")?;
+        if !webxdc_path.try_exists()? {
+            bail!("Required webxdc {} is not found.", webxdc_path.display());
+        }
     }
 
     let mut futures: Vec<JoinHandle<anyhow::Result<(Webxdc, String)>>> = vec![];
     for webxdc in Webxdc::iter() {
         futures.push(tokio::spawn(async move {
-            let version = get_webxdc_version(&webxdc.get_str_path()).await?;
+            let version = get_webxdc_version(&webxdc.get_str_path()?).await?;
             Ok((webxdc, version))
         }))
     }
