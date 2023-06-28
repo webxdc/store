@@ -1,6 +1,7 @@
 import shutil
 import subprocess
 import base64
+import zipfile
 from pathlib import Path
 from subprocess import Popen
 
@@ -147,7 +148,6 @@ def test_import(acfactory, storebot_example):
     status_updates = msg_in.get_status_updates()
     assert len(status_updates) == 1
     payload = status_updates[0]["payload"]
-    print(status_updates[0]["payload"])
     app_infos = payload["app_infos"]
     assert len(app_infos) == 4
 
@@ -210,3 +210,87 @@ def test_download(acfactory, storebot_example):
     payload = status_updates[4]["payload"]
     assert payload["type"] == "DownloadError"
     assert payload["id"] == 9
+
+
+def update_manifest_version(bot_path, new_version):
+    # Create a temporary zip file
+    temp_zip_file = bot_path + "temp.xdc"
+    zip_file_path = bot_path + "/bot-data/store.xdc"
+    # Open the original zip file and the temporary zip file
+    with zipfile.ZipFile(zip_file_path, "r") as zip_read, zipfile.ZipFile(
+        temp_zip_file, "w"
+    ) as zip_write:
+        # Extract all files from the original zip except the manifest file
+        for file in zip_read.infolist():
+            if file.filename != "manifest.toml":
+                zip_write.writestr(file, zip_read.read(file.filename))
+
+        # Read the manifest.toml file from the original zip
+        manifest_filename = "manifest.toml"
+        manifest_content = zip_read.read(manifest_filename).decode("utf-8")
+
+        # Find and update the version field in the manifest content
+        updated_content = ""
+        for line in manifest_content.split("\n"):
+            if line.startswith("version ="):
+                updated_content += f'version = "{new_version}"\n'
+            else:
+                updated_content += line + "\n"
+
+        # Write the updated manifest content to the temporary zip file
+        updated_manifest = zipfile.ZipInfo(manifest_filename)
+        updated_manifest.compress_type = zipfile.ZIP_DEFLATED
+        zip_write.writestr(updated_manifest, updated_content.encode("utf-8"))
+
+    # Replace the original zip file with the temporary zip file
+    import os
+
+    os.replace(temp_zip_file, zip_file_path)
+
+    print("Version field in manifest.toml updated successfully!")
+
+
+def test_frontend_update(acfactory, bot_path, bot_binary_path):
+    config = acfactory.get_next_liveconfig()
+    bot = BotProcess(config["addr"], config["mail_pw"], bot_path, bot_binary_path)
+    (ac1,) = acfactory.get_online_accounts(1)
+
+    bot_contact = ac1.create_contact(bot.addr)
+    bot_chat = bot_contact.create_chat()
+    bot_chat.send_text("hi!")
+
+    msg_in = ac1.wait_next_incoming_message()
+    ac1._evtracker.get_matching(
+        "DC_EVENT_WEBXDC_STATUS_UPDATE"
+    )  # Inital store hydration
+    assert msg_in.is_webxdc()
+
+    update_manifest_version(str(bot_path), "1000.0.0")
+
+    del bot
+    bot = BotProcess(config["addr"], config["mail_pw"], bot_path, bot_binary_path)
+
+    msg_in.send_status_update({"payload": {"Update": {"serial": 0}}}, "")
+    ac1._evtracker.get_matching("DC_EVENT_WEBXDC_STATUS_UPDATE")  # Self-sent
+    ac1._evtracker.get_matching(
+        "DC_EVENT_WEBXDC_STATUS_UPDATE"
+    )  # Update needed response
+
+    # Test that the bot sends an outadet response
+    status_updates = msg_in.get_status_updates()
+    payload = status_updates[2]["payload"]
+    assert payload == {"critical": True, "type": "Outdated", "version": "1000.0.0"}
+
+    msg_in.send_status_update({"payload": {"type": "UpdateWebxdc"}}, "")
+
+    ac1._evtracker.get_matching("DC_EVENT_WEBXDC_STATUS_UPDATE")  # Self-sent
+    ac1._evtracker.get_matching("DC_EVENT_WEBXDC_STATUS_UPDATE")  # Update sent response
+
+    # Test that the bot sends an
+    status_updates = msg_in.get_status_updates()
+    payload = status_updates[4]["payload"]
+    assert payload == {"type": "UpdateSent"}
+
+    # Test that the bots sends a new version of the store
+    msg_in = ac1.wait_next_incoming_message()
+    assert msg_in.is_webxdc()
