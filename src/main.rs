@@ -22,9 +22,9 @@ use crate::request_handlers::AppInfo;
 
 const GENESIS_QR: &str = "genesis_invite_qr.png";
 const INVITE_QR: &str = "1o1_invite_qr.png";
-const STORE_XDC: &str = "assets/store.xdc";
-const SUBMIT_HELPER_XDC: &str = "assets/submit-helper.xdc";
-const REVIEW_HELPER_XDC: &str = "assets/review-helper.xdc";
+const STORE_XDC: &str = "store.xdc";
+const SUBMIT_HELPER_XDC: &str = "submit-helper.xdc";
+const REVIEW_HELPER_XDC: &str = "review-helper.xdc";
 const VERSION: &str = include_file_str!("VERSION");
 
 pub(crate) fn project_dirs() -> Result<ProjectDirs> {
@@ -57,10 +57,8 @@ async fn main() -> anyhow::Result<()> {
             let dirs = project_dirs()?;
             let xdcs_path = dirs.config_dir().to_path_buf().join("xdcs");
 
-            if !xdcs_path.try_exists().unwrap_or_default() {
-                fs::create_dir(&xdcs_path)
-                    .with_context(|| format!("failed to create {}", xdcs_path.display()))?;
-            }
+            std::fs::create_dir_all(&xdcs_path)
+                .with_context(|| format!("failed to create {}", xdcs_path.display()))?;
 
             for file in &files {
                 if file
