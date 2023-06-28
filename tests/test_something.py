@@ -262,7 +262,7 @@ def test_frontend_update(acfactory, bot_path, bot_binary_path):
 
     # Start the bot again to load the newer store.xdc version
     del bot
-    bot = BotProcess(config["addr"], config["mail_pw"], bot_path, bot_binary_path)
+    _bot = BotProcess(config["addr"], config["mail_pw"], bot_path, bot_binary_path)
 
     msg_in.send_status_update({"payload": {"Update": {"serial": 0}}}, "")
     ac1._evtracker.get_matching("DC_EVENT_WEBXDC_STATUS_UPDATE")  # Self-sent
