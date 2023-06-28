@@ -8,26 +8,28 @@ mod request_handlers;
 mod utils;
 
 use std::fs;
-use std::path::PathBuf;
 
-use anyhow::Context;
+use anyhow::{Context as _, Result};
 use bot::Bot;
 use build_script_file_gen::include_file_str;
 use clap::Parser;
 use cli::{BotActions, BotCli};
+use directories::ProjectDirs;
 use log::info;
 use tokio::signal;
 
 use crate::request_handlers::AppInfo;
 
-const DB_URL: &str = "sqlite://bot-db/bot.db";
-const DC_DB_PATH: &str = "./deltachat.db";
-const GENESIS_QR: &str = "./bot-data/genesis_invite_qr.png";
-const INVITE_QR: &str = "./bot-data/1o1_invite_qr.png";
-const SHOP_XDC: &str = "./bot-data/store.xdc";
-const SUBMIT_HELPER_XDC: &str = "./bot-data/submit-helper.xdc";
-const REVIEW_HELPER_XDC: &str = "./bot-data/review-helper.xdc";
+const GENESIS_QR: &str = "genesis_invite_qr.png";
+const INVITE_QR: &str = "1o1_invite_qr.png";
+const STORE_XDC: &str = "assets/store.xdc";
+const SUBMIT_HELPER_XDC: &str = "assets/submit-helper.xdc";
+const REVIEW_HELPER_XDC: &str = "assets/review-helper.xdc";
 const VERSION: &str = include_file_str!("VERSION");
+
+pub(crate) fn project_dirs() -> Result<ProjectDirs> {
+    ProjectDirs::from("", "", "XDC Store").context("cannot determine home directory")
+}
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
@@ -52,12 +54,12 @@ async fn main() -> anyhow::Result<()> {
                 return Ok(());
             }
 
-            if !PathBuf::from("./bot-data/xdcs")
-                .try_exists()
-                .unwrap_or_default()
-            {
-                fs::create_dir("./bot-data/xdcs")
-                    .context("failed to create ./bot-data/xdcs directory")?;
+            let dirs = project_dirs()?;
+            let xdcs_path = dirs.config_dir().to_path_buf().join("xdcs");
+
+            if !xdcs_path.try_exists().unwrap_or_default() {
+                fs::create_dir(&xdcs_path)
+                    .with_context(|| format!("failed to create {}", xdcs_path.display()))?;
             }
 
             for file in &files {
@@ -72,7 +74,8 @@ async fn main() -> anyhow::Result<()> {
                             app_info.active = true;
                             app_info.submitter_uri = Some("xdcstore".to_string());
 
-                            let mut new_path = PathBuf::from("./bot-data/xdcs");
+                            let mut new_path = dirs.config_dir().to_path_buf();
+                            new_path.push("xdcs");
                             new_path.push(file.file_name().context("Direntry has no filename")?);
 
                             fs::copy(file, &new_path).with_context(|| {

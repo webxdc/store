@@ -25,6 +25,7 @@ qr2term = "0.3.1"
 sqlx = { git = "https://github.com/launchbadge/sqlx.git", features = [ "runtime-tokio", "migrate", "sqlite" ] }
 futures= "*"
 build_script_file_gen = "0.6.1"
+directories = "5.0.0"
 
 [build-dependencies]
 build_script_file_gen = "0.6.1"

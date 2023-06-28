@@ -23,7 +23,7 @@ use crate::{
     bot::State,
     db,
     request_handlers::{shop::ShopResponse, AppInfo, WexbdcManifest},
-    REVIEW_HELPER_XDC, SHOP_XDC, SUBMIT_HELPER_XDC,
+    REVIEW_HELPER_XDC, STORE_XDC, SUBMIT_HELPER_XDC,
 };
 
 pub async fn configure_from_env(ctx: &Context) -> Result<()> {
@@ -166,7 +166,7 @@ pub enum Webxdc {
 impl Webxdc {
     pub fn get_str_path(&self) -> &'static str {
         match self {
-            Webxdc::Shop => SHOP_XDC,
+            Webxdc::Shop => STORE_XDC,
             Webxdc::Submit => SUBMIT_HELPER_XDC,
             Webxdc::Review => REVIEW_HELPER_XDC,
         }
