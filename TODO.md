@@ -54,9 +54,16 @@
 - [x] Test downloading
   - [x] Test downloading an existing app
   - [x] Test downloadin a non-existing app
-- [ ] Test outdated webxdc
-- [ ] 
+- [x] Test outdated bot-xdcs
+
 ### Rust Based
 - [x] Test for close to every DB-function
-- [x] Importing AppInfos
-  - [ ] 
+- [x] Importing webxdcs
+  - [x] Adding to appindex
+  - [x] Upgrading appindex
+  - [x] Keeping unchanged files untouched
+
+### Frontend
+Integration tests do need a _lot_ of setup work.
+All API interaction is pretty comprehensively documented in python tests.
+
