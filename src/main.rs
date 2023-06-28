@@ -99,7 +99,7 @@ async fn main() -> anyhow::Result<()> {
             }
         }
         BotActions::ShowQr => {
-            let bot = Bot::new().await.context("failed to create bot")?;
+            let bot = Bot::new().await.context("Failed to create bot")?;
             match db::get_config(&mut *bot.get_db_connection().await?).await {
                 Ok(config) => {
                     println!("Genisis invite qr:");
@@ -112,7 +112,7 @@ async fn main() -> anyhow::Result<()> {
         }
         BotActions::Version => print!("{}", VERSION),
         BotActions::Start => {
-            let mut bot = Bot::new().await.context("failed to create bot")?;
+            let mut bot = Bot::new().await.context("Failed to create bot")?;
             bot.start().await;
             signal::ctrl_c().await?;
         }

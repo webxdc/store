@@ -15,6 +15,7 @@
 use crate::{
     bot::BotConfig,
     request_handlers::{review::ReviewChat, submit::SubmitChat, AppInfo, ChatType},
+    utils::Webxdc,
 };
 use deltachat::{chat::ChatId, contact::ContactId, message::MsgId};
 use sqlx::{migrate::Migrator, Connection, FromRow, Row, SqliteConnection};
@@ -63,6 +64,9 @@ struct DBBotConfig {
     pub reviewee_group: i32,
     pub genesis_group: i32,
     pub serial: i32,
+    pub shop_xdc_version: String,
+    pub submit_xdc_version: String,
+    pub review_xdc_version: String,
 }
 
 impl TryFrom<DBBotConfig> for BotConfig {
@@ -75,6 +79,9 @@ impl TryFrom<DBBotConfig> for BotConfig {
             reviewee_group: ChatId::new(u32::try_from(db_bot_config.reviewee_group)?),
             genesis_group: ChatId::new(u32::try_from(db_bot_config.genesis_group)?),
             serial: db_bot_config.serial,
+            shop_xdc_version: db_bot_config.shop_xdc_version,
+            submit_xdc_version: db_bot_config.submit_xdc_version,
+            review_xdc_version: db_bot_config.review_xdc_version,
         })
     }
 }
@@ -83,7 +90,7 @@ pub type RecordId = i32;
 
 pub async fn set_config(c: &mut SqliteConnection, config: &BotConfig) -> anyhow::Result<()> {
     sqlx::query(
-        "INSERT INTO config (genesis_qr, invite_qr, tester_group, reviewee_group, genesis_group, serial) VALUES (?, ?, ?, ?, ?, ?)",
+        "INSERT INTO config (genesis_qr, invite_qr, tester_group, reviewee_group, genesis_group, serial, shop_xdc_version, submit_xdc_version, review_xdc_version) VALUES (?, ?, ?, ?, ?, ?, ?, ? ,?)",
     )
     .bind(&config.genesis_qr)
     .bind(&config.invite_qr)
@@ -91,13 +98,16 @@ pub async fn set_config(c: &mut SqliteConnection, config: &BotConfig) -> anyhow:
     .bind(config.reviewee_group.to_u32())
     .bind(config.genesis_group.to_u32())
     .bind(config.serial)
+    .bind(&config.shop_xdc_version)
+    .bind(&config.submit_xdc_version)
+    .bind(&config.review_xdc_version)
     .execute(c).await?;
     Ok(())
 }
 
 pub async fn get_config(c: &mut SqliteConnection) -> anyhow::Result<BotConfig> {
     let res: anyhow::Result<BotConfig> = sqlx::query_as::<_, DBBotConfig>(
-        "SELECT genesis_qr, invite_qr, tester_group, reviewee_group, genesis_group, serial FROM config",
+        "SELECT genesis_qr, invite_qr, tester_group, reviewee_group, genesis_group, serial, shop_xdc_version, submit_xdc_version, review_xdc_version FROM config",
     )
     .fetch_one(c)
     .await
@@ -441,6 +451,36 @@ pub async fn get_last_serial(c: &mut SqliteConnection) -> sqlx::Result<i32> {
         .map(|a| a.get("serial"))
 }
 
+/// Sets the webxdc version for some sent webxdc.
+pub async fn set_webxdc_version(
+    c: &mut SqliteConnection,
+    msg: MsgId,
+    version: String,
+    webxdc: Webxdc,
+) -> sqlx::Result<()> {
+    sqlx::query(
+        "INSERT OR REPLACE INTO webxdc_versions (msg_id, version, webxdc) VALUES (?, ?, ?)",
+    )
+    .bind(msg.to_u32())
+    .bind(version)
+    .bind(webxdc)
+    .execute(c)
+    .await?;
+    Ok(())
+}
+
+/// Gets the webxdc version for some sent webxdc.
+pub async fn get_webxdc_version(
+    c: &mut SqliteConnection,
+    msg: MsgId,
+) -> sqlx::Result<(Webxdc, String)> {
+    sqlx::query("SELECT * FROM webxdc_versions WHERE msg_id = ?")
+        .bind(msg.to_u32())
+        .fetch_one(c)
+        .await
+        .map(|a| (a.get("webxdc"), a.get("version")))
+}
+
 #[cfg(test)]
 #[allow(clippy::unwrap_used)]
 mod tests {
@@ -459,6 +499,9 @@ mod tests {
             reviewee_group: ChatId::new(1),
             genesis_group: ChatId::new(1),
             serial: 0,
+            shop_xdc_version: "1.1.0".to_string(),
+            submit_xdc_version: "1.0.1".to_string(),
+            review_xdc_version: "1.1.1".to_string(),
         };
         set_config(&mut conn, &config).await.unwrap();
         let loaded_config = get_config(&mut conn).await.unwrap();
@@ -636,5 +679,18 @@ mod tests {
         create_app_info(&mut conn, &mut app_info).await.unwrap();
         let loaded_app_info = get_app_info(&mut conn, app_info.id).await.unwrap();
         assert_eq!(app_info, loaded_app_info);
+    }
+
+    #[tokio::test]
+    async fn sent_webxdc_version_set_get() {
+        let mut conn = SqliteConnection::connect("sqlite::memory:").await.unwrap();
+        MIGRATOR.run(&mut conn).await.unwrap();
+
+        let msg = MsgId::new(1);
+        set_webxdc_version(&mut conn, msg, "1.0.0".to_string(), Webxdc::Shop)
+            .await
+            .unwrap();
+        let (_, loaded_version) = get_webxdc_version(&mut conn, msg).await.unwrap();
+        assert_eq!(loaded_version, "1.0.0".to_string());
     }
 }

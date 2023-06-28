@@ -19,10 +19,15 @@ use std::{collections::HashSet, fs, path::PathBuf, sync::Arc};
 use crate::{
     db::{self, MIGRATOR},
     messages::store_message,
-    request_handlers::{genisis, review, shop, submit, ChatType},
-    utils::{configure_from_env, send_newest_updates, send_webxdc},
-    DB_URL, DC_DB_PATH, GENESIS_QR, INVITE_QR, REVIEW_HELPER_XDC, SHOP_XDC, SUBMIT_HELPER_XDC,
-    VERSION,
+    request_handlers::{
+        genisis, review, shop, submit, ChatType, GeneralFrontendRequest, GeneralFrontendResponse,
+        WebxdcStatusUpdate,
+    },
+    utils::{
+        configure_from_env, read_webxdc_versions, send_newest_updates, send_update_payload_only,
+        send_webxdc, Webxdc, WebxdcVersions,
+    },
+    DB_URL, DC_DB_PATH, GENESIS_QR, INVITE_QR, VERSION,
 };
 
 #[derive(Serialize, Deserialize, PartialEq, Debug, Default)]
@@ -33,12 +38,16 @@ pub struct BotConfig {
     pub reviewee_group: ChatId,
     pub genesis_group: ChatId,
     pub serial: i32,
+    pub shop_xdc_version: String,
+    pub submit_xdc_version: String,
+    pub review_xdc_version: String,
 }
 
 /// Github Bot state
 pub struct State {
     pub db: SqlitePool,
     pub config: BotConfig,
+    pub webxdc_versions: WebxdcVersions,
 }
 
 /// Github Bot
@@ -81,7 +90,7 @@ impl Bot {
             Ok(config) => config,
             Err(_) => {
                 info!("Bot hasn't been configured yet, start configuring...");
-                let config = Self::setup(&context).await.context("failed to setup bot")?;
+                let config = Self::setup(&context).await.context("Failed to setup bot")?;
                 let conn = &mut *db.acquire().await?;
                 db::set_config(&mut *db.acquire().await?, &config).await?;
 
@@ -111,9 +120,18 @@ impl Bot {
             }
         };
 
+        let webxdc_versions = read_webxdc_versions().await.map_err(|e| {
+            anyhow::anyhow!("Problem while parsing one of the store `manifests.toml`s: \n {e}")
+        })?;
+        info!("Loaded webxdc versions: {:?}", webxdc_versions);
+
         Ok(Self {
             dc_ctx: context,
-            state: Arc::new(State { db, config }),
+            state: Arc::new(State {
+                db,
+                config,
+                webxdc_versions,
+            }),
         })
     }
 
@@ -142,6 +160,7 @@ impl Bot {
             genesis_group,
             tester_group,
             serial: 0,
+            ..Default::default()
         })
     }
 
@@ -150,15 +169,6 @@ impl Bot {
         let events_emitter = self.dc_ctx.get_event_emitter();
         let ctx = self.dc_ctx.clone();
         let state = self.state.clone();
-
-        let frontend_files = [SHOP_XDC, SUBMIT_HELPER_XDC, REVIEW_HELPER_XDC];
-        let required_files_present = frontend_files
-            .into_iter()
-            .all(|path| PathBuf::from(path).try_exists().unwrap_or_default());
-
-        if !required_files_present {
-            println!("It seems like the frontend hasn't been build yet! Look at the readme for further instructions.")
-        }
 
         tokio::spawn(async move {
             while let Some(event) = events_emitter.recv().await {
@@ -302,8 +312,14 @@ impl Bot {
                         "Chat {chat_id} is not in the database, adding it as chat with type shop"
                     );
                         db::set_chat_type(conn, chat_id, ChatType::Shop).await?;
-                        let msg =
-                            send_webxdc(context, chat_id, SHOP_XDC, Some(store_message())).await?;
+                        let msg = send_webxdc(
+                            context,
+                            &state,
+                            chat_id,
+                            Webxdc::Shop,
+                            Some(store_message()),
+                        )
+                        .await?;
                         send_newest_updates(context, msg, &mut *state.db.acquire().await?, 0)
                             .await?;
                     }
@@ -378,7 +394,48 @@ impl Bot {
     ) -> anyhow::Result<()> {
         let msg = Message::load_from_db(context, msg_id).await?;
         let chat_id = msg.get_chat_id();
-        let chat_type = db::get_chat_type(&mut *state.db.acquire().await?, chat_id).await?;
+        let conn = &mut *state.db.acquire().await?;
+        let chat_type = db::get_chat_type(conn, chat_id).await?;
+        let (webxdc, version) = db::get_webxdc_version(conn, msg.get_id()).await?;
+
+        if let Ok(request) =
+            serde_json::from_str::<WebxdcStatusUpdate<GeneralFrontendRequest>>(&update)
+        {
+            match request.payload {
+                GeneralFrontendRequest::UpdateWebxdc => {
+                    let msg = send_webxdc(context, &state, chat_id, webxdc, Some(store_message()))
+                        .await?;
+                    send_newest_updates(context, msg, &mut *state.db.acquire().await?, 0).await?;
+                    send_update_payload_only(context, msg_id, GeneralFrontendResponse::UpdateSent)
+                        .await?;
+                    return Ok(());
+                }
+            }
+        };
+
+        if version != *state.webxdc_versions.get(webxdc) {
+            info!("Webxdc version mismatch, updating");
+
+            if serde_json::from_str::<WebxdcStatusUpdate<GeneralFrontendResponse>>(&update).is_ok()
+            {
+                return Ok(());
+            }
+
+            // Only try to upgrade version, if the webxdc event is _not_ an update response already
+            if serde_json::from_str::<WebxdcStatusUpdate<GeneralFrontendRequest>>(&update).is_err()
+            {
+                send_update_payload_only(
+                    context,
+                    msg_id,
+                    GeneralFrontendResponse::Outdated {
+                        version: state.webxdc_versions.get(webxdc).to_string(),
+                        critical: true,
+                    },
+                )
+                .await?;
+            };
+            return Ok(());
+        }
 
         match chat_type {
             ChatType::Submit => {
