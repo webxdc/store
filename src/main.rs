@@ -113,7 +113,7 @@ async fn main() -> anyhow::Result<()> {
         BotActions::Version => print!("{}", VERSION),
         BotActions::Start => {
             let mut bot = Bot::new().await.context("Failed to create bot")?;
-            bot.start().await?;
+            bot.start().await;
             signal::ctrl_c().await?;
         }
     }

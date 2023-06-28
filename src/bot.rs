@@ -165,7 +165,7 @@ impl Bot {
     }
 
     /// Start the bot.
-    pub async fn start(&mut self) -> anyhow::Result<()> {
+    pub async fn start(&mut self) {
         let events_emitter = self.dc_ctx.get_event_emitter();
         let ctx = self.dc_ctx.clone();
         let state = self.state.clone();
@@ -179,7 +179,6 @@ impl Bot {
         });
         self.dc_ctx.start_io().await;
         info!("successfully started bot! 🥳");
-        Ok(())
     }
 
     /// Handle dc-events.
