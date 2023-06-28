@@ -237,6 +237,7 @@ def update_manifest_version(bot_path, new_version):
         zip_write.writestr(updated_manifest, updated_content.encode("utf-8"))
 
     import os
+
     os.replace(temp_zip_file, zip_file_path)
 
     print("Version field in manifest.toml updated successfully!")
