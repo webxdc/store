@@ -210,7 +210,7 @@ const Shop: Component = () => {
           }
         }))
         db.insertMultiple(Object.values(app_infos))
-        db.remove_multiple(resp.payload.removed)
+        db.remove_multiple_app_infos(resp.payload.removed)
       }
 
       setlastUpdateSerial(resp.payload.serial)

@@ -258,7 +258,7 @@ pub async fn maybe_upgrade_xdc(
         if db::invalidate_app_info(conn, &app_info.app_id, &app_info.version).await? {
             db::create_app_info(conn, app_info).await?;
             AddType::Updated
-        } else if db::app_info_exists(conn, &app_info.app_id).await? {
+        } else if db::app_exists(conn, &app_info.app_id).await? {
             AddType::Ignored
         } else {
             db::create_app_info(conn, app_info).await?;

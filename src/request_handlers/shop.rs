@@ -53,7 +53,7 @@ pub enum ShopResponse {
     Update {
         /// List of new app ids.
         app_infos: Vec<AppInfo>,
-        /// List of removed app ids.
+        /// List of removed [AppInfo] ids.
         removed: Vec<i32>,
         serial: i32,
     },

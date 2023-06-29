@@ -458,7 +458,7 @@ pub async fn get_inactive_app_infos_since(
         .map(|app| app.into_iter().map(|a| a.into()).collect())
 }
 
-pub async fn app_info_exists(c: &mut SqliteConnection, app_id: &str) -> sqlx::Result<bool> {
+pub async fn app_exists(c: &mut SqliteConnection, app_id: &str) -> sqlx::Result<bool> {
     sqlx::query("SELECT EXISTS(SELECT 1 FROM app_infos WHERE app_id = ?)")
         .bind(app_id)
         .fetch_one(c)
@@ -793,7 +793,7 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn test_app_info_exists() {
+    async fn test_app_exists() {
         let mut conn = SqliteConnection::connect("sqlite::memory:").await.unwrap();
         MIGRATOR.run(&mut conn).await.unwrap();
         set_config(&mut conn, &BotConfig::default()).await.unwrap();
@@ -807,7 +807,7 @@ mod tests {
             .await
             .unwrap();
 
-        assert!(super::app_info_exists(&mut conn, "testxdc").await.unwrap());
-        assert!(!super::app_info_exists(&mut conn, "testxdc2").await.unwrap());
+        assert!(super::app_exists(&mut conn, "testxdc").await.unwrap());
+        assert!(!super::app_exists(&mut conn, "testxdc2").await.unwrap());
     }
 }
