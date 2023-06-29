@@ -77,6 +77,9 @@ You should see the version code printed on the screen.
 
 If you want to install from source code, read [Developing / Building from source](#developing--building-from-source)
 
+> To try out the unreleased development version with the latest state of the source code, download the pre-build at: https://download.delta.chat/store/preview/xdcstore-main.tar.gz
+> **WARNING:** Don't use the development version in production, use it at your own risk for testing only.
+
 ### Running the bot
 
 To run the bot, set the environment variables

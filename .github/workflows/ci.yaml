@@ -69,20 +69,18 @@ jobs:
           name: xdcstore.tar.gz
           path: dist/xdcstore.tar.gz
 
-      - name: Get Pull Request ID
+      - name: Get branch ID
         id: prepare
-        if: ${{ github.event_name == 'pull_request' }}
         run: |
-          export PULLREQUEST_ID=$(echo "${{ github.ref }}" | cut -d "/" -f3)
-          echo "prid=$PULLREQUEST_ID" >> $GITHUB_OUTPUT
+          export BRANCH_ID=$(echo "${{ github.ref }}" | cut -d "/" -f3)
+          echo "branchid=$BRANCH_ID" >> $GITHUB_OUTPUT
 
       - name: Upload preview
-        if: ${{ github.event_name == 'pull_request' }}
         run: |
           mkdir -p "$HOME/.ssh"
           echo "${{ secrets.KEY }}" >__KEY
           chmod 600 __KEY
-          scp -o StrictHostKeyChecking=no -v -i __KEY dist/xdcstore.tar.gz "${{ secrets.USERNAME }}@download.delta.chat:/var/www/html/download/store/preview/xdcstore-${{ steps.prepare.outputs.prid }}.tar.gz"
+          scp -o StrictHostKeyChecking=no -v -i __KEY dist/xdcstore.tar.gz "${{ secrets.USERNAME }}@download.delta.chat:/var/www/html/download/store/preview/xdcstore-${{ steps.prepare.outputs.branchid }}.tar.gz"
 
       - name: Post link to status
         if: ${{ github.event_name == 'pull_request' }}
@@ -95,7 +93,7 @@ jobs:
               sha: context.payload.pull_request.head.sha,
               context: 'Click "Details" to download the distribution tarball →',
               state: 'success',
-              target_url: "https://download.delta.chat/store/preview/xdcstore-${{ steps.prepare.outputs.prid }}.tar.gz"
+              target_url: "https://download.delta.chat/store/preview/xdcstore-${{ steps.prepare.outputs.branchid }}.tar.gz"
             })
 
   python_tests_dist:
