@@ -39,3 +39,31 @@
 - [ ] Handle upgrading for webxdcs in submit-chats
 - [ ] Fordward messages between chats
 - [ ] In-place store updating (core support needed)
+
+## Testing
+
+### Python Based
+- [x] Test welcoming message
+- [x] Test updating
+  - [x] Requesting empty updates
+- [x] Test importing 
+  - [x] Test importing example xdcs
+  - [x] Initial setup message contains webxdcs
+- [x] Test `version` subcommand
+  - [x] produces same output for message-based usage as well as CLI
+- [x] Test downloading
+  - [x] Test downloading an existing app
+  - [x] Test downloadin a non-existing app
+- [x] Test outdated bot-xdcs
+
+### Rust Based
+- [x] Test for close to every DB-function
+- [x] Importing webxdcs
+  - [x] Adding to appindex
+  - [x] Upgrading appindex
+  - [x] Keeping unchanged files untouched
+
+### Frontend
+Integration tests do need a _lot_ of setup work.
+All API interaction is pretty comprehensively documented in python tests.
+

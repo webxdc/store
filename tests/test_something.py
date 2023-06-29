@@ -158,7 +158,6 @@ def test_import(acfactory, storebot_example):
 
     msg_in = ac1.wait_next_incoming_message()
     ac1._evtracker.get_matching("DC_EVENT_WEBXDC_STATUS_UPDATE")
-    assert "Welcome" in msg_in.text
 
     assert msg_in.is_webxdc()
     status_updates = msg_in.get_status_updates()
