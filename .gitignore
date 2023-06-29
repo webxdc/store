@@ -1,10 +1,6 @@
 target
-deltachat.db
-creds.md
-bot.db
-xdcs/*
-bot-data/*
-import/*
+import
 **/__pycache__/*
-dist/
 **.log
+dist
+assets
