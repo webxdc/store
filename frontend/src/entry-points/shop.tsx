@@ -160,6 +160,7 @@ const Shop: Component = () => {
   }))
   const [isUpdating, setIsUpdating] = createSignal(false)
   const [search, setSearch] = createSignal('')
+  const [showCommit, setShowCommit] = createSignal(false)
 
   const past_time = Math.abs(new Date().getTime() - lastUpdate().getTime()) / 1000
   if (appInfo === undefined || (past_time > 60 * 60)) {
@@ -259,8 +260,13 @@ const Shop: Component = () => {
     <OutdatedView critical={updateNeeded()} updated_received={updateReceived()}>
       <div class="c-grid p-3">
         <div class="min-width">
-          <div class="flex justify-between gap-2">
-            <h1 class="text-2xl font-bold">Webxdc Appstore</h1>
+          <div class="flex items-center justify-between gap-2">
+            <div>
+              <h1 class="flex-shrink text-2xl font-bold" onclick={() => setShowCommit(!showCommit())}>
+                Webxdc Appstore
+              </h1>
+              {showCommit() && <p class="whitespace-nowrap text-sm unimportant"> @ {import.meta.env.VITE_COMMIT} </p>}
+            </div>
             <div class="rounded-xl bg-gray-100 p-2 unimportant text-gray-500">
               <Show when={isUpdating()} fallback={
                 <button class="flex items-center gap-2" onclick={handleUpdate}>
