@@ -192,11 +192,10 @@ impl Webxdc {
     }
 
     pub fn get_str_path(&self) -> Result<String> {
-        let path = self.get_path()?;
-        let s = path
+        self.get_path()?
             .to_str()
-            .with_context(|| format!("cannot convert path {} to string", path.display()))?;
-        Ok(s.to_string())
+            .with_context(|| format!("cannot convert path {} to string", path.display()))
+            .map(|str| str.to_string())
     }
 
     pub fn iter() -> impl Iterator<Item = Webxdc> {
