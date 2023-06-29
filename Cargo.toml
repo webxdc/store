@@ -4,6 +4,9 @@ version = "1.0.1"
 authors = ["Webxdc store team <https://github.com/webxdc/store"]
 edition = "2021"
 
+[profile.dev]
+debug = 0
+
 [dependencies]
 deltachat = { git = "https://github.com/deltachat/deltachat-core-rust.git"}
 tokio = { version = "^1.21", features = ["rt-multi-thread", "macros", "signal"]}
