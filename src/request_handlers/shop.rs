@@ -168,7 +168,7 @@ async fn handle_download_request(
     Ok((
         encode(
             &tokio::fs::read(
-                app.xdc_blob_dir
+                app.xdc_blob_path
                     .to_str()
                     .context("Can't covert file '{file:?}' to str")?,
             )

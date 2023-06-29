@@ -32,7 +32,7 @@ pub struct DBAppInfo {
     pub source_code_url: Option<String>, // manifest
     pub image: String,                   // webxdc
     pub description: String,             // submit
-    pub xdc_blob_dir: String,            // bot
+    pub xdc_blob_path: String,           // bot
     pub version: String,                 // manifest
     pub originator: RecordId,            // bot
     pub active: bool,                    // bot
@@ -48,7 +48,7 @@ impl From<DBAppInfo> for AppInfo {
             source_code_url: db_app.source_code_url,
             image: db_app.image,
             description: db_app.description,
-            xdc_blob_dir: PathBuf::from(db_app.xdc_blob_dir),
+            xdc_blob_path: PathBuf::from(db_app.xdc_blob_path),
             version: db_app.version,
             originator: db_app.originator,
             active: db_app.active,
@@ -370,14 +370,14 @@ pub async fn create_app_info(
     app_info: &mut AppInfo,
 ) -> anyhow::Result<()> {
     let next_serial = increase_get_serial(c).await?;
-    let res = sqlx::query("INSERT INTO app_infos (app_id, name, description, version, image, submitter_uri, xdc_blob_dir, active, originator, source_code_url, serial) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)")
+    let res = sqlx::query("INSERT INTO app_infos (app_id, name, description, version, image, submitter_uri, xdc_blob_path, active, originator, source_code_url, serial) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)")
         .bind(app_info.app_id.as_str())
         .bind(app_info.name.as_str())
         .bind(&app_info.description)
         .bind(&app_info.version)
         .bind(&app_info.image)
         .bind(&app_info.submitter_uri)
-        .bind(app_info.xdc_blob_dir.to_str())
+        .bind(app_info.xdc_blob_path.to_str())
         .bind(app_info.active)
         .bind(app_info.originator)
         .bind(&app_info.source_code_url)
@@ -390,14 +390,14 @@ pub async fn create_app_info(
 }
 
 pub async fn update_app_info(c: &mut SqliteConnection, app_info: &AppInfo) -> anyhow::Result<()> {
-    sqlx::query("UPDATE app_infos SET name = ?, app_id = ?, description = ?, version = ?, image = ?, author_name = ?, xdc_blob_dir = ?, active = ?, originator = ?, source_code_url = ? WHERE id = ?")
+    sqlx::query("UPDATE app_infos SET name = ?, app_id = ?, description = ?, version = ?, image = ?, author_name = ?, xdc_blob_path = ?, active = ?, originator = ?, source_code_url = ? WHERE id = ?")
         .bind(app_info.name.as_str())
         .bind(&app_info.app_id)
         .bind(&app_info.description)
         .bind(&app_info.version)
         .bind(&app_info.image)
         .bind(&app_info.submitter_uri)
-        .bind(app_info.xdc_blob_dir.to_str())
+        .bind(app_info.xdc_blob_path.to_str())
         .bind(app_info.active)
         .bind(app_info.originator)
         .bind(&app_info.source_code_url)

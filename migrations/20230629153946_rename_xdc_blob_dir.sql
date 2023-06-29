@@ -1,0 +1,1 @@
+ALTER TABLE app_infos RENAME COLUMN xdc_blob_dir TO xdc_blob_path;
