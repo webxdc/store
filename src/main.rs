@@ -3,11 +3,11 @@ mod bot;
 mod bot_commands;
 mod cli;
 mod db;
+mod import;
 mod messages;
 mod request_handlers;
 mod utils;
-
-use std::fs;
+use std::{fs::create_dir_all, path::PathBuf};
 
 use anyhow::{Context as _, Result};
 use bot::Bot;
@@ -15,10 +15,7 @@ use build_script_file_gen::include_file_str;
 use clap::Parser;
 use cli::{BotActions, BotCli};
 use directories::ProjectDirs;
-use log::info;
 use tokio::signal;
-
-use crate::request_handlers::AppInfo;
 
 const GENESIS_QR: &str = "genesis_invite_qr.png";
 const INVITE_QR: &str = "1o1_invite_qr.png";
@@ -38,65 +35,27 @@ async fn main() -> anyhow::Result<()> {
 
     match &cli.action {
         BotActions::Import { path } => {
+            let path = PathBuf::from(path.as_deref().unwrap_or("."));
             let bot = Bot::new().await.context("failed to create bot")?;
-            let path = path.as_deref().unwrap_or("import/");
-            info!("Importing webxdcs from {path}");
-            let dir_entry = std::fs::read_dir(path).context("failed to read dir")?;
+            let xdcs_dir = project_dirs()?.config_dir().to_path_buf().join("xdcs");
+            create_dir_all(&xdcs_dir)?;
 
-            let files: Vec<_> = dir_entry
-                .filter_map(|e| e.ok())
-                .map(|e| e.path())
-                .filter(|e| e.is_file())
-                .collect();
-
-            if files.is_empty() {
-                eprintln!("No xdcs to add in {}", path);
-                return Ok(());
-            }
-
-            let dirs = project_dirs()?;
-            let xdcs_path = dirs.config_dir().to_path_buf().join("xdcs");
-
-            std::fs::create_dir_all(&xdcs_path)
-                .with_context(|| format!("failed to create {}", xdcs_path.display()))?;
-
-            for file in &files {
-                if file
-                    .file_name()
-                    .and_then(|a| a.to_str())
-                    .context("Can't get filename for imported file")?
-                    .ends_with(".xdc")
-                {
-                    match AppInfo::from_xdc(file).await {
-                        Ok(mut app_info) => {
-                            app_info.active = true;
-                            app_info.submitter_uri = Some("xdcstore".to_string());
-
-                            let mut new_path = dirs.config_dir().to_path_buf();
-                            new_path.push("xdcs");
-                            new_path.push(file.file_name().context("Direntry has no filename")?);
-
-                            fs::copy(file, &new_path).with_context(|| {
-                                format!(
-                                    "failed to copy {} to {}",
-                                    file.display(),
-                                    new_path.display()
-                                )
-                            })?;
-
-                            app_info.xdc_blob_dir = new_path;
-                            db::create_app_info(
-                                &mut *bot.get_db_connection().await?,
-                                &mut app_info,
-                            )
-                            .await?;
-                            println!("Added {}({}) to apps", file.display(), app_info.name);
-                        }
-                        Err(e) => {
-                            println!("Failed to import {:?} \n{}", file, e);
-                        }
-                    };
-                }
+            if path.is_file() {
+                import::import_one(
+                    path.as_path(),
+                    &xdcs_dir,
+                    &mut *bot.get_db_connection().await?,
+                )
+                .await?;
+            } else if path.is_dir() {
+                import::import_many(
+                    path.as_path(),
+                    xdcs_dir,
+                    &mut *bot.get_db_connection().await?,
+                )
+                .await?;
+            } else {
+                eprintln!("{} is not a file or directory", path.display());
             }
         }
         BotActions::ShowQr => {

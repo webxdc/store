@@ -50,7 +50,7 @@ pub struct AppInfo {
     pub image: String,                   // webxdc
     pub description: String,             // submit
     #[serde(skip)]
-    pub xdc_blob_dir: PathBuf, // bot
+    pub xdc_blob_path: PathBuf, // bot
     #[serde(skip)]
     pub originator: RecordId, // bot
     #[serde(skip)]
@@ -61,7 +61,7 @@ impl AppInfo {
     /// Create appinfo from webxdc file.
     pub async fn from_xdc(file: &Path) -> anyhow::Result<Self> {
         let mut app = AppInfo {
-            xdc_blob_dir: file.to_path_buf(),
+            xdc_blob_path: file.to_path_buf(),
             ..Default::default()
         };
         app.update_from_xdc(file.to_path_buf()).await?;
@@ -87,7 +87,7 @@ impl AppInfo {
         self.submitter_uri = manifest.submitter_uri;
         // self.submission_date = manifest.submission_date;
 
-        self.xdc_blob_dir = file;
+        self.xdc_blob_path = file;
 
         let icon = entries
             .iter()

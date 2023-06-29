@@ -108,7 +108,7 @@ impl Bot {
                     &config.genesis_qr,
                     QrCodeEcc::Low,
                     1024,
-                    GENESIS_QR,
+                    dirs.config_dir().to_path_buf().join(GENESIS_QR),
                 )
                 .context("failed to generate genesis QR at {GENESIS_QR}")?;
                 eprintln!("Generated genisis group join QR-code at {GENESIS_QR}");
@@ -116,7 +116,7 @@ impl Bot {
                     &config.invite_qr,
                     QrCodeEcc::Low,
                     1024,
-                    INVITE_QR,
+                    dirs.config_dir().to_path_buf().join(INVITE_QR),
                 )
                 .context("failed to generate invite QR at {INVITE_QR}")?;
                 eprintln!("Generated 1:1 invite QR-code at {INVITE_QR}");

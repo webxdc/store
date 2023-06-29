@@ -13,7 +13,7 @@ pub enum BotActions {
     Start,
     /// Import xdcs.
     Import {
-        /// Path from which files should be imported. Default is '/import'.
+        /// Path from which files should be imported. Defaults to cdw.
         path: Option<String>,
     },
     /// Show the 1:1-invite and genesis-invite qr code.
