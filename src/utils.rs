@@ -194,7 +194,7 @@ impl Webxdc {
     pub fn get_str_path(&self) -> Result<String> {
         self.get_path()?
             .to_str()
-            .with_context(|| format!("cannot convert path {} to string", path.display()))
+            .with_context(|| format!("cannot convert path {:?} to string", self.get_path()))
             .map(|str| str.to_string())
     }
 
