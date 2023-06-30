@@ -19,20 +19,9 @@ export class AppInfoDB {
       request.onsuccess = () => resolve((this.db = request.result))
       request.onupgradeneeded = () => {
         const db = request.result
-        db.createObjectStore('appInfo', { keyPath: 'id' })
+        db.createObjectStore('appInfo', { keyPath: 'app_id' })
         db.createObjectStore('apps')
       }
-    })
-  }
-
-  async insert(data: AppInfoWithState): Promise<void> {
-    const db = await this.open()
-    return new Promise((resolve, reject) => {
-      const transaction = db.transaction('appInfo', 'readwrite')
-      transaction.onerror = () => reject(transaction.error)
-      const store = transaction.objectStore('appInfo')
-      const request = store.add(data)
-      request.onsuccess = () => resolve()
     })
   }
 
@@ -102,7 +91,7 @@ export class AppInfoDB {
   }
 
   // Add base64 encoded webxdc to the db.
-  async add_webxdc(webxdc: XDCFile, id: number): Promise<void> {
+  async add_webxdc(webxdc: XDCFile, id: string): Promise<void> {
     const db = await this.open()
     return new Promise((resolve, reject) => {
       const transaction = db.transaction('apps', 'readwrite')
@@ -114,7 +103,7 @@ export class AppInfoDB {
   }
 
   // Get base64 encoded webxdc from the db.
-  async get_webxdc(id: number): Promise<XDCFile> {
+  async get_webxdc(id: string): Promise<XDCFile> {
     const db = await this.open()
     return new Promise((resolve, reject) => {
       const transaction = db.transaction('apps', 'readonly')

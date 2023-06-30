@@ -84,11 +84,7 @@ pub async fn send_newest_updates(
 ) -> anyhow::Result<()> {
     let app_infos: Vec<_> = db::get_active_app_infos_since(db, serial).await?;
     let serial = db::get_last_serial(db).await?;
-    let resp = ShopResponse::Update {
-        app_infos,
-        removed: vec![],
-        serial,
-    };
+    let resp = ShopResponse::Update { app_infos, serial };
     send_update_payload_only(context, msg_id, resp).await?;
     Ok(())
 }
@@ -161,7 +157,7 @@ pub async fn get_webxdc_manifest(reader: &ZipFileReader) -> anyhow::Result<Wexbd
     Ok(toml::from_str(&read_string(reader, manifest_index).await?)?)
 }
 
-pub async fn get_webxdc_version(file: impl AsRef<Path>) -> anyhow::Result<i64> {
+pub async fn get_webxdc_version(file: impl AsRef<Path>) -> anyhow::Result<i32> {
     let reader = ZipFileReader::new(file).await?;
     let manifest = get_webxdc_manifest(&reader).await?;
     Ok(manifest.version)
@@ -201,13 +197,13 @@ impl Webxdc {
 
 #[derive(Debug, PartialEq, Eq, Default)]
 pub struct WebxdcVersions {
-    pub shop: i64,
-    pub submit: i64,
-    pub review: i64,
+    pub shop: i32,
+    pub submit: i32,
+    pub review: i32,
 }
 
 impl WebxdcVersions {
-    pub fn set(&mut self, webxdc: Webxdc, version: i64) {
+    pub fn set(&mut self, webxdc: Webxdc, version: i32) {
         match webxdc {
             Webxdc::Shop => self.shop = version,
             Webxdc::Submit => self.submit = version,
@@ -215,7 +211,7 @@ impl WebxdcVersions {
         }
     }
 
-    pub fn get(&self, webxdc: Webxdc) -> i64 {
+    pub fn get(&self, webxdc: Webxdc) -> i32 {
         match webxdc {
             Webxdc::Shop => self.shop,
             Webxdc::Submit => self.submit,
@@ -232,7 +228,7 @@ pub async fn read_webxdc_versions() -> anyhow::Result<WebxdcVersions> {
         }
     }
 
-    let mut futures: Vec<JoinHandle<anyhow::Result<(Webxdc, i64)>>> = vec![];
+    let mut futures: Vec<JoinHandle<anyhow::Result<(Webxdc, i32)>>> = vec![];
     for webxdc in Webxdc::iter() {
         futures.push(tokio::spawn(async move {
             let version = get_webxdc_version(&webxdc.get_str_path()?).await?;

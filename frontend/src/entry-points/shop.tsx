@@ -114,7 +114,7 @@ const PublishButton: Component = () => {
   )
 }
 
-const AppList: Component<{ items: AppInfoWithState[]; search: string; onDownload: (id: number) => void; onForward: (id: number) => void }> = (props) => {
+const AppList: Component<{ items: AppInfoWithState[]; search: string; onDownload: (id: string) => void; onForward: (id: string) => void }> = (props) => {
   let fuse: Fuse<AppInfoWithState> = new Fuse(props.items, fuse_options)
 
   createEffect(() => {
@@ -134,7 +134,7 @@ const AppList: Component<{ items: AppInfoWithState[]; search: string; onDownload
     <Show when={props.items.length !== 0} fallback={<p class="text-center unimportant">Loading Apps..</p>}>
       <For each={filtered_items() || props.items}>
         {
-          item => AppInfoModal(item, () => props.onDownload(item.id), () => { props.onForward(item.id) })
+          item => AppInfoModal(item, () => props.onDownload(item.app_id), () => { props.onForward(item.app_id) })
         }
       </For>
     </Show>
@@ -143,7 +143,7 @@ const AppList: Component<{ items: AppInfoWithState[]; search: string; onDownload
 
 function to_app_infos_by_id(app_infos: AppInfoWithState[]): AppInfosById {
   return app_infos.reduce((acc, appinfo) => {
-    acc[appinfo.id] = appinfo
+    acc[appinfo.app_id] = appinfo
     return acc
   }, {} as AppInfosById)
 }
@@ -210,8 +210,7 @@ const Shop: Component = () => {
             delete s[key]
           }
         }))
-        db.insertMultiple(Object.values(app_infos))
-        db.remove_multiple_app_infos(resp.payload.removed)
+        db.updateMultiple(Object.values(app_infos))
       }
 
       setlastUpdateSerial(resp.payload.serial)
@@ -244,15 +243,15 @@ const Shop: Component = () => {
     }, '')
   }
 
-  async function handleDownload(app_id: number) {
-    setAppInfo(Number(app_id), 'state', AppState.Downloading)
+  async function handleDownload(app_id: string) {
+    setAppInfo(app_id, 'state', AppState.Downloading)
     db.update({ ...appInfo[app_id], state: AppState.Downloading })
     window.webxdc.sendUpdate({
       payload: { Download: { app_id } } as ShopRequest,
     }, '')
   }
 
-  async function handleForward(app_id: number) {
+  async function handleForward(app_id: string) {
     const file = await db.get_webxdc(app_id)
     if (file === undefined) {
       throw new Error('No cached file found')

@@ -21,7 +21,7 @@ pub struct WexbdcManifest {
     pub app_id: String,
 
     /// Version of the application.
-    pub version: i64,
+    pub version: i32,
 
     /// Webxdc name, used on icons or page titles.
     pub name: String,
@@ -40,10 +40,10 @@ pub struct WexbdcManifest {
 #[ts(export)]
 #[ts(export_to = "frontend/src/bindings/")]
 pub struct AppInfo {
-    pub id: RecordId,
     #[serde(skip)]
-    pub app_id: String, // manifest
-    pub version: i64,                    // manifest
+    pub id: RecordId,
+    pub app_id: String,                  // manifest
+    pub version: i32,                    // manifest
     pub name: String,                    // manifest
     pub submitter_uri: Option<String>,   // bot
     pub source_code_url: Option<String>, // manifest

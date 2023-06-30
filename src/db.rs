@@ -33,7 +33,7 @@ pub struct DBAppInfo {
     pub image: String,                   // webxdc
     pub description: String,             // submit
     pub xdc_blob_path: String,           // bot
-    pub version: i64,                    // manifest
+    pub version: i32,                    // manifest
     pub originator: RecordId,            // bot
 }
 
@@ -452,7 +452,6 @@ WHERE a.serial > ?"#,
     .map(|app| app.into_iter().map(|a| a.into()).collect())
 }
 
-
 pub async fn app_exists(c: &mut SqliteConnection, app_id: &str) -> sqlx::Result<bool> {
     sqlx::query("SELECT EXISTS(SELECT 1 FROM app_infos WHERE app_id = ?)")
         .bind(app_id)
@@ -465,7 +464,7 @@ pub async fn app_exists(c: &mut SqliteConnection, app_id: &str) -> sqlx::Result<
 pub async fn app_version_exists(
     c: &mut SqliteConnection,
     id: &str,
-    version: i64,
+    version: i32,
 ) -> sqlx::Result<bool> {
     sqlx::query("SELECT EXISTS(SELECT 1 FROM app_infos WHERE app_id = ? AND version = ?)")
         .bind(id)
@@ -486,7 +485,7 @@ pub async fn get_last_serial(c: &mut SqliteConnection) -> sqlx::Result<i32> {
 pub async fn set_webxdc_version(
     c: &mut SqliteConnection,
     msg: MsgId,
-    version: i64,
+    version: i32,
     webxdc: Webxdc,
 ) -> sqlx::Result<()> {
     sqlx::query(
@@ -504,7 +503,7 @@ pub async fn set_webxdc_version(
 pub async fn get_webxdc_version(
     c: &mut SqliteConnection,
     msg: MsgId,
-) -> sqlx::Result<(Webxdc, i64)> {
+) -> sqlx::Result<(Webxdc, i32)> {
     sqlx::query("SELECT * FROM webxdc_versions WHERE msg_id = ?")
         .bind(msg.to_u32())
         .fetch_one(c)
