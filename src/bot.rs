@@ -417,7 +417,7 @@ impl Bot {
             }
         };
 
-        if version != *state.webxdc_versions.get(webxdc) {
+        if version < state.webxdc_versions.get(webxdc) {
             info!("Webxdc version mismatch, updating");
 
             if serde_json::from_str::<WebxdcStatusUpdate<GeneralFrontendResponse>>(&update).is_ok()

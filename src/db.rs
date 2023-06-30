@@ -33,7 +33,7 @@ pub struct DBAppInfo {
     pub image: String,                   // webxdc
     pub description: String,             // submit
     pub xdc_blob_path: String,           // bot
-    pub version: String,                 // manifest
+    pub version: i64,                    // manifest
     pub originator: RecordId,            // bot
     pub active: bool,                    // bot
 }
@@ -471,7 +471,7 @@ pub async fn app_exists(c: &mut SqliteConnection, app_id: &str) -> sqlx::Result<
 pub async fn invalidate_app_info(
     c: &mut SqliteConnection,
     app_id: &str,
-    app_version: &str,
+    app_version: i64,
 ) -> sqlx::Result<bool> {
     let mut trans = c.begin().await?;
     let serial = increase_get_serial(&mut trans).await?;
@@ -498,7 +498,7 @@ pub async fn get_last_serial(c: &mut SqliteConnection) -> sqlx::Result<i32> {
 pub async fn set_webxdc_version(
     c: &mut SqliteConnection,
     msg: MsgId,
-    version: String,
+    version: i64,
     webxdc: Webxdc,
 ) -> sqlx::Result<()> {
     sqlx::query(
@@ -516,7 +516,7 @@ pub async fn set_webxdc_version(
 pub async fn get_webxdc_version(
     c: &mut SqliteConnection,
     msg: MsgId,
-) -> sqlx::Result<(Webxdc, String)> {
+) -> sqlx::Result<(Webxdc, i64)> {
     sqlx::query("SELECT * FROM webxdc_versions WHERE msg_id = ?")
         .bind(msg.to_u32())
         .fetch_one(c)
@@ -732,11 +732,11 @@ mod tests {
         MIGRATOR.run(&mut conn).await.unwrap();
 
         let msg = MsgId::new(1);
-        set_webxdc_version(&mut conn, msg, "1.0.0".to_string(), Webxdc::Shop)
+        set_webxdc_version(&mut conn, msg, 1, Webxdc::Shop)
             .await
             .unwrap();
         let (_, loaded_version) = get_webxdc_version(&mut conn, msg).await.unwrap();
-        assert_eq!(loaded_version, "1.0.0".to_string());
+        assert_eq!(loaded_version, 1);
     }
 
     #[tokio::test]
@@ -747,7 +747,7 @@ mod tests {
 
         let mut app_info = AppInfo {
             app_id: "testxdc".to_string(),
-            version: "1.0.0".to_string(),
+            version: 1,
             active: true,
             ..Default::default()
         };
@@ -759,7 +759,7 @@ mod tests {
         assert_eq!(super::get_app_infos(&mut conn).await.unwrap().len(), 1);
 
         let mut new_app_info = AppInfo {
-            version: "1.0.1".to_string(),
+            version: 1,
             ..app_info.clone()
         };
 

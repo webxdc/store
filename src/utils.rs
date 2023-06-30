@@ -71,13 +71,7 @@ pub async fn send_webxdc(
     webxdc_msg.set_file(webxdc.get_str_path()?, None);
     let msg_id = chat::send_msg(context, chat_id, &mut webxdc_msg).await?;
     let conn = &mut *state.db.acquire().await?;
-    db::set_webxdc_version(
-        conn,
-        msg_id,
-        state.webxdc_versions.get(webxdc).to_string(),
-        webxdc,
-    )
-    .await?;
+    db::set_webxdc_version(conn, msg_id, state.webxdc_versions.get(webxdc), webxdc).await?;
     Ok(msg_id)
 }
 
@@ -168,7 +162,7 @@ pub async fn get_webxdc_manifest(reader: &ZipFileReader) -> anyhow::Result<Wexbd
     Ok(toml::from_str(&read_string(reader, manifest_index).await?)?)
 }
 
-pub async fn get_webxdc_version(file: impl AsRef<Path>) -> anyhow::Result<String> {
+pub async fn get_webxdc_version(file: impl AsRef<Path>) -> anyhow::Result<i64> {
     let reader = ZipFileReader::new(file).await?;
     let manifest = get_webxdc_manifest(&reader).await?;
     Ok(manifest.version)
@@ -208,13 +202,13 @@ impl Webxdc {
 
 #[derive(Debug, PartialEq, Eq, Default)]
 pub struct WebxdcVersions {
-    pub shop: String,
-    pub submit: String,
-    pub review: String,
+    pub shop: i64,
+    pub submit: i64,
+    pub review: i64,
 }
 
 impl WebxdcVersions {
-    pub fn set(&mut self, webxdc: Webxdc, version: String) {
+    pub fn set(&mut self, webxdc: Webxdc, version: i64) {
         match webxdc {
             Webxdc::Shop => self.shop = version,
             Webxdc::Submit => self.submit = version,
@@ -222,11 +216,11 @@ impl WebxdcVersions {
         }
     }
 
-    pub fn get(&self, webxdc: Webxdc) -> &str {
+    pub fn get(&self, webxdc: Webxdc) -> i64 {
         match webxdc {
-            Webxdc::Shop => &self.shop,
-            Webxdc::Submit => &self.submit,
-            Webxdc::Review => &self.review,
+            Webxdc::Shop => self.shop,
+            Webxdc::Submit => self.submit,
+            Webxdc::Review => self.review,
         }
     }
 }
@@ -239,7 +233,7 @@ pub async fn read_webxdc_versions() -> anyhow::Result<WebxdcVersions> {
         }
     }
 
-    let mut futures: Vec<JoinHandle<anyhow::Result<(Webxdc, String)>>> = vec![];
+    let mut futures: Vec<JoinHandle<anyhow::Result<(Webxdc, i64)>>> = vec![];
     for webxdc in Webxdc::iter() {
         futures.push(tokio::spawn(async move {
             let version = get_webxdc_version(&webxdc.get_str_path()?).await?;
@@ -247,11 +241,7 @@ pub async fn read_webxdc_versions() -> anyhow::Result<WebxdcVersions> {
         }))
     }
 
-    let mut versions = WebxdcVersions {
-        shop: String::new(),
-        submit: String::new(),
-        review: String::new(),
-    };
+    let mut versions = WebxdcVersions::default();
     for result in join_all(futures).await {
         let (webxdc, version) = result??;
         versions.set(webxdc, version);
@@ -274,7 +264,7 @@ pub async fn maybe_upgrade_xdc(
     conn: &mut SqliteConnection,
 ) -> anyhow::Result<AddType> {
     Ok(
-        if db::invalidate_app_info(conn, &app_info.app_id, &app_info.version).await? {
+        if db::invalidate_app_info(conn, &app_info.app_id, app_info.version).await? {
             db::create_app_info(conn, app_info).await?;
             AddType::Updated
         } else if db::app_exists(conn, &app_info.app_id).await? {
