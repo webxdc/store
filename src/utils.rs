@@ -83,11 +83,10 @@ pub async fn send_newest_updates(
     serial: u32,
 ) -> anyhow::Result<()> {
     let app_infos: Vec<_> = db::get_active_app_infos_since(db, serial).await?;
-    let removed = db::get_inactive_app_infos_since(db, serial).await?;
     let serial = db::get_last_serial(db).await?;
     let resp = ShopResponse::Update {
         app_infos,
-        removed: removed.into_iter().map(|app_info| app_info.id).collect(),
+        removed: vec![],
         serial,
     };
     send_update_payload_only(context, msg_id, resp).await?;
@@ -264,11 +263,11 @@ pub async fn maybe_upgrade_xdc(
     conn: &mut SqliteConnection,
 ) -> anyhow::Result<AddType> {
     Ok(
-        if db::invalidate_app_info(conn, &app_info.app_id, app_info.version).await? {
+        if db::app_version_exists(conn, &app_info.app_id, app_info.version).await? {
+            AddType::Ignored
+        } else if db::app_exists(conn, &app_info.app_id).await? {
             db::create_app_info(conn, app_info).await?;
             AddType::Updated
-        } else if db::app_exists(conn, &app_info.app_id).await? {
-            AddType::Ignored
         } else {
             db::create_app_info(conn, app_info).await?;
             AddType::Added

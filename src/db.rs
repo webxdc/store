@@ -35,7 +35,6 @@ pub struct DBAppInfo {
     pub xdc_blob_path: String,           // bot
     pub version: i64,                    // manifest
     pub originator: RecordId,            // bot
-    pub active: bool,                    // bot
 }
 
 impl From<DBAppInfo> for AppInfo {
@@ -51,7 +50,6 @@ impl From<DBAppInfo> for AppInfo {
             xdc_blob_path: PathBuf::from(db_app.xdc_blob_path),
             version: db_app.version,
             originator: db_app.originator,
-            active: db_app.active,
         }
     }
 }
@@ -371,7 +369,7 @@ pub async fn create_app_info(
 ) -> anyhow::Result<()> {
     let mut trans = c.begin().await?;
     let next_serial = increase_get_serial(&mut trans).await?;
-    let res = sqlx::query("INSERT INTO app_infos (app_id, name, description, version, image, submitter_uri, xdc_blob_path, active, originator, source_code_url, serial) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)")
+    let res = sqlx::query("INSERT INTO app_infos (app_id, name, description, version, image, submitter_uri, xdc_blob_path, originator, source_code_url, serial) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)")
         .bind(app_info.app_id.as_str())
         .bind(app_info.name.as_str())
         .bind(&app_info.description)
@@ -379,7 +377,6 @@ pub async fn create_app_info(
         .bind(&app_info.image)
         .bind(&app_info.submitter_uri)
         .bind(app_info.xdc_blob_path.to_str())
-        .bind(app_info.active)
         .bind(app_info.originator)
         .bind(&app_info.source_code_url)
         .bind(next_serial)
@@ -392,7 +389,7 @@ pub async fn create_app_info(
 }
 
 pub async fn update_app_info(c: &mut SqliteConnection, app_info: &AppInfo) -> anyhow::Result<()> {
-    sqlx::query("UPDATE app_infos SET name = ?, app_id = ?, description = ?, version = ?, image = ?, author_name = ?, xdc_blob_path = ?, active = ?, originator = ?, source_code_url = ? WHERE id = ?")
+    sqlx::query("UPDATE app_infos SET name = ?, app_id = ?, description = ?, version = ?, image = ?, author_name = ?, xdc_blob_path = ?, originator = ?, source_code_url = ? WHERE id = ?")
         .bind(app_info.name.as_str())
         .bind(&app_info.app_id)
         .bind(&app_info.description)
@@ -400,7 +397,6 @@ pub async fn update_app_info(c: &mut SqliteConnection, app_info: &AppInfo) -> an
         .bind(&app_info.image)
         .bind(&app_info.submitter_uri)
         .bind(app_info.xdc_blob_path.to_str())
-        .bind(app_info.active)
         .bind(app_info.originator)
         .bind(&app_info.source_code_url)
         .bind(app_info.id)
@@ -440,23 +436,22 @@ pub async fn get_active_app_infos_since(
     c: &mut SqliteConnection,
     serial: u32,
 ) -> sqlx::Result<Vec<AppInfo>> {
-    sqlx::query_as::<_, DBAppInfo>("SELECT * FROM app_infos WHERE active = true AND serial > ?")
-        .bind(serial)
-        .fetch_all(c)
-        .await
-        .map(|app| app.into_iter().map(|a| a.into()).collect())
+    sqlx::query_as::<_, DBAppInfo>(
+        r#"SELECT a.*
+FROM app_infos a
+JOIN (
+    SELECT app_id, MAX(version) AS latest_version
+    FROM app_infos
+    GROUP BY app_id
+) b ON a.app_id = b.app_id AND a.version = b.latest_version
+WHERE a.serial > ?"#,
+    )
+    .bind(serial)
+    .fetch_all(c)
+    .await
+    .map(|app| app.into_iter().map(|a| a.into()).collect())
 }
 
-pub async fn get_inactive_app_infos_since(
-    c: &mut SqliteConnection,
-    serial: u32,
-) -> sqlx::Result<Vec<AppInfo>> {
-    sqlx::query_as::<_, DBAppInfo>("SELECT * FROM app_infos WHERE active = false AND serial > ?")
-        .bind(serial)
-        .fetch_all(c)
-        .await
-        .map(|app| app.into_iter().map(|a| a.into()).collect())
-}
 
 pub async fn app_exists(c: &mut SqliteConnection, app_id: &str) -> sqlx::Result<bool> {
     sqlx::query("SELECT EXISTS(SELECT 1 FROM app_infos WHERE app_id = ?)")
@@ -466,25 +461,18 @@ pub async fn app_exists(c: &mut SqliteConnection, app_id: &str) -> sqlx::Result<
         .map(|row| row.get(0))
 }
 
-/// Sets active to false for [AppInfo] with id `app_id` and increases the serial.
-/// Returns true if it affected a row.
-pub async fn invalidate_app_info(
+/// Returns wheter an [AppInfo] with given version exists for the app.
+pub async fn app_version_exists(
     c: &mut SqliteConnection,
-    app_id: &str,
-    app_version: i64,
+    id: &str,
+    version: i64,
 ) -> sqlx::Result<bool> {
-    let mut trans = c.begin().await?;
-    let serial = increase_get_serial(&mut trans).await?;
-    let res = sqlx::query(
-        "UPDATE app_infos SET active = false, serial = ? WHERE app_id = ? AND version < ? AND active = true",
-    )
-    .bind(serial)
-    .bind(app_id)
-    .bind(app_version)
-    .execute(&mut *trans)
-    .await?;
-    trans.commit().await?;
-    Ok(res.rows_affected() > 0)
+    sqlx::query("SELECT EXISTS(SELECT 1 FROM app_infos WHERE app_id = ? AND version = ?)")
+        .bind(id)
+        .bind(version)
+        .fetch_one(c)
+        .await
+        .map(|row| row.get(0))
 }
 
 pub async fn get_last_serial(c: &mut SqliteConnection) -> sqlx::Result<i32> {
@@ -748,7 +736,6 @@ mod tests {
         let mut app_info = AppInfo {
             app_id: "testxdc".to_string(),
             version: 1,
-            active: true,
             ..Default::default()
         };
 
@@ -759,7 +746,7 @@ mod tests {
         assert_eq!(super::get_app_infos(&mut conn).await.unwrap().len(), 1);
 
         let mut new_app_info = AppInfo {
-            version: 1,
+            version: 2,
             ..app_info.clone()
         };
 
@@ -773,16 +760,6 @@ mod tests {
                 .await
                 .unwrap(),
             vec![new_app_info.clone()]
-        );
-
-        assert_eq!(
-            super::get_inactive_app_infos_since(&mut conn, 0)
-                .await
-                .unwrap(),
-            vec![AppInfo {
-                active: false,
-                ..app_info
-            }]
         );
 
         let state = crate::utils::maybe_upgrade_xdc(&mut new_app_info, &mut conn)

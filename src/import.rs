@@ -79,7 +79,6 @@ pub async fn import_one(
     }
 
     let mut app_info = AppInfo::from_xdc(file).await?;
-    app_info.active = true;
     app_info.submitter_uri = Some("xdcstore".to_string());
 
     // copy the file to the `dest`
