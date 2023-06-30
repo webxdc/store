@@ -89,8 +89,9 @@ function AppInfoModal(item: AppInfoWithState, onDownload: () => void, onForward:
           <>
             <p class="my-4 text-gray-600">{item.description}</p>
             <div class="my-2">
-              <p class="text-sm text-gray-600"><span class="font-bold"> Submitter:</span> {item.submitter_uri}</p>
-              <p class="break-words text-sm text-gray-600"><span class="font-bold"> Source code:</span>  {item.source_code_url}</p>
+              <p class="text-sm text-gray-600"><span class="font-bold"> Submitter:</span>{item.submitter_uri}</p>
+              <p class="break-words text-sm text-gray-600"><span class="font-bold"> Source code:</span>{item.source_code_url}</p>
+              <p class="text-sm text-gray-600"><span class="font-bold"> Version:</span>{item.version}</p>
             </div>
           </>
         )
@@ -183,7 +184,6 @@ const Shop: Component = () => {
   window.webxdc.setUpdateListener(async (resp: ReceivedStatusUpdate<UpdateResponse | DownloadResponseOkay>) => {
     setlastSerial(resp.serial)
     if (isUpdateResponse(resp.payload)) {
-      console.log('Received Update')
       const app_infos = to_app_infos_by_id(resp.payload.app_infos.map((app_info) => {
         return { ...app_info, state: AppState.Initial }
       }))
@@ -206,8 +206,12 @@ const Shop: Component = () => {
               s[num_key] = Object.assign(s[num_key], app_infos[num_key])
             }
           }
+          for (const key of (resp.payload as UpdateResponse).removed) {
+            delete s[key]
+          }
         }))
-        db.updateMultiple(resp.payload.app_infos)
+        db.insertMultiple(Object.values(app_infos))
+        db.remove_multiple_app_infos(resp.payload.removed)
       }
 
       setlastUpdateSerial(resp.payload.serial)

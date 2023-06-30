@@ -151,6 +151,7 @@ def test_update(acfactory, storebot):
     assert status_updates[0]["payload"] == {
         "type": "Update",
         "app_infos": [],
+        "removed": [],
         "serial": 0,
     }
 
@@ -163,7 +164,7 @@ def test_update(acfactory, storebot):
     status_updates = msg_in.get_status_updates()
     assert len(status_updates) == 3
     payload = status_updates[-1]["payload"]
-    assert payload == {"type": "Update", "app_infos": [], "serial": 0}
+    assert payload == {"type": "Update", "app_infos": [], "removed": [], "serial": 0}
 
 
 def test_import(acfactory, storebot_example):

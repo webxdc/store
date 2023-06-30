@@ -26,7 +26,7 @@ use ts_rs::TS;
 enum ShopRequest {
     Update {
         /// Requested update sequence number.
-        serial: i32,
+        serial: u32,
     },
     Download {
         /// ID of the requested application.
@@ -51,7 +51,10 @@ pub enum ShopResponse {
         error: String,
     },
     Update {
+        /// List of new app ids.
         app_infos: Vec<AppInfo>,
+        /// List of removed [AppInfo] ids.
+        removed: Vec<i32>,
         serial: i32,
     },
 }

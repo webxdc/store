@@ -16,6 +16,7 @@ use clap::Parser;
 use cli::{BotActions, BotCli};
 use directories::ProjectDirs;
 use tokio::signal;
+use utils::AddType;
 
 const GENESIS_QR: &str = "genesis_invite_qr.png";
 const INVITE_QR: &str = "1o1_invite_qr.png";
@@ -41,12 +42,16 @@ async fn main() -> anyhow::Result<()> {
             create_dir_all(&xdcs_dir)?;
 
             if path.is_file() {
-                import::import_one(
+                match import::import_one(
                     path.as_path(),
                     &xdcs_dir,
                     &mut *bot.get_db_connection().await?,
                 )
-                .await?;
+                .await? {
+                    AddType::Added => println!("Added {}", path.display()),
+                    AddType::Updated => println!("Updated {}", path.display()),
+                    AddType::Ignored => println!("Ignored {}", path.display()),
+                }
             } else if path.is_dir() {
                 import::import_many(
                     path.as_path(),
