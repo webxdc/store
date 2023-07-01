@@ -1,6 +1,13 @@
 // Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
 
-exports[`Shop receiving updates > Handles Partly Updates 1`] = `
+exports[`Shop receiving updates > Handles download okay 1`] = `
+{
+  "base64": "test",
+  "name": "test.xdc",
+}
+`;
+
+exports[`Shop receiving updates > Handles ongoing updates 1`] = `
 {
   "12": {
     "app_id": "12",
@@ -19,7 +26,7 @@ exports[`Shop receiving updates > Handles Partly Updates 1`] = `
     "image": "iVBORw0KGgoAAAANSUhEUgAAAIAAAACABAMAAAAxEHz4AAAAHlBMVEXtwwDwzjHv1VHy22704In145r26bL38dX39eX69fMbIa03AAAACXBIWXMAAAsTAAALEwEAmpwYAAACQElEQVRo3u1Vv1fbQAy2nV+wpS0PyOa2C9kCLGULr0PLRqc+Npa+V2909JZseANKcr7/Fukk2WefnTJTfUNiWbrP0nfSXRQpFAqFQqFQKBQKxX+B9+dnU8/4NO2Mij/7Yb7jt7W2/MHGTzDMovaOrX12D4McPZcdBJlFlEtnXDjD1F+6YoIkdx67CNZPyEFhAzYexZuI54Q9f3sSAOBXZ/xcivdYCHLxtGWIwWN+oQy3FGa+fgPjmt05E0Bq5Wn0AcxlO4OhLVOXx4oSXjjjgZwjKQ60fKKE7oIajtbws+fWQNiGZOFSLzyCO/pbhdswpTVAsE/yQb5bqg8qKhzBZBcBYt8RzDhDURGWrYlgRNTHJFUHaOmc1ctpT1CMlAhi1xyxOELcOHmvuFEyihuiFkSAAZvpd2nLsJ2pD4Ag5Wj8n2PCTDDGHujsRCl2Wy9koriwJhKC6Ivroz8985iRRjdcIpWCEtYEh45g2b0e+yUNCDL3smhMiUn7JHyO2iUMqJ2YAF6Z87xHxJHk1hBxRntKBIkLGfaomAlxYxtzlFAIJjQLJ52dOK54vUZyO3sPgN27X2E6t9QZT2EP5NVbbuUYWzm2NR5wqlLyhCIc1UfYnjdMfQSb9vqkqAfEH+eAYEFaBhmAy3x8h2geKE2CGTXhJNQgqcO6jjTZBSjO0JG22kkwbx+qQjCoopY7CYb8uG4TVIf3NtpJwDPnXSxCINTX/yAIrrZqGg8K7wZ89U37qstVoVAoFAqFQqFQvDG8AKSlmPH5RxokAAAAAElFTkSuQmCC",
     "name": "2048",
     "source_code_url": "https://mycompany.com/the/code",
-    "state": 4,
+    "state": 0,
     "submitter_uri": "SomeDude",
     "version": 1,
   },
@@ -56,7 +63,7 @@ exports[`Shop receiving updates > Handles Partly Updates 1`] = `
 }
 `;
 
-exports[`Shop receiving updates > Handles Partly Updates 2`] = `
+exports[`Shop receiving updates > Handles ongoing updates 2`] = `
 [
   {
     "app_id": "12",
@@ -75,7 +82,7 @@ exports[`Shop receiving updates > Handles Partly Updates 2`] = `
     "image": "iVBORw0KGgoAAAANSUhEUgAAAIAAAACABAMAAAAxEHz4AAAAHlBMVEXtwwDwzjHv1VHy22704In145r26bL38dX39eX69fMbIa03AAAACXBIWXMAAAsTAAALEwEAmpwYAAACQElEQVRo3u1Vv1fbQAy2nV+wpS0PyOa2C9kCLGULr0PLRqc+Npa+V2909JZseANKcr7/Fukk2WefnTJTfUNiWbrP0nfSXRQpFAqFQqFQKBQKxX+B9+dnU8/4NO2Mij/7Yb7jt7W2/MHGTzDMovaOrX12D4McPZcdBJlFlEtnXDjD1F+6YoIkdx67CNZPyEFhAzYexZuI54Q9f3sSAOBXZ/xcivdYCHLxtGWIwWN+oQy3FGa+fgPjmt05E0Bq5Wn0AcxlO4OhLVOXx4oSXjjjgZwjKQ60fKKE7oIajtbws+fWQNiGZOFSLzyCO/pbhdswpTVAsE/yQb5bqg8qKhzBZBcBYt8RzDhDURGWrYlgRNTHJFUHaOmc1ctpT1CMlAhi1xyxOELcOHmvuFEyihuiFkSAAZvpd2nLsJ2pD4Ag5Wj8n2PCTDDGHujsRCl2Wy9koriwJhKC6Ivroz8985iRRjdcIpWCEtYEh45g2b0e+yUNCDL3smhMiUn7JHyO2iUMqJ2YAF6Z87xHxJHk1hBxRntKBIkLGfaomAlxYxtzlFAIJjQLJ52dOK54vUZyO3sPgN27X2E6t9QZT2EP5NVbbuUYWzm2NR5wqlLyhCIc1UfYnjdMfQSb9vqkqAfEH+eAYEFaBhmAy3x8h2geKE2CGTXhJNQgqcO6jjTZBSjO0JG22kkwbx+qQjCoopY7CYb8uG4TVIf3NtpJwDPnXSxCINTX/yAIrrZqGg8K7wZ89U37qstVoVAoFAqFQqFQvDG8AKSlmPH5RxokAAAAAElFTkSuQmCC",
     "name": "2048",
     "source_code_url": "https://mycompany.com/the/code",
-    "state": 4,
+    "state": 0,
     "submitter_uri": "SomeDude",
     "version": 1,
   },
@@ -110,11 +117,4 @@ exports[`Shop receiving updates > Handles Partly Updates 2`] = `
     "version": 1,
   },
 ]
-`;
-
-exports[`Shop receiving updates > Handles download okay 1`] = `
-{
-  "base64": "test",
-  "name": "test.xdc",
-}
 `;

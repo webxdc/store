@@ -71,9 +71,12 @@ export async function updateHandler(
             added.push(key)
           }
           else {
-            s[key] = Object.assign(s[key], { ...app_infos[key], state: appInfo[key].state !== AppState.Initial ? AppState.Updating : appInfo[key].state })
+            s[key] = Object.assign(s[key], { ...app_infos[key] })
             updated.push(key)
           }
+        }
+        for (const key of payload.updating) {
+          s[key] = Object.assign(s[key], { state: AppState.Updating })
         }
       }))
 

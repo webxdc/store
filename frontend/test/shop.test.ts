@@ -73,7 +73,7 @@ describe('Shop receiving updates', () => {
   })
 
   test('Handles download okay', async () => {
-    const db = new AppInfoDB('shoptesting')
+    const db = new AppInfoDB('shoptesting1')
     const handlers = {
       ...general_handlers,
       db,
@@ -92,7 +92,7 @@ describe('Shop receiving updates', () => {
     const setAppInfo = vi.spyOn(handlers, 'setAppInfo')
     updateHandler(payload, handlers.db, handlers.appInfo, handlers.setAppInfo, handlers.setlastUpdateSerial, handlers.setIsUpdating, handlers.setlastUpdate, handlers.setUpdateNeeded, handlers.setUpdateReceived)
     expect(await db.get_webxdc(payload.app_id)).matchSnapshot()
-    expect(await db.get(payload.app_id)).toStrictEqual({ ...mock[0], state: AppState.Initial })
+    expect(await db.get(payload.app_id)).toStrictEqual({ ...mock[0], state: AppState.Received })
     expect(setAppInfo).toHaveBeenCalledWith(payload.app_id, 'state', AppState.Received)
   })
 
@@ -108,6 +108,7 @@ describe('Shop receiving updates', () => {
       type: 'Update',
       app_infos: mock,
       serial: 12,
+      updating: [],
     } as UpdateResponse
 
     const setAppInfo = vi.spyOn(handlers, 'setAppInfo')
@@ -118,7 +119,7 @@ describe('Shop receiving updates', () => {
     expect(await db.get_all()).toStrictEqual(Object.values(initial_mock))
   })
 
-  it('Handles Partly Updates', async () => {
+  it('Handles ongoing updates', async () => {
     const db = new AppInfoDB('shoptesting3')
     const advanced_state = to_app_infos_by_id(mock.slice(0, 2))
     await db.insertMultiple(Object.values(advanced_state))
@@ -135,10 +136,11 @@ describe('Shop receiving updates', () => {
 
     const crazy_update = mock.slice()
     crazy_update[0].version = 2
-    const payload = {
+    let payload = {
       type: 'Update',
       app_infos: mock,
       serial: 12,
+      updating: [],
     } as UpdateResponse
 
     const updateMultiple = vi.spyOn(db, 'updateMultiple')
@@ -151,7 +153,17 @@ describe('Shop receiving updates', () => {
     // - Appinfo with state === Initial are untouched
     expect(advanced_state).toMatchSnapshot()
     expect(insertMultiple).toHaveBeenCalledWith(mock.slice(2, undefined).map(app_info => ({ ...app_info, state: AppState.Initial } as AppInfoWithState)))
-    expect(updateMultiple).toHaveBeenCalledWith(mock.slice(0, 2).map(app_info => ({ ...app_info, state: advanced_state[app_info.app_id].state !== AppState.Initial ? AppState.Updating : advanced_state[app_info.app_id].state } as AppInfoWithState)))
+    expect(updateMultiple).toHaveBeenCalledWith(mock.slice(0, 2).map(app_info => ({ ...app_info } as AppInfoWithState)))
     expect(await db.get_all()).toMatchSnapshot()
+
+    payload = {
+      type: 'Update',
+      app_infos: mock,
+      serial: 12,
+      updating: ['15'],
+    } as UpdateResponse
+
+    await updateHandler(payload, handlers.db, handlers.appInfo, handlers.setAppInfo, handlers.setlastUpdateSerial, handlers.setIsUpdating, handlers.setlastUpdate, handlers.setUpdateNeeded, handlers.setUpdateReceived)
+    expect(appInfo['15'].state).toBe(AppState.Updating)
   })
 })
