@@ -206,9 +206,6 @@ const Shop: Component = () => {
               s[num_key] = Object.assign(s[num_key], app_infos[num_key])
             }
           }
-          for (const key of (resp.payload as UpdateResponse).removed) {
-            delete s[key]
-          }
         }))
         db.updateMultiple(Object.values(app_infos))
       }
@@ -219,9 +216,9 @@ const Shop: Component = () => {
     }
     else if (isDownloadResponseOkay(resp.payload)) {
       const file = { base64: resp.payload.data, name: `${resp.payload.name}.xdc` }
-      db.add_webxdc(file, resp.payload.id)
-      db.update({ ...appInfo[resp.payload.id], state: AppState.Received })
-      setAppInfo(resp.payload.id, 'state', AppState.Received)
+      db.add_webxdc(file, resp.payload.app_id)
+      db.update({ ...appInfo[resp.payload.app_id], state: AppState.Received })
+      setAppInfo(resp.payload.app_id, 'state', AppState.Received)
     }
     else if (isDownloadResponseError(resp.payload)) {
       // @ts-expect-error waduheck

@@ -30,7 +30,7 @@ enum ShopRequest {
     },
     Download {
         /// ID of the requested application.
-        app_id: i32,
+        app_id: String,
     },
 }
 
@@ -40,14 +40,15 @@ enum ShopRequest {
 #[serde(tag = "type")]
 pub enum ShopResponse {
     DownloadOkay {
-        id: i32,
+        /// app_id of the downloaded app.
+        app_id: String,
         /// Name to be used as filename in `sendToChat`.
         name: String,
         /// Base64 encoded webxdc.
         data: String,
     },
     DownloadError {
-        id: i32,
+        app_id: String,
         error: String,
     },
     Update {
@@ -133,17 +134,13 @@ pub async fn handle_status_update(
             ShopRequest::Download { app_id } => {
                 info!("Handling store download");
 
-                let resp = match handle_download_request(state, app_id).await {
-                    Ok((data, name)) => ShopResponse::DownloadOkay {
-                        data,
-                        name,
-                        id: app_id,
-                    },
+                let resp = match handle_download_request(state, &app_id).await {
+                    Ok((data, name)) => ShopResponse::DownloadOkay { data, name, app_id },
                     Err(e) => {
                         warn!("Error while handling download request: {}", e);
                         ShopResponse::DownloadError {
                             error: e.to_string(),
-                            id: app_id,
+                            app_id,
                         }
                     }
                 };
@@ -164,9 +161,9 @@ pub async fn handle_status_update(
 /// Returns the base64 encoded webxdc and the name of the app.
 async fn handle_download_request(
     state: Arc<State>,
-    app_id: i32,
+    app_id: &str,
 ) -> anyhow::Result<(String, String)> {
-    let app = db::get_app_info(&mut *state.db.acquire().await?, app_id).await?;
+    let app = db::get_app_info_for_app_id(&mut *state.db.acquire().await?, app_id).await?;
     Ok((
         encode(
             &tokio::fs::read(

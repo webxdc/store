@@ -413,15 +413,25 @@ pub async fn publish_app_info(c: &mut SqliteConnection, id: RecordId) -> anyhow:
     Ok(())
 }
 
-pub async fn get_app_info(
-    c: &mut SqliteConnection,
-    resource_id: RecordId,
-) -> sqlx::Result<AppInfo> {
-    sqlx::query_as::<_, DBAppInfo>("SELECT * FROM app_infos WHERE rowid = ?")
-        .bind(resource_id)
+pub async fn get_app_info(c: &mut SqliteConnection, row: RecordId) -> sqlx::Result<AppInfo> {
+    sqlx::query_as::<_, DBAppInfo>("SELECT * FROM app_infos WHERE id = ?")
+        .bind(row)
         .fetch_one(c)
         .await
         .map(|app| app.into())
+}
+
+pub async fn get_app_info_for_app_id(
+    c: &mut SqliteConnection,
+    app_id: &str,
+) -> sqlx::Result<AppInfo> {
+    sqlx::query_as::<_, DBAppInfo>(
+        "SELECT * FROM app_infos WHERE app_id = ? ORDER BY version DESC LIMIT 1;",
+    )
+    .bind(app_id)
+    .fetch_one(c)
+    .await
+    .map(|app| app.into())
 }
 
 #[cfg(test)]

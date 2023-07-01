@@ -30,6 +30,8 @@ pub struct SubmitChat {
 
 impl SubmitChat {
     pub async fn get_app_info(&self, conn: &mut SqliteConnection) -> sqlx::Result<AppInfo> {
+        // Didn't check if this replacement is correct
+        // (underlying function changed)
         db::get_app_info(conn, self.app_info).await
     }
 }
