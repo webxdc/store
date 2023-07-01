@@ -72,12 +72,19 @@ function AppInfoModal(item: AppInfoWithState, onDownload: () => void, onForward:
             <div class="send-button bg-gray-500">
               <div class="i-eos-icons:bubble-loading text-white"></div>
             </div>
-          </Match><Match when={item.state === AppState.DownloadCancelled}>
+          </Match>
+          <Match when={item.state === AppState.DownloadCancelled}>
             <div class="send-button bg-red-500" >
               <div class="i-material-symbols:error text-white"></div>
             </div>
           </Match>
           <Match when={item.state === AppState.Received}>
+            <button class="send-button bg-green-500" onClick={onForward}>
+              <div class="i-material-symbols:forward text-white"></div>
+            </button>
+          </Match>
+          <Match when={item.state === AppState.Updating}>
+            <div class="i-eos-icons:bubble-loading text-white"></div>
             <button class="send-button bg-green-500" onClick={onForward}>
               <div class="i-material-symbols:forward text-white"></div>
             </button>
@@ -198,12 +205,11 @@ const Shop: Component = () => {
         console.log('Reconceiling updates')
         setAppInfo(produce((s) => {
           for (const key in app_infos) {
-            const num_key = Number(key)
-            if (s[num_key] === undefined) {
-              s[num_key] = app_infos[num_key]
+            if (s[key] === undefined) {
+              s[key] = app_infos[key]
             }
             else {
-              s[num_key] = Object.assign(s[num_key], app_infos[num_key])
+              s[key] = Object.assign(s[key], { ...app_infos[key], state: AppState.Updating })
             }
           }
         }))
