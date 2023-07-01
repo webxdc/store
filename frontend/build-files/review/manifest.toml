@@ -2,4 +2,4 @@ name = "Submit Helper"
 app_id = "store-review-helper"
 description = "Review helper for the store bot"
 source_code_url = "https://github.com/webxdc/store"
-version = "1.0.0"
+version = 1
