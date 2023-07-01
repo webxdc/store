@@ -28,6 +28,7 @@ enum ShopRequest {
         /// Requested update sequence number.
         serial: u32,
         /// Listof apps selected for caching.
+        #[serde(default)]
         apps: Vec<(String, i32)>,
     },
     Download {

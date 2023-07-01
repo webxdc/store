@@ -165,6 +165,28 @@ def test_update(acfactory, storebot):
     payload = status_updates[-1]["payload"]
     assert payload == {"type": "Update", "app_infos": [], "serial": 0}
 
+def test_update_advanced(acfactory, storebot_example):
+    """Test that the bot sends initial update and responds to update requests."""
+    (ac1,) = acfactory.get_online_accounts(1)
+
+    bot_contact = ac1.create_contact(storebot_example.addr)
+    bot_chat = bot_contact.create_chat()
+    bot_chat.send_text("hi!")
+
+    msg_in = ac1.wait_next_incoming_message()
+    ac1._evtracker.get_matching("DC_EVENT_WEBXDC_STATUS_UPDATE")
+
+    # Request updates.
+    # dc-calendar is outdated by 1 version, dc-hextris not
+    assert msg_in.send_status_update({"payload": {"Update": {"serial": 0, "apps": [("dc-calendar", 1), ("dc-hextris", 2)]}}}, "update")
+    ac1._evtracker.get_matching("DC_EVENT_WEBXDC_STATUS_UPDATE")
+
+    # Receive a response.
+    ac1._evtracker.get_matching("DC_EVENT_WEBXDC_STATUS_UPDATE")
+    status_updates = msg_in.get_status_updates()
+    assert len(status_updates) == 3
+    payload = status_updates[-1]["payload"]
+    assert payload["updating"] == ['dc-calendar']
 
 def test_import(acfactory, storebot_example):
     """Test that import works."""
