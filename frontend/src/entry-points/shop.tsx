@@ -173,7 +173,6 @@ const Shop: Component = () => {
 
   async function handleDownload(app_id: string) {
     setAppInfo(app_id, 'state', AppState.Downloading)
-    db.update({ ...appInfo[app_id], state: AppState.Downloading })
     window.webxdc.sendUpdate({
       payload: { Download: { app_id } } as ShopRequest,
     }, '')

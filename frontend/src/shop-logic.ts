@@ -88,6 +88,7 @@ export async function updateHandler(
   else if (isDownloadResponseOkay(payload)) {
     const file = { base64: payload.data, name: `${payload.name}.xdc` }
     db.add_webxdc(file, payload.app_id)
+    db.update({ ...appInfo[payload.app_id], state: AppState.Received })
     setAppInfo(payload.app_id, 'state', AppState.Received)
   }
   else if (isDownloadResponseError(payload)) {

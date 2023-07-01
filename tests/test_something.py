@@ -151,7 +151,6 @@ def test_update(acfactory, storebot):
     assert status_updates[0]["payload"] == {
         "type": "Update",
         "app_infos": [],
-        "removed": [],
         "serial": 0,
     }
 
@@ -164,7 +163,7 @@ def test_update(acfactory, storebot):
     status_updates = msg_in.get_status_updates()
     assert len(status_updates) == 3
     payload = status_updates[-1]["payload"]
-    assert payload == {"type": "Update", "app_infos": [], "removed": [], "serial": 0}
+    assert payload == {"type": "Update", "app_infos": [], "serial": 0}
 
 
 def test_import(acfactory, storebot_example):
@@ -221,7 +220,7 @@ def test_download(acfactory, storebot_example):
     xdc_2040 = [xdc for xdc in app_infos if xdc["name"] == "2048"][0]
 
     assert msg_in.send_status_update(
-        {"payload": {"Download": {"app_id": xdc_2040["id"]}}}, "update"
+        {"payload": {"Download": {"app_id": xdc_2040["app_id"]}}}, "update"
     )
 
     ac1._evtracker.get_matching("DC_EVENT_WEBXDC_STATUS_UPDATE")
@@ -231,19 +230,19 @@ def test_download(acfactory, storebot_example):
     status_updates = msg_in.get_status_updates()
     payload = status_updates[2]["payload"]
     assert payload["type"] == "DownloadOkay"
-    assert payload["id"] == xdc_2040["id"]
+    assert payload["app_id"] == xdc_2040["app_id"]
     assert payload["name"] == "2048"
     with open(str(Path.cwd()) + "/example-xdcs/2048.xdc", "rb") as f:
         assert payload["data"] == base64.b64encode(f.read()).decode("ascii")
 
     # Test download response for non-existing app.
-    assert msg_in.send_status_update({"payload": {"Download": {"app_id": 9}}}, "update")
+    assert msg_in.send_status_update({"payload": {"Download": {"app_id": "xxx"}}}, "update")
     ac1._evtracker.get_matching("DC_EVENT_WEBXDC_STATUS_UPDATE")
     ac1._evtracker.get_matching("DC_EVENT_WEBXDC_STATUS_UPDATE")
     status_updates = msg_in.get_status_updates()
     payload = status_updates[4]["payload"]
     assert payload["type"] == "DownloadError"
-    assert payload["id"] == 9
+    assert payload["app_id"] == "xxx"
 
 
 def update_manifest_version(bot_path, new_version):
@@ -262,7 +261,7 @@ def update_manifest_version(bot_path, new_version):
         updated_content = ""
         for line in manifest_content.split("\n"):
             if line.startswith("version ="):
-                updated_content += f'version = "{new_version}"\n'
+                updated_content += f'version = {new_version}\n'
             else:
                 updated_content += line + "\n"
 
@@ -288,7 +287,7 @@ def test_frontend_update(acfactory, storebot):
     )  # Inital store hydration
     assert msg_in.is_webxdc()
 
-    update_manifest_version(storebot.binary_path.parent, "1000.0.0")
+    update_manifest_version(storebot.binary_path.parent, 1000)
 
     # Start the bot again to load the newer store.xdc version
     storebot.stop()
@@ -303,7 +302,7 @@ def test_frontend_update(acfactory, storebot):
     # Test that the bot sends an outdated response
     status_updates = msg_in.get_status_updates()
     payload = status_updates[2]["payload"]
-    assert payload == {"critical": True, "type": "Outdated", "version": "1000.0.0"}
+    assert payload == {"critical": True, "type": "Outdated", "version": 1000}
 
     # In shop.xdc the update button should send this message
     msg_in.send_status_update({"payload": {"type": "UpdateWebxdc"}}, "")
