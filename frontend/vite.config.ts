@@ -5,7 +5,7 @@ import { defineConfig, loadEnv } from 'vite'
 import solidPlugin from 'vite-plugin-solid'
 import unocssPlugin from 'unocss/vite'
 
-function eruda(debug = undefined) {
+function eruda() {
   const erudaSrc = readFileSync("./node_modules/eruda/eruda.js", "utf-8");
   return {
     name: "vite-plugin-eruda",
@@ -22,14 +22,6 @@ function eruda(debug = undefined) {
           injectTo: "head",
         },
       ];
-      if (debug === true) {
-        return {
-          html,
-          tags,
-        };
-      } else if (debug === false) {
-        return html;
-      }
       // @ts-ignore
       if (process.env.NODE_ENV !== "production") {
         return {
