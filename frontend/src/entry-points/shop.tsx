@@ -1,9 +1,10 @@
-import type { Component } from 'solid-js'
+import type { Component, Setter } from 'solid-js'
 import { Match, Show, Switch, createEffect, createMemo, createSignal } from 'solid-js'
 import { For, render } from 'solid-js/web'
 import { useStorage } from 'solidjs-use'
 import { formatDuration, intervalToDuration } from 'date-fns'
 import Fuse from 'fuse.js'
+import type { SetStoreFunction } from 'solid-js/store'
 import { createStore, produce } from 'solid-js/store'
 import type { ReceivedStatusUpdate } from '../webxdc'
 import type { ShopResponse } from '../bindings/ShopResponse'
@@ -155,6 +156,70 @@ function to_app_infos_by_id<T extends { app_id: string }>(app_infos: T[]): Recor
   }, {} as Record<string, T>)
 }
 
+function updateHandler(
+  payload: object,
+  db: AppInfoDB,
+  appInfo: AppInfosById,
+  setAppInfo: SetStoreFunction<AppInfosById>,
+  setlastUpdateSerial: Setter<number>,
+  setIsUpdating: Setter<boolean>,
+  setlastUpdate: Setter<Date>
+) {
+  if (isUpdateResponse(payload)) {
+    if (isEmpty(appInfo)) {
+      // initially write the newest update to state
+      const app_infos = to_app_infos_by_id(payload.app_infos.map((app_info) => {
+        return { ...app_info, state: AppState.Initial, cached: false } as AppInfoWithState
+      }))
+      setAppInfo(app_infos)
+      db.insertMultiple(Object.values(app_infos))
+    }
+    else {
+      // all but the first update only overwrite existing properties
+      const app_infos = to_app_infos_by_id(payload.app_infos.map((app_info) => {
+        return { ...app_info, state: AppState.Initial }
+      }))
+      console.log('Reconceiling updates')
+      const added: string[] = []
+      const updated: string[] = []
+      setAppInfo(produce((s) => {
+        for (const key in app_infos) {
+          if (s[key] === undefined) {
+            s[key] = { ...app_infos[key], cached: false }
+            added.push(key)
+          }
+          else {
+            s[key] = Object.assign(s[key], { ...app_infos[key], state: AppState.Updating })
+            updated.push(key)
+          }
+        }
+      }))
+      db.updateMultiple(updated.map(key => ({ ...app_infos[key], state: AppState.Updating })))
+      db.insertMultiple(added.map(key => ({ ...app_infos[key], state: AppState.Initial, cached: false })))
+    }
+
+    setlastUpdateSerial(payload.serial)
+    setIsUpdating(false)
+    setlastUpdate(new Date())
+  }
+  else if (isDownloadResponseOkay(payload)) {
+    const file = { base64: payload.data, name: `${payload.name}.xdc` }
+    db.add_webxdc(file, payload.app_id)
+    db.update({ ...appInfo[payload.app_id], state: AppState.Received })
+    setAppInfo(payload.app_id, 'state', AppState.Received)
+  }
+  else if (isDownloadResponseError(payload)) {
+    setAppInfo(payload.id, 'state', AppState.DownloadCancelled)
+  }
+  else if (isOutdatedResponse(payload)) {
+    console.log('Current version is outdated')
+    setUpdateNeeded(true)
+  }
+  else if (isUpdateSendResponse(payload)) {
+    setUpdateReceived(true)
+  }
+}
+
 const Shop: Component = () => {
   const [appInfo, setAppInfo] = createStore({} as AppInfosById)
   const [lastSerial, setlastSerial] = useStorage('last-serial', 0) // Last store-serial
@@ -169,7 +234,8 @@ const Shop: Component = () => {
   const [isUpdating, setIsUpdating] = createSignal(false)
   const [search, setSearch] = createSignal('')
   const [showCommit, setShowCommit] = createSignal(false) // Show the commit hash when heading was clicked
-  const [showCommit, setShowCommit] = createSignal(false)
+  const [showCache, setShowCache] = createSignal(false)
+  const [cache, setCache] = useStorage('cache', {} as AppInfosById)
 
   const past_time = Math.abs(new Date().getTime() - lastUpdate().getTime()) / 1000
   if (appInfo === undefined || (past_time > 60 * 60)) {
@@ -191,61 +257,6 @@ const Shop: Component = () => {
 
   window.webxdc.setUpdateListener(async (resp: ReceivedStatusUpdate<UpdateResponse | DownloadResponseOkay>) => {
     setlastSerial(resp.serial)
-    if (isUpdateResponse(resp.payload)) {
-
-      if (isEmpty(appInfo)) {
-        // initially write the newest update to state
-        const app_infos = to_app_infos_by_id(resp.payload.app_infos.map((app_info) => {
-          return { ...app_info, state: AppState.Initial, cached: false } as AppInfoWithState
-        }))
-        setAppInfo(app_infos)
-        db.insertMultiple(Object.values(app_infos))
-      }
-      else {
-        // all but the first update only overwrite existing properties
-        const app_infos = to_app_infos_by_id(resp.payload.app_infos.map((app_info) => {
-          return { ...app_info, state: AppState.Initial }
-        }))
-        console.log('Reconceiling updates')
-        const added: string[] = []
-        const updated: string[] = []
-        setAppInfo(produce((s) => {
-          for (const key in app_infos) {
-            if (s[key] === undefined) {
-              s[key] = { ...app_infos[key], cached: false }
-              added.push(key)
-            }
-            else {
-              s[key] = Object.assign(s[key], { ...app_infos[key], state: AppState.Updating })
-              updated.push(key)
-            }
-          }
-        }))
-        db.updateMultiple(updated.map(key => ({ ...app_infos[key], state: AppState.Updating })))
-        db.insertMultiple(added.map(key => ({ ...app_infos[key], state: AppState.Initial, cached: false })))
-      }
-
-      setlastUpdateSerial(resp.payload.serial)
-      setIsUpdating(false)
-      setlastUpdate(new Date())
-    }
-    else if (isDownloadResponseOkay(resp.payload)) {
-      const file = { base64: resp.payload.data, name: `${resp.payload.name}.xdc` }
-      db.add_webxdc(file, resp.payload.app_id)
-      db.update({ ...appInfo[resp.payload.app_id], state: AppState.Received })
-      setAppInfo(resp.payload.app_id, 'state', AppState.Received)
-    }
-    else if (isDownloadResponseError(resp.payload)) {
-      // @ts-expect-error waduheck
-      setAppInfo(resp.payload.id, 'state', AppState.DownloadCancelled)
-    }
-    else if (isOutdatedResponse(resp.payload)) {
-      console.log('Current version is outdated')
-      setUpdateNeeded(true)
-    }
-    else if (isUpdateSendResponse(resp.payload)) {
-      setUpdateReceived(true)
-    }
   }, lastSerial())
 
   async function handleUpdate() {
