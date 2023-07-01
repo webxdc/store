@@ -324,8 +324,14 @@ impl Bot {
                             Some(store_message()),
                         )
                         .await?;
-                        send_newest_updates(context, msg, &mut *state.db.acquire().await?, 0, vec![])
-                            .await?;
+                        send_newest_updates(
+                            context,
+                            msg,
+                            &mut *state.db.acquire().await?,
+                            0,
+                            vec![],
+                        )
+                        .await?;
                     }
                 }
             }
@@ -409,7 +415,8 @@ impl Bot {
                 GeneralFrontendRequest::UpdateWebxdc => {
                     let msg = send_webxdc(context, &state, chat_id, webxdc, Some(store_message()))
                         .await?;
-                    send_newest_updates(context, msg, &mut *state.db.acquire().await?, 0, vec![]).await?;
+                    send_newest_updates(context, msg, &mut *state.db.acquire().await?, 0, vec![])
+                        .await?;
                     send_update_payload_only(context, msg_id, GeneralFrontendResponse::UpdateSent)
                         .await?;
                     return Ok(());
