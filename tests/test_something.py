@@ -236,7 +236,9 @@ def test_download(acfactory, storebot_example):
         assert payload["data"] == base64.b64encode(f.read()).decode("ascii")
 
     # Test download response for non-existing app.
-    assert msg_in.send_status_update({"payload": {"Download": {"app_id": "xxx"}}}, "update")
+    assert msg_in.send_status_update(
+        {"payload": {"Download": {"app_id": "xxx"}}}, "update"
+    )
     ac1._evtracker.get_matching("DC_EVENT_WEBXDC_STATUS_UPDATE")
     ac1._evtracker.get_matching("DC_EVENT_WEBXDC_STATUS_UPDATE")
     status_updates = msg_in.get_status_updates()
@@ -261,7 +263,7 @@ def update_manifest_version(bot_path, new_version):
         updated_content = ""
         for line in manifest_content.split("\n"):
             if line.startswith("version ="):
-                updated_content += f'version = {new_version}\n'
+                updated_content += f"version = {new_version}\n"
             else:
                 updated_content += line + "\n"
 
