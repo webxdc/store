@@ -90,16 +90,6 @@ function AppInfoModal(item: AppInfoWithState, onDownload: () => void, onForward:
   )
 }
 
-/* const PublishButton: Component = () => {
-  const [isOpen, setIsOpen] = createSignal(false)
-
-  return (
-    <button onClick={() => setIsOpen(true)} class="w-full border-gray-200 shadow btn">
-      {isOpen() ? 'You can send me your webxdc in our 1:1 chat and I will help you publish it.' : 'Publish your own app'}
-    </button>
-  )
-}
- */
 const AppList: Component<{ items: AppInfoWithState[]; search: string; onDownload: (id: string) => void; onForward: (id: string) => void }> = (props) => {
   let fuse: Fuse<AppInfoWithState> = new Fuse(props.items, fuse_options)
 
@@ -149,7 +139,7 @@ const Shop: Component = () => {
   const [search, setSearch] = createSignal('')
   const [showCommit, setShowCommit] = createSignal(false) // Show the commit hash when heading was clicked
   const [showCache, setShowCache] = createSignal(false)
-  const cached = createMemo(() => Object.values(appInfo).filter(app_info => app_info.state != AppState.Initial))
+  const cached = createMemo(() => Object.values(appInfo).filter(app_info => app_info.state !== AppState.Initial))
 
   const past_time = Math.abs(new Date().getTime() - lastUpdate().getTime()) / 1000
   if (appInfo === undefined || (past_time > 60 * 60)) {
@@ -170,7 +160,7 @@ const Shop: Component = () => {
   })
 
   window.webxdc.setUpdateListener(async (resp: ReceivedStatusUpdate<UpdateResponse | DownloadResponseOkay>) => {
-    updateHandler(resp.payload, db, appInfo, setAppInfo, setlastUpdateSerial, setIsUpdating, setUpdateNeeded, setUpdateNeeded, setUpdateReceived)
+    updateHandler(resp.payload, db, appInfo, setAppInfo, setlastUpdateSerial, setIsUpdating, setUpdateNeeded, setlastUpdate, setUpdateReceived)
     setlastSerial(resp.serial)
   }, lastSerial())
 
@@ -210,7 +200,7 @@ const Shop: Component = () => {
               </h1>
               {showCommit() && <p class="whitespace-nowrap text-sm unimportant"> @ {import.meta.env.VITE_COMMIT} </p>}
             </div>
-            <div class="rounded-xl bg-gray-100 p-2 unimportant text-gray-500">
+            <div class="rounded-xl p-2 btn-gray">
               <Show when={isUpdating()} fallback={
                 <button class="flex items-center gap-2" onclick={handleUpdate}>
                   <span>{formatDuration(timeSinceLastUpdate(), { delimiter: ',' }).split(',')[0] || '0 sec'} ago</span>
@@ -228,16 +218,19 @@ const Shop: Component = () => {
           {/* app list */}
           <div class="p-4">
             <ul class="w-full flex flex-col gap-2">
-              <li class="my-5 w-full flex items-center justify-center gap-2">
-                <input class="border-2 rounded-2xl" onInput={event => setSearch((event.target as HTMLInputElement).value)} />
-                <button class="rounded-1/2 p-2 btn">
-                  <div class="i-carbon-search" />
-                </button>
+              <li class="my-5 w-full flex flex-col items-center justify-center gap-2">
+                <div class="flex items-center justify-center gap-2">
+                  <input class="border-2 rounded-2xl" onInput={event => setSearch((event.target as HTMLInputElement).value)} />
+                  <button class="rounded-1/2 p-2 btn">
+                    <div class="i-carbon-search" />
+                  </button>
+                </div>
+                <div class="flex justify-center gap-2">
+                  <button class="btn-gray" onClick={() => setShowCache(false)}> All Apps </button>
+                  <button class="btn-gray" onClick={() => setShowCache(true)}> Cached Apps</button>
+                </div>
               </li>
-              <AppList items={Object.values(appInfo)} search={search()} onDownload={handleDownload} onForward={handleForward} ></AppList>
-              {/* <li class="mt-3">
-                <PublishButton></PublishButton>
-              </li> */}
+              <AppList items={showCache() ? cached() : Object.values(appInfo)} search={search()} onDownload={handleDownload} onForward={handleForward} ></AppList>
             </ul>
           </div>
         </div >
