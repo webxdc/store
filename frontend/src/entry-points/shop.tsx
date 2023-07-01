@@ -166,8 +166,10 @@ const Shop: Component = () => {
 
   async function handleUpdate() {
     setIsUpdating(true)
+
+    const cached_apps = cached().map(app_info => ([app_info.app_id, app_info.version] as [string, number]))
     window.webxdc.sendUpdate({
-      payload: { Update: { serial: lastUpdateSerial() } } as ShopRequest,
+      payload: { Update: { serial: lastUpdateSerial(), apps: cached_apps } } as ShopRequest,
     }, '')
   }
 

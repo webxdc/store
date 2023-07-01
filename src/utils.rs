@@ -76,15 +76,21 @@ pub async fn send_webxdc(
 }
 
 /// Sends a [deltachat::webxdc::StatusUpdateItem] with all [AppInfo]s greater than the given serial.
+/// Updating tells the frontend which apps are going to receive an updated.
 pub async fn send_newest_updates(
     context: &Context,
     msg_id: MsgId,
     db: &mut SqliteConnection,
     serial: u32,
+    updating: Vec<String>,
 ) -> anyhow::Result<()> {
     let app_infos: Vec<_> = db::get_active_app_infos_since(db, serial).await?;
     let serial = db::get_last_serial(db).await?;
-    let resp = ShopResponse::Update { app_infos, serial };
+    let resp = ShopResponse::Update {
+        app_infos,
+        serial,
+        updating,
+    };
     send_update_payload_only(context, msg_id, resp).await?;
     Ok(())
 }

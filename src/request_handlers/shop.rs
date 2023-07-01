@@ -27,6 +27,8 @@ enum ShopRequest {
     Update {
         /// Requested update sequence number.
         serial: u32,
+        /// Listof apps selected for caching.
+        apps: Vec<(String, i32)>,
     },
     Download {
         /// ID of the requested application.
@@ -56,6 +58,8 @@ pub enum ShopResponse {
         app_infos: Vec<AppInfo>,
         /// List of removed [AppInfo] ids.
         serial: i32,
+        /// `app_id`s of cached apps that will receive an update now.
+        updating: Vec<String>,
     },
 }
 
@@ -74,7 +78,7 @@ pub async fn handle_message(
             Some(store_message()),
         )
         .await?;
-        send_newest_updates(context, msg, &mut *state.db.acquire().await?, 0).await?;
+        send_newest_updates(context, msg, &mut *state.db.acquire().await?, 0, vec![]).await?;
     }
     Ok(())
 }
@@ -126,25 +130,41 @@ pub async fn handle_status_update(
 ) -> anyhow::Result<()> {
     if let Ok(req) = serde_json::from_str::<WebxdcStatusUpdate<ShopRequest>>(&update) {
         match req.payload {
-            ShopRequest::Update { serial } => {
+            ShopRequest::Update { serial, apps } => {
                 info!("Handling store update request");
-                send_newest_updates(context, msg_id, &mut *state.db.acquire().await?, serial)
-                    .await?;
+
+                // Get all updating xdcs
+                let mut updating = vec![];
+                let conn = &mut *state.db.acquire().await?;
+                for (app_id, version) in apps {
+                    if db::maybe_get_greater_version(conn, &app_id, version).await? {
+                        updating.push(app_id);
+                    }
+                }
+
+                // Send updates
+                for app_id in &updating {
+                    let context = context.clone();
+                    let state = state.clone();
+                    let app_id = app_id.clone();
+                    tokio::spawn(async move {
+                        let resp = handle_download(&state, app_id).await;
+                        send_update_payload_only(&context, msg_id, resp).await
+                    });
+                }
+
+                send_newest_updates(
+                    context,
+                    msg_id,
+                    &mut *state.db.acquire().await?,
+                    serial,
+                    updating,
+                )
+                .await?;
             }
             ShopRequest::Download { app_id } => {
                 info!("Handling store download");
-
-                let resp = match handle_download_request(state, &app_id).await {
-                    Ok((data, name)) => ShopResponse::DownloadOkay { data, name, app_id },
-                    Err(e) => {
-                        warn!("Error while handling download request: {}", e);
-                        ShopResponse::DownloadError {
-                            error: e.to_string(),
-                            app_id,
-                        }
-                    }
-                };
-
+                let resp = handle_download(&state, app_id).await;
                 send_update_payload_only(context, msg_id, resp).await?;
             }
         }
@@ -157,12 +177,22 @@ pub async fn handle_status_update(
     Ok(())
 }
 
+pub async fn handle_download(state: &State, app_id: String) -> ShopResponse {
+    match get_webxdc_data(state, &app_id).await {
+        Ok((data, name)) => ShopResponse::DownloadOkay { data, name, app_id },
+        Err(e) => {
+            warn!("Error while handling download request: {}", e);
+            ShopResponse::DownloadError {
+                error: e.to_string(),
+                app_id,
+            }
+        }
+    }
+}
+
 /// Handles a request to download a store app.
 /// Returns the base64 encoded webxdc and the name of the app.
-async fn handle_download_request(
-    state: Arc<State>,
-    app_id: &str,
-) -> anyhow::Result<(String, String)> {
+async fn get_webxdc_data(state: &State, app_id: &str) -> anyhow::Result<(String, String)> {
     let app = db::get_app_info_for_app_id(&mut *state.db.acquire().await?, app_id).await?;
     Ok((
         encode(

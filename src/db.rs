@@ -413,6 +413,7 @@ pub async fn publish_app_info(c: &mut SqliteConnection, id: RecordId) -> anyhow:
     Ok(())
 }
 
+/// Get app_info by row-id.
 pub async fn get_app_info(c: &mut SqliteConnection, row: RecordId) -> sqlx::Result<AppInfo> {
     sqlx::query_as::<_, DBAppInfo>("SELECT * FROM app_infos WHERE id = ?")
         .bind(row)
@@ -421,6 +422,7 @@ pub async fn get_app_info(c: &mut SqliteConnection, row: RecordId) -> sqlx::Resu
         .map(|app| app.into())
 }
 
+/// Get app_info by app_id.
 pub async fn get_app_info_for_app_id(
     c: &mut SqliteConnection,
     app_id: &str,
@@ -432,6 +434,22 @@ pub async fn get_app_info_for_app_id(
     .fetch_one(c)
     .await
     .map(|app| app.into())
+}
+
+/// Get app_info with greate version.
+pub async fn maybe_get_greater_version(
+    c: &mut SqliteConnection,
+    app_id: &str,
+    version: i32,
+) -> sqlx::Result<bool> {
+    sqlx::query(
+        "SELECT EXISTS(SELECT 1 FROM app_infos WHERE app_id = ? AND version > ? LIMIT 1) AS exists_greater_version",
+    )
+    .bind(app_id)
+    .bind(version)
+    .fetch_one(c)
+    .await
+    .map(|app| app.get(0))
 }
 
 #[cfg(test)]
@@ -795,5 +813,44 @@ mod tests {
 
         assert!(super::app_exists(&mut conn, "testxdc").await.unwrap());
         assert!(!super::app_exists(&mut conn, "testxdc2").await.unwrap());
+    }
+
+    #[tokio::test]
+    async fn test_maybe_get_greater() {
+        let mut conn = SqliteConnection::connect("sqlite::memory:").await.unwrap();
+        MIGRATOR.run(&mut conn).await.unwrap();
+        set_config(&mut conn, &BotConfig::default()).await.unwrap();
+
+        let mut app_info = AppInfo {
+            app_id: "testxdc".to_string(),
+            ..Default::default()
+        };
+
+        crate::utils::maybe_upgrade_xdc(&mut app_info, &mut conn)
+            .await
+            .unwrap();
+
+        assert!(
+            !maybe_get_greater_version(&mut conn, &app_info.app_id, app_info.version)
+                .await
+                .unwrap()
+        );
+
+        crate::utils::maybe_upgrade_xdc(
+            &mut AppInfo {
+                version: 2,
+                app_id: "testxdc".to_string(),
+                ..app_info.clone()
+            },
+            &mut conn,
+        )
+        .await
+        .unwrap();
+
+        assert!(
+            maybe_get_greater_version(&mut conn, &app_info.app_id, app_info.version)
+                .await
+                .unwrap()
+        );
     }
 }
