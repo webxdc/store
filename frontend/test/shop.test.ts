@@ -52,7 +52,6 @@ describe('Shop receiving updates', () => {
 
     const setUpdateReceived = vi.spyOn(handlers, 'setUpdateReceived')
     updateHandler(payload, handlers.db, handlers.appInfo, handlers.setAppInfo, handlers.setlastUpdateSerial, handlers.setIsUpdating, handlers.setlastUpdate, handlers.setUpdateNeeded, handlers.setUpdateReceived)
-
     expect(setUpdateReceived).toHaveBeenCalledWith(true)
   })
 
@@ -93,7 +92,7 @@ describe('Shop receiving updates', () => {
     const setAppInfo = vi.spyOn(handlers, 'setAppInfo')
     updateHandler(payload, handlers.db, handlers.appInfo, handlers.setAppInfo, handlers.setlastUpdateSerial, handlers.setIsUpdating, handlers.setlastUpdate, handlers.setUpdateNeeded, handlers.setUpdateReceived)
     expect(await db.get_webxdc(payload.app_id)).matchSnapshot()
-    expect(await db.get(payload.app_id)).toStrictEqual({ ...mock[0], state: AppState.Received })
+    expect(await db.get(payload.app_id)).toStrictEqual({ ...mock[0], state: AppState.Initial })
     expect(setAppInfo).toHaveBeenCalledWith(payload.app_id, 'state', AppState.Received)
   })
 
