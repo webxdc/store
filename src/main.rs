@@ -35,7 +35,7 @@ async fn main() -> anyhow::Result<()> {
 
     match &cli.action {
         BotActions::Import { path } => {
-            let path = PathBuf::from(path.as_deref().unwrap_or("."));
+            let path = PathBuf::from(path);
             let bot = Bot::new().await.context("failed to create bot")?;
             let xdcs_dir = project_dirs()?.config_dir().to_path_buf().join("xdcs");
             create_dir_all(&xdcs_dir)?;
