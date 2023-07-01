@@ -52,7 +52,7 @@ export async function updateHandler(
   if (isUpdateResponse(payload)) {
     if (isEmpty(appInfo)) {
       // initially write the newest update to state
-      const app_infos = to_app_infos_by_id(payload.app_infos.map(app_info => ({ ...app_info, state: AppState.Initial, cached: false } as AppInfoWithState)))
+      const app_infos = to_app_infos_by_id(payload.app_infos.map(app_info => ({ ...app_info, state: AppState.Initial } as AppInfoWithState)))
       setAppInfo(app_infos)
       await db.insertMultiple(Object.values(app_infos))
     }
@@ -67,19 +67,18 @@ export async function updateHandler(
       setAppInfo(produce((s) => {
         for (const key in app_infos) {
           if (s[key] === undefined) {
-            s[key] = { ...app_infos[key], cached: false }
+            s[key] = { ...app_infos[key] }
             added.push(key)
           }
           else {
-            s[key] = Object.assign(s[key], { ...app_infos[key], state: AppState.Updating })
+            s[key] = Object.assign(s[key], { ...app_infos[key], state: appInfo[key].state !== AppState.Initial ? AppState.Updating : appInfo[key].state })
             updated.push(key)
           }
         }
       }))
-      console.log(added, updated)
 
-      await db.updateMultiple(updated.map(key => ({ ...app_infos[key], state: appInfo[key].state !== AppState.Initial ? AppState.Updating : appInfo[key].cached })))
-      await db.insertMultiple(added.map(key => ({ ...app_infos[key], state: AppState.Initial, cached: false })))
+      await db.insertMultiple(added.map(key => ({ ...app_infos[key], state: AppState.Initial })))
+      await db.updateMultiple(updated.map(key => ({ ...app_infos[key], state: appInfo[key].state !== AppState.Initial ? AppState.Updating : AppState.Initial })))
     }
 
     setlastUpdateSerial(payload.serial)

@@ -1,5 +1,5 @@
 import { describe, expect, it, test, vi } from 'vitest'
-import { type Setter, createRoot } from 'solid-js'
+import { type Setter } from 'solid-js'
 import type { SetStoreFunction } from 'solid-js/store'
 import { createStore } from 'solid-js/store'
 import { AppInfoDB } from '../src/db/shop_db'
@@ -114,9 +114,45 @@ describe('Shop receiving updates', () => {
     const setAppInfo = vi.spyOn(handlers, 'setAppInfo')
     await updateHandler(payload, handlers.db, handlers.appInfo, handlers.setAppInfo, handlers.setlastUpdateSerial, handlers.setIsUpdating, handlers.setlastUpdate, handlers.setUpdateNeeded, handlers.setUpdateReceived)
 
-    const initial_mock = mock.map(app_info => ({ ...app_info, state: AppState.Initial, cached: false } as AppInfoWithState))
+    const initial_mock = mock.map(app_info => ({ ...app_info, state: AppState.Initial } as AppInfoWithState))
     expect(setAppInfo).toHaveBeenCalledWith(to_app_infos_by_id(initial_mock))
     expect(await db.get_all()).toStrictEqual(Object.values(initial_mock))
   })
 
+  it('Handles Partly Updates', async () => {
+    const db = new AppInfoDB('shoptesting3')
+    const advanced_state = to_app_infos_by_id(mock.slice(0, 2))
+    await db.insertMultiple(Object.values(advanced_state))
+    expect(await db.get_all()).toStrictEqual(Object.values(advanced_state))
+
+    const [appInfo, setAppInfo] = createStore(advanced_state)
+
+    const handlers = {
+      ...general_handlers,
+      db,
+      appInfo,
+      setAppInfo,
+    }
+
+    const crazy_update = mock.slice()
+    crazy_update[0].version = 2
+    const payload = {
+      type: 'Update',
+      app_infos: mock,
+      serial: 12,
+    } as UpdateResponse
+
+    const updateMultiple = vi.spyOn(db, 'updateMultiple')
+    const insertMultiple = vi.spyOn(db, 'insertMultiple')
+
+    await updateHandler(payload, handlers.db, handlers.appInfo, handlers.setAppInfo, handlers.setlastUpdateSerial, handlers.setIsUpdating, handlers.setlastUpdate, handlers.setUpdateNeeded, handlers.setUpdateReceived)
+
+    // tests:
+    // - Appinfo with state !== Initial are then in 'Updating'
+    // - Appinfo with state === Initial are untouched
+    expect(advanced_state).toMatchSnapshot()
+    expect(insertMultiple).toHaveBeenCalledWith(mock.slice(2, undefined).map(app_info => ({ ...app_info, state: AppState.Initial } as AppInfoWithState)))
+    expect(updateMultiple).toHaveBeenCalledWith(mock.slice(0, 2).map(app_info => ({ ...app_info, state: advanced_state[app_info.app_id].state !== AppState.Initial ? AppState.Updating : advanced_state[app_info.app_id].state } as AppInfoWithState)))
+    expect(await db.get_all()).toMatchSnapshot()
+  })
 })

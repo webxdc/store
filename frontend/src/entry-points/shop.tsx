@@ -16,6 +16,7 @@ import 'virtual:uno.css'
 import '@unocss/reset/tailwind.css'
 import { AppInfoDB } from '../db/shop_db'
 import OutdatedView from '../components/OutdatedView'
+import { updateHandler } from '../shop-logic'
 
 const fuse_options = {
   keys: [
@@ -148,7 +149,7 @@ const Shop: Component = () => {
   const [search, setSearch] = createSignal('')
   const [showCommit, setShowCommit] = createSignal(false) // Show the commit hash when heading was clicked
   const [showCache, setShowCache] = createSignal(false)
-  const [cache, setCache] = useStorage('cache', {} as AppInfosById)
+  const cached = createMemo(() => Object.values(appInfo).filter(app_info => app_info.state != AppState.Initial))
 
   const past_time = Math.abs(new Date().getTime() - lastUpdate().getTime()) / 1000
   if (appInfo === undefined || (past_time > 60 * 60)) {
@@ -169,6 +170,7 @@ const Shop: Component = () => {
   })
 
   window.webxdc.setUpdateListener(async (resp: ReceivedStatusUpdate<UpdateResponse | DownloadResponseOkay>) => {
+    updateHandler(resp.payload, db, appInfo, setAppInfo, setlastUpdateSerial, setIsUpdating, setUpdateNeeded, setUpdateNeeded, setUpdateReceived)
     setlastSerial(resp.serial)
   }, lastSerial())
 
