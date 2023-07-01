@@ -10,6 +10,7 @@ export enum AppState {
 
 export interface AppInfoWithState extends AppInfo {
   state: AppState
+  cached: boolean
 }
 
 export type AppInfosById = Record<string, AppInfoWithState>

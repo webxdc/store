@@ -148,19 +148,19 @@ const AppList: Component<{ items: AppInfoWithState[]; search: string; onDownload
   )
 }
 
-function to_app_infos_by_id(app_infos: AppInfoWithState[]): AppInfosById {
+function to_app_infos_by_id<T extends { app_id: string }>(app_infos: T[]): Record<string, T> {
   return app_infos.reduce((acc, appinfo) => {
     acc[appinfo.app_id] = appinfo
     return acc
-  }, {} as AppInfosById)
+  }, {} as Record<string, T>)
 }
 
 const Shop: Component = () => {
   const [appInfo, setAppInfo] = createStore({} as AppInfosById)
-  const [lastSerial, setlastSerial] = useStorage('last-serial', 0)
-  const [updateNeeded, setUpdateNeeded] = useStorage('update-needed', false)
+  const [lastSerial, setlastSerial] = useStorage('last-serial', 0) // Last store-serial
+  const [updateNeeded, setUpdateNeeded] = useStorage('update-needed', false) // Flag if the frontend is outdated
   const [updateReceived, setUpdateReceived] = useStorage('update-received', false)
-  const [lastUpdateSerial, setlastUpdateSerial] = useStorage('last-update-serial', 0)
+  const [lastUpdateSerial, setlastUpdateSerial] = useStorage('last-update-serial', 0) // Last serial to initialize updateListener
   const [lastUpdate, setlastUpdate] = useStorage('last-update', new Date())
   const timeSinceLastUpdate = createMemo(() => intervalToDuration({
     start: lastUpdate(),
@@ -168,6 +168,7 @@ const Shop: Component = () => {
   }))
   const [isUpdating, setIsUpdating] = createSignal(false)
   const [search, setSearch] = createSignal('')
+  const [showCommit, setShowCommit] = createSignal(false) // Show the commit hash when heading was clicked
   const [showCommit, setShowCommit] = createSignal(false)
 
   const past_time = Math.abs(new Date().getTime() - lastUpdate().getTime()) / 1000
@@ -191,29 +192,37 @@ const Shop: Component = () => {
   window.webxdc.setUpdateListener(async (resp: ReceivedStatusUpdate<UpdateResponse | DownloadResponseOkay>) => {
     setlastSerial(resp.serial)
     if (isUpdateResponse(resp.payload)) {
-      const app_infos = to_app_infos_by_id(resp.payload.app_infos.map((app_info) => {
-        return { ...app_info, state: AppState.Initial }
-      }))
 
       if (isEmpty(appInfo)) {
         // initially write the newest update to state
+        const app_infos = to_app_infos_by_id(resp.payload.app_infos.map((app_info) => {
+          return { ...app_info, state: AppState.Initial, cached: false } as AppInfoWithState
+        }))
         setAppInfo(app_infos)
         db.insertMultiple(Object.values(app_infos))
       }
       else {
         // all but the first update only overwrite existing properties
+        const app_infos = to_app_infos_by_id(resp.payload.app_infos.map((app_info) => {
+          return { ...app_info, state: AppState.Initial }
+        }))
         console.log('Reconceiling updates')
+        const added: string[] = []
+        const updated: string[] = []
         setAppInfo(produce((s) => {
           for (const key in app_infos) {
             if (s[key] === undefined) {
-              s[key] = app_infos[key]
+              s[key] = { ...app_infos[key], cached: false }
+              added.push(key)
             }
             else {
               s[key] = Object.assign(s[key], { ...app_infos[key], state: AppState.Updating })
+              updated.push(key)
             }
           }
         }))
-        db.updateMultiple(Object.values(app_infos))
+        db.updateMultiple(updated.map(key => ({ ...app_infos[key], state: AppState.Updating })))
+        db.insertMultiple(added.map(key => ({ ...app_infos[key], state: AppState.Initial, cached: false })))
       }
 
       setlastUpdateSerial(resp.payload.serial)
@@ -266,6 +275,8 @@ const Shop: Component = () => {
     <OutdatedView critical={updateNeeded()} updated_received={updateReceived()}>
       <div class="c-grid p-3">
         <div class="min-width">
+
+          {/* header */}
           <div class="flex items-center justify-between gap-2">
             <div>
               <h1 class="flex-shrink text-2xl font-bold" onclick={() => setShowCommit(!showCommit())}>
@@ -288,6 +299,7 @@ const Shop: Component = () => {
             </div>
           </div>
 
+          {/* app list */}
           <div class="p-4">
             <ul class="w-full flex flex-col gap-2">
               <li class="my-5 w-full flex items-center justify-center gap-2">
@@ -297,9 +309,9 @@ const Shop: Component = () => {
                 </button>
               </li>
               <AppList items={Object.values(appInfo)} search={search()} onDownload={handleDownload} onForward={handleForward} ></AppList>
-              <li class="mt-3">
+              {/* <li class="mt-3">
                 <PublishButton></PublishButton>
-              </li>
+              </li> */}
             </ul>
           </div>
         </div >
