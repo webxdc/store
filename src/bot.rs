@@ -432,7 +432,7 @@ impl Bot {
                     context,
                     msg_id,
                     GeneralFrontendResponse::Outdated {
-                        version: state.webxdc_versions.get(webxdc).to_string(),
+                        version: state.webxdc_versions.get(webxdc),
                         critical: true,
                     },
                 )

@@ -1,0 +1,8 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`Shop receiving updates > Handles download okay 1`] = `
+{
+  "base64": "test",
+  "name": "test.xdc",
+}
+`;

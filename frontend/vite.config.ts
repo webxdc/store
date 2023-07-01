@@ -1,13 +1,10 @@
 import { resolve } from 'node:path'
-import { execSync } from 'child_process'
+import { execSync } from 'node:child_process'
 import { defineConfig, loadEnv } from 'vite'
 import solidPlugin from 'vite-plugin-solid'
 import unocssPlugin from 'unocss/vite'
 
-// @ts-expect-error
-
 export default defineConfig(({ mode }) => {
-  // @ts-expect-error
   const env = loadEnv(mode, process.cwd(), '')
   const app_name = env.VITE_APP
   process.env.VITE_COMMIT = String(execSync('git describe --always'))
@@ -18,7 +15,6 @@ export default defineConfig(({ mode }) => {
       target: ['es2020', 'edge88', 'firefox78', 'chrome74', 'safari14'],
       rollupOptions: {
         input: {
-          // @ts-expect-error
           shop: resolve(__dirname, `./${app_name}.html`),
         },
         output: {
@@ -28,6 +24,14 @@ export default defineConfig(({ mode }) => {
     },
     server: {
       port: 3000,
+    },
+    test: {
+      environment: 'jsdom',
+      transformMode: {
+        web: [/.[jt]sx?/],
+      },
+      threads: false,
+      isolate: false,
     },
   }
 })

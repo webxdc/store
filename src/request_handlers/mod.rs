@@ -138,7 +138,7 @@ pub struct WebxdcStatusUpdate<T> {
 #[serde(tag = "type")]
 
 pub enum GeneralFrontendResponse {
-    Outdated { critical: bool, version: String },
+    Outdated { critical: bool, version: i32 },
     UpdateSent,
 }
 

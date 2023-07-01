@@ -1,11 +1,10 @@
-import type { Component, Setter } from 'solid-js'
+import type { Component } from 'solid-js'
 import { Match, Show, Switch, createEffect, createMemo, createSignal } from 'solid-js'
 import { For, render } from 'solid-js/web'
 import { useStorage } from 'solidjs-use'
 import { formatDuration, intervalToDuration } from 'date-fns'
 import Fuse from 'fuse.js'
-import type { SetStoreFunction } from 'solid-js/store'
-import { createStore, produce } from 'solid-js/store'
+import { createStore } from 'solid-js/store'
 import type { ReceivedStatusUpdate } from '../webxdc'
 import type { ShopResponse } from '../bindings/ShopResponse'
 import type { ShopRequest } from '../bindings/ShopRequest'
@@ -17,7 +16,6 @@ import 'virtual:uno.css'
 import '@unocss/reset/tailwind.css'
 import { AppInfoDB } from '../db/shop_db'
 import OutdatedView from '../components/OutdatedView'
-import { isOutdatedResponse, isUpdateSendResponse } from '../utils'
 
 const fuse_options = {
   keys: [
@@ -28,29 +26,8 @@ const fuse_options = {
   threshold: 0.4,
 }
 
-function isEmpty(obj: any) {
-  for (const prop in obj) {
-    if (Object.prototype.hasOwnProperty.call(obj, prop))
-      return false
-  }
-  return true
-}
-
 type DownloadResponseOkay = Extract<ShopResponse, { type: 'DownloadOkay' }>
-type DownloadResponseError = Extract<ShopResponse, { type: 'DownloadError' }>
 type UpdateResponse = Extract<ShopResponse, { type: 'Update' }>
-
-function isDownloadResponseOkay(p: any): p is DownloadResponseOkay {
-  return p.type === 'DownloadOkay'
-}
-
-function isDownloadResponseError(p: any): p is DownloadResponseError {
-  return p.type === 'DownloadError'
-}
-
-function isUpdateResponse(p: any): p is UpdateResponse {
-  return p.type === 'Update'
-}
 
 function AppInfoModal(item: AppInfoWithState, onDownload: () => void, onForward: () => void) {
   const [isExpanded, setIsExpanded] = createSignal(false)
@@ -112,7 +89,7 @@ function AppInfoModal(item: AppInfoWithState, onDownload: () => void, onForward:
   )
 }
 
-const PublishButton: Component = () => {
+/* const PublishButton: Component = () => {
   const [isOpen, setIsOpen] = createSignal(false)
 
   return (
@@ -121,7 +98,7 @@ const PublishButton: Component = () => {
     </button>
   )
 }
-
+ */
 const AppList: Component<{ items: AppInfoWithState[]; search: string; onDownload: (id: string) => void; onForward: (id: string) => void }> = (props) => {
   let fuse: Fuse<AppInfoWithState> = new Fuse(props.items, fuse_options)
 
@@ -156,70 +133,6 @@ function to_app_infos_by_id<T extends { app_id: string }>(app_infos: T[]): Recor
   }, {} as Record<string, T>)
 }
 
-function updateHandler(
-  payload: object,
-  db: AppInfoDB,
-  appInfo: AppInfosById,
-  setAppInfo: SetStoreFunction<AppInfosById>,
-  setlastUpdateSerial: Setter<number>,
-  setIsUpdating: Setter<boolean>,
-  setlastUpdate: Setter<Date>
-) {
-  if (isUpdateResponse(payload)) {
-    if (isEmpty(appInfo)) {
-      // initially write the newest update to state
-      const app_infos = to_app_infos_by_id(payload.app_infos.map((app_info) => {
-        return { ...app_info, state: AppState.Initial, cached: false } as AppInfoWithState
-      }))
-      setAppInfo(app_infos)
-      db.insertMultiple(Object.values(app_infos))
-    }
-    else {
-      // all but the first update only overwrite existing properties
-      const app_infos = to_app_infos_by_id(payload.app_infos.map((app_info) => {
-        return { ...app_info, state: AppState.Initial }
-      }))
-      console.log('Reconceiling updates')
-      const added: string[] = []
-      const updated: string[] = []
-      setAppInfo(produce((s) => {
-        for (const key in app_infos) {
-          if (s[key] === undefined) {
-            s[key] = { ...app_infos[key], cached: false }
-            added.push(key)
-          }
-          else {
-            s[key] = Object.assign(s[key], { ...app_infos[key], state: AppState.Updating })
-            updated.push(key)
-          }
-        }
-      }))
-      db.updateMultiple(updated.map(key => ({ ...app_infos[key], state: AppState.Updating })))
-      db.insertMultiple(added.map(key => ({ ...app_infos[key], state: AppState.Initial, cached: false })))
-    }
-
-    setlastUpdateSerial(payload.serial)
-    setIsUpdating(false)
-    setlastUpdate(new Date())
-  }
-  else if (isDownloadResponseOkay(payload)) {
-    const file = { base64: payload.data, name: `${payload.name}.xdc` }
-    db.add_webxdc(file, payload.app_id)
-    db.update({ ...appInfo[payload.app_id], state: AppState.Received })
-    setAppInfo(payload.app_id, 'state', AppState.Received)
-  }
-  else if (isDownloadResponseError(payload)) {
-    setAppInfo(payload.id, 'state', AppState.DownloadCancelled)
-  }
-  else if (isOutdatedResponse(payload)) {
-    console.log('Current version is outdated')
-    setUpdateNeeded(true)
-  }
-  else if (isUpdateSendResponse(payload)) {
-    setUpdateReceived(true)
-  }
-}
-
 const Shop: Component = () => {
   const [appInfo, setAppInfo] = createStore({} as AppInfosById)
   const [lastSerial, setlastSerial] = useStorage('last-serial', 0) // Last store-serial
@@ -251,7 +164,7 @@ const Shop: Component = () => {
     setAppInfo(app_infos)
 
     if (import.meta.env.DEV) {
-      setAppInfo(mock)
+      setAppInfo(to_app_infos_by_id(mock))
     }
   })
 
