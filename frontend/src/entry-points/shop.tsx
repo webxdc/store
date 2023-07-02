@@ -107,7 +107,7 @@ const AppList: Component<{ items: AppInfoWithState[]; search: string; onDownload
   })
 
   return (
-    <Show when={props.items.length !== 0} fallback={<p class="text-center unimportant">Loading Apps..</p>}>
+    <Show when={props.items.length !== 0} fallback={<p class="text-center unimportant">There are no apps in this store</p>}>
       <For each={filtered_items() || props.items}>
         {
           item => AppInfoModal(item, () => props.onDownload(item.app_id), () => { props.onForward(item.app_id) })
@@ -156,11 +156,12 @@ const Shop: Component = () => {
 
     if (import.meta.env.DEV) {
       setAppInfo(to_app_infos_by_id(mock))
+      setlastSerial(1)
     }
   })
 
   window.webxdc.setUpdateListener(async (resp: ReceivedStatusUpdate<UpdateResponse | DownloadResponseOkay>) => {
-    updateHandler(resp.payload, db, appInfo, setAppInfo, setlastUpdateSerial, setIsUpdating, setUpdateNeeded, setlastUpdate, setUpdateReceived)
+    updateHandler(resp.payload, db, appInfo, setAppInfo, setlastUpdateSerial, setIsUpdating, setlastUpdate, setUpdateNeeded, setUpdateReceived)
     setlastSerial(resp.serial)
   }, lastSerial())
 
@@ -209,7 +210,7 @@ const Shop: Component = () => {
                 </button>
               }>
                 <div class="flex items-center gap-2">
-                  <span>Updating..</span>
+                  <span class="tracking-wide">Updating..</span>
                   <div class="loading-spinner border border-blue-500 rounded" i-material-symbols-sync></div>
                 </div>
               </Show>
@@ -217,21 +218,25 @@ const Shop: Component = () => {
           </div>
 
           {/* app list */}
-          <div class="p-4">
+          <div class="p-4 mt-4">
             <ul class="w-full flex flex-col gap-2">
-              <li class="my-5 w-full flex flex-col items-center justify-center gap-2">
+              <li class="w-full flex flex-col items-center justify-center gap-2">
                 <div class="flex items-center justify-center gap-2">
                   <input class="border-2 rounded-2xl" onInput={event => setSearch((event.target as HTMLInputElement).value)} />
                   <button class="rounded-1/2 p-2 btn">
                     <div class="i-carbon-search" />
                   </button>
                 </div>
-                <div class="flex justify-center gap-2">
-                  <button class="btn-gray" onClick={() => setShowCache(false)}> All Apps </button>
-                  <button class="btn-gray" onClick={() => setShowCache(true)}> Cached Apps</button>
-                </div>
               </li>
-              <AppList items={showCache() ? cached() : Object.values(appInfo)} search={search()} onDownload={handleDownload} onForward={handleForward} ></AppList>
+              <li class="flex justify-center gap-3 my-3">
+                <button class="btn-gray" onClick={() => setShowCache(false)}> All Apps </button>
+                <button class="btn-gray" onClick={() => setShowCache(true)}> Cached Apps</button>
+              </li>
+              <Show when={!(lastSerial() == 0)} fallback={
+                <p class="text-center unimportant">Loading store..</p>
+              }>
+                <AppList items={showCache() ? cached() : Object.values(appInfo)} search={search()} onDownload={handleDownload} onForward={handleForward} ></AppList>
+              </Show>
             </ul>
           </div>
         </div >

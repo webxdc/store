@@ -137,7 +137,7 @@ describe('Shop receiving updates', () => {
     expect(await db.get_all()).toStrictEqual(Object.values(initial_mock))
   })
 
-  it('Handles ongoing AppIndex updates', async () => {
+  test('Handles ongoing AppIndex updates', async () => {
     const db = new AppInfoDB('shoptesting3')
     const advanced_state = to_app_infos_by_id(mock.slice(0, 2))
     await db.insertMultiple(Object.values(advanced_state))
@@ -163,6 +163,9 @@ describe('Shop receiving updates', () => {
 
     const updateMultiple = vi.spyOn(db, 'updateMultiple')
     const insertMultiple = vi.spyOn(db, 'insertMultiple')
+    const satlastUpdateSerial = vi.spyOn(handlers, 'setlastUpdateSerial')
+    const setIsUpdating = vi.spyOn(handlers, 'setIsUpdating')
+    const setlastUpdate = vi.spyOn(handlers, 'setlastUpdate')
 
     await updateHandler(payload, handlers.db, handlers.appInfo, handlers.setAppInfo, handlers.setlastUpdateSerial, handlers.setIsUpdating, handlers.setlastUpdate, handlers.setUpdateNeeded, handlers.setUpdateReceived)
 
@@ -173,6 +176,9 @@ describe('Shop receiving updates', () => {
     expect(insertMultiple).toHaveBeenCalledWith(mock.slice(2, undefined).map(app_info => ({ ...app_info, state: AppState.Initial } as AppInfoWithState)))
     expect(updateMultiple).toHaveBeenCalledWith(mock.slice(0, 2).map(app_info => ({ ...app_info } as AppInfoWithState)))
     expect(await db.get_all()).toMatchSnapshot()
+    expect(satlastUpdateSerial).toHaveBeenCalledWith(12)
+    expect(setIsUpdating).toHaveBeenCalledWith(false)
+    expect(setlastUpdate).toHaveBeenCalled()
 
     payload = {
       type: 'Update',
