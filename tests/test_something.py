@@ -166,6 +166,7 @@ def test_update(acfactory, storebot):
     payload = status_updates[-1]["payload"]
     assert payload == {"type": "Update", "app_infos": [], "serial": 0, "updating": []}
 
+
 def test_update_advanced(acfactory, storebot_example):
     """Test that the bot sends initial update and responds to update requests."""
     (ac1,) = acfactory.get_online_accounts(1)
@@ -179,7 +180,14 @@ def test_update_advanced(acfactory, storebot_example):
 
     # Request updates.
     # dc-calendar is outdated by 1 version, dc-hextris not
-    assert msg_in.send_status_update({"payload": {"Update": {"serial": 0, "apps": [("dc-calendar", 1), ("dc-hextris", 2)]}}}, "update")
+    assert msg_in.send_status_update(
+        {
+            "payload": {
+                "Update": {"serial": 0, "apps": [("dc-calendar", 1), ("dc-hextris", 2)]}
+            }
+        },
+        "update",
+    )
     ac1._evtracker.get_matching("DC_EVENT_WEBXDC_STATUS_UPDATE")
 
     # Receive a response.
@@ -187,14 +195,15 @@ def test_update_advanced(acfactory, storebot_example):
     status_updates = msg_in.get_status_updates()
     assert len(status_updates) == 3
     payload = status_updates[-1]["payload"]
-    assert payload["updating"] == ['dc-calendar']
+    assert payload["updating"] == ["dc-calendar"]
 
     ac1._evtracker.get_matching("DC_EVENT_WEBXDC_STATUS_UPDATE")
     status_updates = msg_in.get_status_updates()
     assert len(status_updates) == 4
     payload = status_updates[-1]["payload"]
-    assert payload["app_id"] == 'dc-calendar'
-    assert payload["type"] == 'DownloadOkay'
+    assert payload["app_id"] == "dc-calendar"
+    assert payload["type"] == "DownloadOkay"
+
 
 def test_import(acfactory, storebot_example):
     """Test that import works."""
