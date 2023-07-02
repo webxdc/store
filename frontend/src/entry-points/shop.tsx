@@ -2,7 +2,7 @@ import type { Component } from 'solid-js'
 import { Match, Show, Switch, createEffect, createMemo, createSignal } from 'solid-js'
 import { For, render } from 'solid-js/web'
 import { useStorage } from 'solidjs-use'
-import { formatDuration, intervalToDuration } from 'date-fns'
+import { formatDistance, formatDuration, intervalToDuration } from 'date-fns'
 import Fuse from 'fuse.js'
 import { createStore, produce } from 'solid-js/store'
 import type { ReceivedStatusUpdate } from '../webxdc'
@@ -154,21 +154,19 @@ const Shop: Component = () => {
   const [updateReceived, setUpdateReceived] = useStorage('update-received', false)
   const [lastUpdateSerial, setlastUpdateSerial] = useStorage('last-update-serial', 0)
   const [lastUpdate, setlastUpdate] = useStorage('last-update', new Date())
-  const timeSinceLastUpdate = createMemo(() => intervalToDuration({
-    start: lastUpdate(),
-    end: new Date(),
-  }))
+  const [dateNow, setDateNow] = createSignal(new Date())
+  setInterval(() => setDateNow(new Date()), 2000)
   const [isUpdating, setIsUpdating] = createSignal(false)
   const [search, setSearch] = createSignal('')
   const [showCommit, setShowCommit] = createSignal(false)
 
+  // automatically update the app list
   const past_time = Math.abs(new Date().getTime() - lastUpdate().getTime()) / 1000
   if (appInfo === undefined || (past_time > 60 * 60)) {
     setIsUpdating(true)
   }
 
   const db = new AppInfoDB('webxdc')
-
   // This is for now _not_ synchronized with the update receival so a delayed
   // query could overwrite app updates. For now, this should be fine.
   db.get_all().then((apps) => {
@@ -270,7 +268,7 @@ const Shop: Component = () => {
             <div class="rounded-xl bg-gray-100 p-2 unimportant text-gray-500">
               <Show when={isUpdating()} fallback={
                 <button class="flex items-center gap-2" onclick={handleUpdate}>
-                  <span>{formatDuration(timeSinceLastUpdate(), { delimiter: ',' }).split(',')[0] || '0 sec'} ago</span>
+                  <span>{formatDistance(lastUpdate(), dateNow())}</span>
                   <div class="border border-blue-500 rounded" i-material-symbols-sync></div>
                 </button>
               }>
