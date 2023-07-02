@@ -30,12 +30,12 @@ const fuse_options = {
 type DownloadResponseOkay = Extract<ShopResponse, { type: 'DownloadOkay' }>
 type UpdateResponse = Extract<ShopResponse, { type: 'Update' }>
 
-function AppInfoModal(item: AppInfoWithState, onDownload: () => void, onForward: () => void) {
+function AppInfoModal(item: AppInfoWithState, onDownload: () => void, onForward: () => void, onRemove: () => void) {
   const [isExpanded, setIsExpanded] = createSignal(false)
 
   return (
-    <li class="w-full border rounded p-4 shadow" onClick={() => setIsExpanded(!isExpanded())}>
-      <div class="flex items-center justify-between gap-2">
+    <li class="w-full border rounded p-4 shadow">
+      <div class="flex items-center justify-between gap-2 cursor-pointer" onClick={() => setIsExpanded(!isExpanded())}>
         <img src={`data:image/png;base64,${item.image!}`} alt={item.name} class="h-20 w-20 rounded-xl object-cover" />
         <div class="flex-grow-1 overflow-hidden">
           <h2 class="text-xl font-semibold">{item.name}</h2>
@@ -72,17 +72,18 @@ function AppInfoModal(item: AppInfoWithState, onDownload: () => void, onForward:
       </div >
       {
         isExpanded() && (
-          <>
+          <div class="flex flex-col">
             <p class="my-4 text-gray-600">{item.description}</p>
             <div class="my-2">
-              <p class="text-sm text-gray-600"><span class="font-bold"> Submitter:</span>{item.submitter_uri}</p>
-              <p class="break-words text-sm text-gray-600"><span class="font-bold"> Source code:</span>{item.source_code_url}</p>
-              <p class="text-sm text-gray-600"><span class="font-bold"> Version:</span>{item.version}</p>
+              <p class="text-sm text-gray-600"><span class="font-bold"> Submitter: </span>{item.submitter_uri}</p>
+              <p class="break-all text-sm text-gray-600"><span class="font-bold"> Source code: </span>{item.source_code_url}</p>
+              <p class="text-sm text-gray-600"><span class="font-bold"> Version: </span>{item.version}</p>
             </div>
-          </>
+            <button class="btn-gray self-center" onClick={onRemove}>Remove from cache</button>
+          </div>
         )
       }
-      <div class="flex justify-center">
+      <div class="flex justify-center mt-1" onClick={() => setIsExpanded(!isExpanded())}>
         <button class={`text-blue-800 ${isExpanded() ? 'i-carbon-up-to-top' : 'i-carbon-down-to-bottom'}`}>
         </button>
       </div>
@@ -90,7 +91,14 @@ function AppInfoModal(item: AppInfoWithState, onDownload: () => void, onForward:
   )
 }
 
-const AppList: Component<{ items: AppInfoWithState[]; search: string; onDownload: (id: string) => void; onForward: (id: string) => void }> = (props) => {
+interface AppListProps {
+  items: AppInfoWithState[];
+  search: string; onDownload: (id: string) => void;
+  onForward: (id: string) => void
+  onRemove: (id: string) => void
+}
+
+const AppList: Component<AppListProps> = (props) => {
   let fuse: Fuse<AppInfoWithState> = new Fuse(props.items, fuse_options)
 
   createEffect(() => {
@@ -107,10 +115,10 @@ const AppList: Component<{ items: AppInfoWithState[]; search: string; onDownload
   })
 
   return (
-    <Show when={props.items.length !== 0} fallback={<p class="text-center unimportant">There are no apps in this store</p>}>
+    <Show when={props.items.length !== 0} fallback={<p class="text-center unimportant">There are no apps</p>}>
       <For each={filtered_items() || props.items}>
         {
-          item => AppInfoModal(item, () => props.onDownload(item.app_id), () => { props.onForward(item.app_id) })
+          item => AppInfoModal(item, () => props.onDownload(item.app_id), () => { props.onForward(item.app_id) }, () => { props.onRemove(item.app_id) })
         }
       </For>
     </Show>
@@ -189,6 +197,11 @@ const Shop: Component = () => {
     window.webxdc.sendToChat({ file })
   }
 
+  async function handleRemove(app_id: string) {
+    setAppInfo(app_id, 'state', AppState.Initial)
+    db.remove_webxdc(app_id)
+  }
+
   return (
     <OutdatedView critical={updateNeeded()} updated_received={updateReceived()}>
       <div class="c-grid p-3">
@@ -235,7 +248,11 @@ const Shop: Component = () => {
               <Show when={!(lastSerial() == 0)} fallback={
                 <p class="text-center unimportant">Loading store..</p>
               }>
-                <AppList items={showCache() ? cached() : Object.values(appInfo)} search={search()} onDownload={handleDownload} onForward={handleForward} ></AppList>
+                <AppList 
+                  items={showCache() ? cached() : Object.values(appInfo)} search={search()} 
+                  onDownload={handleDownload} 
+                  onForward={handleForward} 
+                  onRemove={handleRemove} ></AppList>
               </Show>
             </ul>
           </div>

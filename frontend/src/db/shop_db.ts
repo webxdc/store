@@ -124,4 +124,15 @@ export class AppInfoDB {
       request.onsuccess = () => resolve(request.result)
     })
   }
+
+  async remove_webxdc(id: string): Promise<void> {
+    const db = await this.open()
+    return new Promise((resolve, reject) => {
+      const transaction = db.transaction('apps', 'readwrite')
+      transaction.onerror = () => reject(transaction.error)
+      const store = transaction.objectStore('apps')
+      const request = store.delete(id)
+      request.onsuccess = () => resolve()
+    })
+  }
 }
