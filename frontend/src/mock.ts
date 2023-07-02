@@ -51,6 +51,6 @@ export default [
     source_code_url: 'https://artc.com/',
     image: 'iVBORw0KGgoAAAANSUhEUgAAAH0AAAB9BAMAAAB9rnEWAAAAHlBMVEVifYx7k56Joaugr7ivvcTAztTW297l6uz1+fz9//zvID+YAAAACXBIWXMAAAsTAAALEwEAmpwYAAACf0lEQVRYw+1YPU/cQBBdc+ZMCfkgd52jCJF0JEWEO1KRdBEoUuggDVyHKCK540II2Q7wGXv/bez9HHOBmx13aF8BNvLDOx/vza4ZCwgICAgIeBqI1nrRP3JR7dDp26JBvUWlrwuJkkhf4ooviBG803Rx2+/1oiLx3wqLVUrlueNTKhA7uvhKWf8Xxz9k1AWcjdqfp4y4gJINye9ngzZxK3Q+2y4Yy3o04CBlLG/5KVmBA6lAuoJHfQTYYNLyb/otn5p+s/we6Zt0w39xzMXVvocFyNdPze2uUsNvND/pqPezkdOZlwTv9M2m02PqYyHTeT9AGuIyXP4E8CuP6t3BVPgZEmy+vMOf4qu385/X25w+iiHQno6+/nmifmMcfdw+WYBMivoTYy/RCThoHzyXl5niH9lrjKNyG34EGzdBShpYj8penbq/F8j0lSB7v3RXIi1pxXZq3M05xxVwbPOUdXpGzvX6b4OLR/mZqdMSjD7adXO5WCze1JqYij6GfVwsLH+b/ih3Moy58Oa/ks/OZOhdFeH4ufPwA+HBl/HrNlCOMRQ+fJn/LR39dN4DFvFl/S+/u+Ld84BF/OT+kzD6+luDPa8NmLm/5EgH5V27GqvrH9j+N6ZhVJDr2YPVnytX5UZ5qeUwwxhoDrePiUlEjJ5ACTw/ZOZyiN+SyOJXqfOgU+Mr57gB2vyDP3r+2cGb+eyon72GblrarHjv6G3WVB28d0LLJuoRev7N86/N8m9p/MI0lf+BQMZfv3/OiQeiSPjvXx5QI21DDI5TpPMcsKMZgQ6Os8TjjLWTi37H+WqVxtefE2r694yNZgVX5K8ZbRO9+RA+SQUEBAQEPDH8AwiiSrCeN9eaAAAAAElFTkSuQmCC',
     version: 1,
-    state: AppState.Initial,
+    state: AppState.Updating,
   },
 ] as AppInfoWithState[]

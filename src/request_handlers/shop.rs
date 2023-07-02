@@ -142,26 +142,23 @@ pub async fn handle_status_update(
                         updating.push(app_id);
                     }
                 }
+                send_newest_updates(
+                    context,
+                    msg_id,
+                    &mut *state.db.acquire().await?,
+                    serial,
+                    updating.clone(),
+                )
+                .await?;
 
                 // Send updates
                 for app_id in &updating {
                     let context = context.clone();
                     let state = state.clone();
                     let app_id = app_id.clone();
-                    tokio::spawn(async move {
-                        let resp = handle_download(&state, app_id).await;
-                        send_update_payload_only(&context, msg_id, resp).await
-                    });
+                    let resp = handle_download(&state, app_id).await;
+                    send_update_payload_only(&context, msg_id, resp).await?;
                 }
-
-                send_newest_updates(
-                    context,
-                    msg_id,
-                    &mut *state.db.acquire().await?,
-                    serial,
-                    updating,
-                )
-                .await?;
             }
             ShopRequest::Download { app_id } => {
                 info!("Handling store download");

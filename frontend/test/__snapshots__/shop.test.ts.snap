@@ -7,6 +7,13 @@ exports[`Shop receiving updates > Handles download okay 1`] = `
 }
 `;
 
+exports[`Shop receiving updates > Handles download okay 2`] = `
+{
+  "base64": "test",
+  "name": "test.xdc",
+}
+`;
+
 exports[`Shop receiving updates > Handles ongoing updates 1`] = `
 {
   "12": {

@@ -89,12 +89,14 @@ export async function updateHandler(
     setlastUpdate(new Date())
   }
   else if (isDownloadResponseOkay(payload)) {
+    console.log('Received webxdc')
     const file = { base64: payload.data, name: `${payload.name}.xdc` }
-    db.add_webxdc(file, payload.app_id)
-    db.update({ ...appInfo[payload.app_id], state: AppState.Received })
+    await db.add_webxdc(file, payload.app_id)
+    await db.update({ ...appInfo[payload.app_id], state: AppState.Received })
     setAppInfo(payload.app_id, 'state', AppState.Received)
   }
   else if (isDownloadResponseError(payload)) {
+    console.log('Problem downloading some webxdc')
     setAppInfo(payload.app_id, 'state', AppState.DownloadCancelled)
   }
   else if (isOutdatedResponse(payload)) {
@@ -102,6 +104,7 @@ export async function updateHandler(
     setUpdateNeeded(true)
   }
   else if (isUpdateSentResponse(payload)) {
+    console.log('Update received')
     setUpdateReceived(true)
   }
 }

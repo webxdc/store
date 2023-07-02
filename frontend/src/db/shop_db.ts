@@ -108,7 +108,7 @@ export class AppInfoDB {
       const transaction = db.transaction('apps', 'readwrite')
       transaction.onerror = () => reject(transaction.error)
       const store = transaction.objectStore('apps')
-      const request = store.add(webxdc, id)
+      const request = store.put(webxdc, id)
       request.onsuccess = () => resolve()
     })
   }

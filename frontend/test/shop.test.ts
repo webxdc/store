@@ -12,7 +12,6 @@ import 'fake-indexeddb/auto'
 import mock from '../src/mock'
 
 const general_handlers = {
-  appInfo: {} as AppInfosById,
   setAppInfo: ((() => { }) as SetStoreFunction<AppInfosById>),
   setlastUpdateSerial: ((() => { }) as Setter<number>),
   setIsUpdating: ((() => { }) as Setter<boolean>),
@@ -25,6 +24,7 @@ describe('Shop receiving updates', () => {
   test('Handles outdated response', () => {
     const handlers = {
       db: new AppInfoDB('shoptesting'),
+      appInfo: {},
       ...general_handlers,
     }
 
@@ -43,6 +43,7 @@ describe('Shop receiving updates', () => {
   test('Handes update received', () => {
     const handlers = {
       db: new AppInfoDB('shoptesting'),
+      appInfo: {},
       ...general_handlers,
     }
 
@@ -58,6 +59,7 @@ describe('Shop receiving updates', () => {
   test('Handles download error', () => {
     const handlers = {
       db: new AppInfoDB('shoptesting'),
+      appInfo: {},
       ...general_handlers,
     }
 
@@ -82,18 +84,34 @@ describe('Shop receiving updates', () => {
 
     await db.insertMultiple(mock)
 
-    const payload = {
+    // Test adding new webxdc downloads
+    let payload: DownloadResponseOkay = {
       type: 'DownloadOkay',
       app_id: mock[0].app_id,
       name: 'test',
       data: 'test',
-    } as DownloadResponseOkay
+    }
 
     const setAppInfo = vi.spyOn(handlers, 'setAppInfo')
-    updateHandler(payload, handlers.db, handlers.appInfo, handlers.setAppInfo, handlers.setlastUpdateSerial, handlers.setIsUpdating, handlers.setlastUpdate, handlers.setUpdateNeeded, handlers.setUpdateReceived)
+    await updateHandler(payload, handlers.db, handlers.appInfo, handlers.setAppInfo, handlers.setlastUpdateSerial, handlers.setIsUpdating, handlers.setlastUpdate, handlers.setUpdateNeeded, handlers.setUpdateReceived)
     expect(await db.get_webxdc(payload.app_id)).matchSnapshot()
     expect(await db.get(payload.app_id)).toStrictEqual({ ...mock[0], state: AppState.Received })
     expect(setAppInfo).toHaveBeenCalledWith(payload.app_id, 'state', AppState.Received)
+
+    // Test updating an existing webxdc
+    await db.add_webxdc({ name: 'aa', plainText: 'bee' }, mock[4].app_id)
+
+    payload = {
+      type: 'DownloadOkay',
+      app_id: mock[4].app_id,
+      name: 'test',
+      data: 'test',
+    }
+
+    await updateHandler(payload, handlers.db, handlers.appInfo, handlers.setAppInfo, handlers.setlastUpdateSerial, handlers.setIsUpdating, handlers.setlastUpdate, handlers.setUpdateNeeded, handlers.setUpdateReceived)
+    expect(setAppInfo).toHaveBeenCalledWith(payload.app_id, 'state', AppState.Received)
+    expect(await db.get(payload.app_id)).toStrictEqual({ ...mock[4], state: AppState.Received })
+    expect(await db.get_webxdc(payload.app_id)).toMatchSnapshot()
   })
 
   test('Handles new AppIndex', async () => {
@@ -119,7 +137,7 @@ describe('Shop receiving updates', () => {
     expect(await db.get_all()).toStrictEqual(Object.values(initial_mock))
   })
 
-  it('Handles ongoing updates', async () => {
+  it('Handles ongoing AppIndex updates', async () => {
     const db = new AppInfoDB('shoptesting3')
     const advanced_state = to_app_infos_by_id(mock.slice(0, 2))
     await db.insertMultiple(Object.values(advanced_state))
@@ -148,7 +166,7 @@ describe('Shop receiving updates', () => {
 
     await updateHandler(payload, handlers.db, handlers.appInfo, handlers.setAppInfo, handlers.setlastUpdateSerial, handlers.setIsUpdating, handlers.setlastUpdate, handlers.setUpdateNeeded, handlers.setUpdateReceived)
 
-    // tests:
+    // Tests:
     // - Appinfo with state !== Initial are then in 'Updating'
     // - Appinfo with state === Initial are untouched
     expect(advanced_state).toMatchSnapshot()
