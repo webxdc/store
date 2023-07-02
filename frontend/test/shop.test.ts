@@ -183,5 +183,15 @@ describe('Shop receiving updates', () => {
 
     await updateHandler(payload, handlers.db, handlers.appInfo, handlers.setAppInfo, handlers.setlastUpdateSerial, handlers.setIsUpdating, handlers.setlastUpdate, handlers.setUpdateNeeded, handlers.setUpdateReceived)
     expect(appInfo['15'].state).toBe(AppState.Updating)
+
+    const download: DownloadResponseOkay = {
+      type: 'DownloadOkay',
+      app_id: mock[3].app_id,
+      name: 'test',
+      data: 'test',
+    }
+
+    await updateHandler(download, handlers.db, handlers.appInfo, handlers.setAppInfo, handlers.setlastUpdateSerial, handlers.setIsUpdating, handlers.setlastUpdate, handlers.setUpdateNeeded, handlers.setUpdateReceived)
+    expect(appInfo['15'].state).toBe(AppState.Received)
   })
 })

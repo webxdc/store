@@ -142,6 +142,9 @@ pub async fn handle_status_update(
                         updating.push(app_id);
                     }
                 }
+
+                info!("Updating multiple client apps: {:?}", updating);
+
                 send_newest_updates(
                     context,
                     msg_id,
