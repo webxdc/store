@@ -35,7 +35,7 @@ function AppInfoModal(item: AppInfoWithState, onDownload: () => void, onForward:
 
   return (
     <li class="w-full border rounded p-4 shadow">
-      <div class="flex items-center justify-between gap-2 cursor-pointer" onClick={() => setIsExpanded(!isExpanded())}>
+      <div class="flex cursor-pointer items-center justify-between gap-2" onClick={() => setIsExpanded(!isExpanded())}>
         <img src={`data:image/png;base64,${item.image!}`} alt={item.name} class="h-20 w-20 rounded-xl object-cover" />
         <div class="flex-grow-1 overflow-hidden">
           <h2 class="text-xl font-semibold">{item.name}</h2>
@@ -79,11 +79,11 @@ function AppInfoModal(item: AppInfoWithState, onDownload: () => void, onForward:
               <p class="break-all text-sm text-gray-600"><span class="font-bold"> Source code: </span>{item.source_code_url}</p>
               <p class="text-sm text-gray-600"><span class="font-bold"> Version: </span>{item.version}</p>
             </div>
-            <button class="btn-gray self-center" onClick={onRemove}>Remove from cache</button>
+            <button class="self-center btn-gray" onClick={onRemove}>Remove from cache</button>
           </div>
         )
       }
-      <div class="flex justify-center mt-1" onClick={() => setIsExpanded(!isExpanded())}>
+      <div class="mt-1 flex justify-center" onClick={() => setIsExpanded(!isExpanded())}>
         <button class={`text-blue-800 ${isExpanded() ? 'i-carbon-up-to-top' : 'i-carbon-down-to-bottom'}`}>
         </button>
       </div>
@@ -92,8 +92,9 @@ function AppInfoModal(item: AppInfoWithState, onDownload: () => void, onForward:
 }
 
 interface AppListProps {
-  items: AppInfoWithState[];
-  search: string; onDownload: (id: string) => void;
+  items: AppInfoWithState[]
+  search: string
+  onDownload: (id: string) => void
   onForward: (id: string) => void
   onRemove: (id: string) => void
 }
@@ -118,7 +119,7 @@ const AppList: Component<AppListProps> = (props) => {
     <Show when={props.items.length !== 0} fallback={<p class="text-center unimportant">There are no apps</p>}>
       <For each={filtered_items() || props.items}>
         {
-          item => AppInfoModal(item, () => props.onDownload(item.app_id), () => { props.onForward(item.app_id) }, () => { props.onRemove(item.app_id) })
+          item => AppInfoModal(item, () => props.onDownload(item.app_id), () => { props.onForward(item.app_id) }, () => props.onRemove(item.app_id))
         }
       </For>
     </Show>
@@ -231,7 +232,7 @@ const Shop: Component = () => {
           </div>
 
           {/* app list */}
-          <div class="p-4 mt-4">
+          <div class="mt-4 p-4">
             <ul class="w-full flex flex-col gap-2">
               <li class="w-full flex flex-col items-center justify-center gap-2">
                 <div class="flex items-center justify-center gap-2">
@@ -241,17 +242,17 @@ const Shop: Component = () => {
                   </button>
                 </div>
               </li>
-              <li class="flex justify-center gap-3 my-3">
+              <li class="my-3 flex justify-center gap-3">
                 <button class="btn-gray" onClick={() => setShowCache(false)}> All Apps </button>
                 <button class="btn-gray" onClick={() => setShowCache(true)}> Cached Apps</button>
               </li>
-              <Show when={!(lastSerial() == 0)} fallback={
+              <Show when={!(lastSerial() === 0)} fallback={
                 <p class="text-center unimportant">Loading store..</p>
               }>
-                <AppList 
-                  items={showCache() ? cached() : Object.values(appInfo)} search={search()} 
-                  onDownload={handleDownload} 
-                  onForward={handleForward} 
+                <AppList
+                  items={showCache() ? cached() : Object.values(appInfo)} search={search()}
+                  onDownload={handleDownload}
+                  onForward={handleForward}
                   onRemove={handleRemove} ></AppList>
               </Show>
             </ul>
