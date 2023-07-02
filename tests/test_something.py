@@ -68,7 +68,7 @@ class BotProcess:
                 "HOME": str(self.home_path),
                 "addr": self.addr,
                 "mail_pw": self.password,
-                "RUST_LOG": "xdcstore=trace",
+                "RUST_LOG": "xdcstore=info",
             },
         )
 
@@ -84,7 +84,7 @@ class BotProcess:
             ],
             cwd=self.binary_path.parent,
             env={
-                "RUST_LOG": "xdcstore=trace",
+                "RUST_LOG": "xdcstore=info",
                 "HOME": str(self.home_path),
                 "addr": self.addr,
                 "mail_pw": self.password,
@@ -152,6 +152,7 @@ def test_update(acfactory, storebot):
         "type": "Update",
         "app_infos": [],
         "serial": 0,
+        "updating": [],
     }
 
     # Request updates.
@@ -163,7 +164,7 @@ def test_update(acfactory, storebot):
     status_updates = msg_in.get_status_updates()
     assert len(status_updates) == 3
     payload = status_updates[-1]["payload"]
-    assert payload == {"type": "Update", "app_infos": [], "serial": 0}
+    assert payload == {"type": "Update", "app_infos": [], "serial": 0, "updating": []}
 
 def test_update_advanced(acfactory, storebot_example):
     """Test that the bot sends initial update and responds to update requests."""

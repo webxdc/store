@@ -47,7 +47,8 @@ async fn main() -> anyhow::Result<()> {
                     &xdcs_dir,
                     &mut *bot.get_db_connection().await?,
                 )
-                .await? {
+                .await?
+                {
                     AddType::Added => println!("Added {}", path.display()),
                     AddType::Updated => println!("Updated {}", path.display()),
                     AddType::Ignored => println!("Ignored {}", path.display()),
