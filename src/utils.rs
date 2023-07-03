@@ -21,7 +21,7 @@ use crate::{
     bot::State,
     db,
     request_handlers::{shop::ShopResponse, AppInfo, WexbdcManifest},
-    REVIEW_HELPER_XDC, STORE_XDC, SUBMIT_HELPER_XDC,
+    STORE_XDC,
 };
 
 pub async fn configure_from_env(ctx: &Context) -> Result<()> {
@@ -155,16 +155,12 @@ pub async fn get_webxdc_version(file: impl AsRef<Path>) -> anyhow::Result<i32> {
 #[derive(Clone, Copy, Type)]
 pub enum Webxdc {
     Shop,
-    Submit,
-    Review,
 }
 
 impl Webxdc {
     pub fn get_path(&self) -> Result<PathBuf> {
         let filename = match self {
             Webxdc::Shop => STORE_XDC,
-            Webxdc::Submit => SUBMIT_HELPER_XDC,
-            Webxdc::Review => REVIEW_HELPER_XDC,
         };
         let path = assets_path()?.join(filename);
         Ok(path)
@@ -178,33 +174,25 @@ impl Webxdc {
     }
 
     pub fn iter() -> impl Iterator<Item = Webxdc> {
-        [Webxdc::Shop, Webxdc::Submit, Webxdc::Review]
-            .iter()
-            .copied()
+        [Webxdc::Shop].iter().copied()
     }
 }
 
 #[derive(Debug, PartialEq, Eq, Default)]
 pub struct WebxdcVersions {
     pub shop: i32,
-    pub submit: i32,
-    pub review: i32,
 }
 
 impl WebxdcVersions {
     pub fn set(&mut self, webxdc: Webxdc, version: i32) {
         match webxdc {
             Webxdc::Shop => self.shop = version,
-            Webxdc::Submit => self.submit = version,
-            Webxdc::Review => self.review = version,
         }
     }
 
     pub fn get(&self, webxdc: Webxdc) -> i32 {
         match webxdc {
             Webxdc::Shop => self.shop,
-            Webxdc::Submit => self.submit,
-            Webxdc::Review => self.review,
         }
     }
 }
