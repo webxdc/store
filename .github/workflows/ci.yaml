@@ -35,7 +35,7 @@ jobs:
         working-directory: frontend
 
   frontend_test:
-    name: test the frontend
+    name: Test the frontend
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
