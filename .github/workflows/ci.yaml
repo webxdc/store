@@ -42,7 +42,7 @@ jobs:
       - name: Test the frontend
         run: |
           npx pnpm install
-          pnpm test
+          npx pnpm test
         working-directory: frontend
 
   build_dist:
