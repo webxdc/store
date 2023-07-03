@@ -6,34 +6,33 @@ import solidPlugin from 'vite-plugin-solid'
 import unocssPlugin from 'unocss/vite'
 
 function eruda() {
-  const erudaSrc = readFileSync("./node_modules/eruda/eruda.js", "utf-8");
+  const erudaSrc = readFileSync('./node_modules/eruda/eruda.js', 'utf-8')
   return {
-    name: "vite-plugin-eruda",
-    apply: "build",
-    transformIndexHtml(html) {
+    name: 'vite-plugin-eruda',
+    transformIndexHtml(html: any) {
       const tags = [
         {
-          tag: "script",
+          tag: 'script',
           children: erudaSrc,
-          injectTo: "head",
+          injectTo: 'head',
         },
         {
-          tag: "script",
-          children: "eruda.init();",
-          injectTo: "head",
+          tag: 'script',
+          children: 'eruda.init();',
+          injectTo: 'head',
         },
-      ];
-      // @ts-ignore
+      ]
       if (process.env.ERUDA) {
         return {
           html,
           tags,
-        };
-      } else {
-        return html;
+        }
+      }
+      else {
+        return html
       }
     },
-  };
+  }
 }
 
 export default defineConfig(({ mode }) => {
