@@ -171,7 +171,7 @@ pub async fn handle_status_update(
         }
     } else {
         info!(
-            "Ignoring update: {}",
+            "Ignoring self-sent update: {}",
             &update.get(..100.min(update.len())).unwrap_or_default()
         )
     }
