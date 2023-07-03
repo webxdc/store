@@ -5,7 +5,10 @@ use std::{
     path::{Path, PathBuf},
 };
 
-use crate::request_handlers::AppInfo;
+use crate::{
+    request_handlers::AppInfo,
+    utils::{maybe_upgrade_xdc, AddType},
+};
 
 pub async fn import_many(
     path: &Path,
@@ -32,8 +35,29 @@ pub async fn import_many(
         return Ok(());
     }
 
+    let mut added = Vec::new();
+    let mut updated = Vec::new();
+    let mut ignored = Vec::new();
     for file in &xdcs {
-        import_one(file, &xdcs_path, conn).await?;
+        match import_one(file, &xdcs_path, conn).await? {
+            AddType::Added => added.push(file),
+            AddType::Updated => updated.push(file),
+            AddType::Ignored => ignored.push(file),
+        }
+    }
+
+    for (list, name) in vec![added, updated, ignored]
+        .into_iter()
+        .zip(&["Added", "Updated", "Ignored"])
+    {
+        if list.is_empty() {
+            println!("{name}: None");
+        } else {
+            println!("{name}:");
+            for file in list {
+                println!("- {}", file.display());
+            }
+        }
     }
     Ok(())
 }
@@ -45,7 +69,7 @@ pub async fn import_one(
     file: &Path,
     dest: &Path,
     conn: &mut SqliteConnection,
-) -> anyhow::Result<()> {
+) -> anyhow::Result<AddType> {
     if !file
         .to_str()
         .context("can't convert to str")?
@@ -55,7 +79,6 @@ pub async fn import_one(
     }
 
     let mut app_info = AppInfo::from_xdc(file).await?;
-    app_info.active = true;
     app_info.submitter_uri = Some("xdcstore".to_string());
 
     // copy the file to the `dest`
@@ -66,7 +89,5 @@ pub async fn import_one(
     app_info.xdc_blob_path = dest;
 
     // Add it to the db
-    crate::db::create_app_info(conn, &mut app_info).await?;
-    println!("Added {}({}) to apps", file.display(), app_info.name);
-    Ok(())
+    maybe_upgrade_xdc(&mut app_info, conn).await
 }

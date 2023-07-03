@@ -324,8 +324,14 @@ impl Bot {
                             Some(store_message()),
                         )
                         .await?;
-                        send_newest_updates(context, msg, &mut *state.db.acquire().await?, 0)
-                            .await?;
+                        send_newest_updates(
+                            context,
+                            msg,
+                            &mut *state.db.acquire().await?,
+                            0,
+                            vec![],
+                        )
+                        .await?;
                     }
                 }
             }
@@ -409,7 +415,8 @@ impl Bot {
                 GeneralFrontendRequest::UpdateWebxdc => {
                     let msg = send_webxdc(context, &state, chat_id, webxdc, Some(store_message()))
                         .await?;
-                    send_newest_updates(context, msg, &mut *state.db.acquire().await?, 0).await?;
+                    send_newest_updates(context, msg, &mut *state.db.acquire().await?, 0, vec![])
+                        .await?;
                     send_update_payload_only(context, msg_id, GeneralFrontendResponse::UpdateSent)
                         .await?;
                     return Ok(());
@@ -417,7 +424,7 @@ impl Bot {
             }
         };
 
-        if version != *state.webxdc_versions.get(webxdc) {
+        if version < state.webxdc_versions.get(webxdc) {
             info!("Webxdc version mismatch, updating");
 
             if serde_json::from_str::<WebxdcStatusUpdate<GeneralFrontendResponse>>(&update).is_ok()
@@ -432,7 +439,7 @@ impl Bot {
                     context,
                     msg_id,
                     GeneralFrontendResponse::Outdated {
-                        version: state.webxdc_versions.get(webxdc).to_string(),
+                        version: state.webxdc_versions.get(webxdc),
                         critical: true,
                     },
                 )

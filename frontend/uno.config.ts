@@ -41,7 +41,8 @@ export default defineConfig({
     transformerVariantGroup(),
   ],
   shortcuts: {
-    btn: 'rounded border p-1 bg-button hover:bg-buttonLight text-blue-600',
-    unimportant: 'text-gray-400 font-italic tracking-wide',
+    'btn': 'rounded border p-1 bg-button hover:bg-buttonLight text-blue-600',
+    'btn-gray': 'rounded-md p-1 bg-gray-100 hover:bg-gray-200 tracking-wide text-gray-500',
+    'unimportant': 'text-gray-400 font-italic tracking-wide',
   },
 })

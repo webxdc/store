@@ -42,7 +42,7 @@ CREATE TABLE IF NOT EXISTS app_infos (
     image TEXT NOT NULL,
     description TEXT NOT NULL,
     xdc_blob_dir TEXT NOT NULL,
-    version TEXT NOT NULL,
+    version NUMBER NOT NULL,
     originator INTEGER NOT NULL,
     active BOOLEAN NOT NULL,
     serial INTEGER NOT NULL

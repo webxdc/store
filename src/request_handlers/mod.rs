@@ -21,7 +21,7 @@ pub struct WexbdcManifest {
     pub app_id: String,
 
     /// Version of the application.
-    pub version: String,
+    pub version: i32,
 
     /// Webxdc name, used on icons or page titles.
     pub name: String,
@@ -40,10 +40,10 @@ pub struct WexbdcManifest {
 #[ts(export)]
 #[ts(export_to = "frontend/src/bindings/")]
 pub struct AppInfo {
-    pub id: RecordId,
     #[serde(skip)]
-    pub app_id: String, // manifest
-    pub version: String,                 // manifest
+    pub id: RecordId,
+    pub app_id: String,                  // manifest
+    pub version: i32,                    // manifest
     pub name: String,                    // manifest
     pub submitter_uri: Option<String>,   // bot
     pub source_code_url: Option<String>, // manifest
@@ -53,8 +53,6 @@ pub struct AppInfo {
     pub xdc_blob_path: PathBuf, // bot
     #[serde(skip)]
     pub originator: RecordId, // bot
-    #[serde(skip)]
-    pub active: bool,  // bot
 }
 
 impl AppInfo {
@@ -140,7 +138,7 @@ pub struct WebxdcStatusUpdate<T> {
 #[serde(tag = "type")]
 
 pub enum GeneralFrontendResponse {
-    Outdated { critical: bool, version: String },
+    Outdated { critical: bool, version: i32 },
     UpdateSent,
 }
 

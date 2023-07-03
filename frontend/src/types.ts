@@ -5,10 +5,11 @@ export enum AppState {
   Downloading,
   DownloadCancelled,
   Received,
+  Updating,
 }
 
 export interface AppInfoWithState extends AppInfo {
   state: AppState
 }
 
-export type AppInfosById = Record<number, AppInfoWithState>
+export type AppInfosById = Record<string, AppInfoWithState>

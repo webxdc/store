@@ -71,30 +71,26 @@ pub async fn send_webxdc(
     webxdc_msg.set_file(webxdc.get_str_path()?, None);
     let msg_id = chat::send_msg(context, chat_id, &mut webxdc_msg).await?;
     let conn = &mut *state.db.acquire().await?;
-    db::set_webxdc_version(
-        conn,
-        msg_id,
-        state.webxdc_versions.get(webxdc).to_string(),
-        webxdc,
-    )
-    .await?;
+    db::set_webxdc_version(conn, msg_id, state.webxdc_versions.get(webxdc), webxdc).await?;
     Ok(msg_id)
 }
 
 /// Sends a [deltachat::webxdc::StatusUpdateItem] with all [AppInfo]s greater than the given serial.
+/// Updating tells the frontend which apps are going to receive an updated.
 pub async fn send_newest_updates(
     context: &Context,
     msg_id: MsgId,
     db: &mut SqliteConnection,
-    serial: i32,
+    serial: u32,
+    updating: Vec<String>,
 ) -> anyhow::Result<()> {
-    let app_infos: Vec<_> = db::get_active_app_infos_since(db, serial)
-        .await?
-        .into_iter()
-        .collect();
-
+    let app_infos: Vec<_> = db::get_active_app_infos_since(db, serial).await?;
     let serial = db::get_last_serial(db).await?;
-    let resp = ShopResponse::Update { app_infos, serial };
+    let resp = ShopResponse::Update {
+        app_infos,
+        serial,
+        updating,
+    };
     send_update_payload_only(context, msg_id, resp).await?;
     Ok(())
 }
@@ -167,7 +163,7 @@ pub async fn get_webxdc_manifest(reader: &ZipFileReader) -> anyhow::Result<Wexbd
     Ok(toml::from_str(&read_string(reader, manifest_index).await?)?)
 }
 
-pub async fn get_webxdc_version(file: impl AsRef<Path>) -> anyhow::Result<String> {
+pub async fn get_webxdc_version(file: impl AsRef<Path>) -> anyhow::Result<i32> {
     let reader = ZipFileReader::new(file).await?;
     let manifest = get_webxdc_manifest(&reader).await?;
     Ok(manifest.version)
@@ -207,13 +203,13 @@ impl Webxdc {
 
 #[derive(Debug, PartialEq, Eq, Default)]
 pub struct WebxdcVersions {
-    pub shop: String,
-    pub submit: String,
-    pub review: String,
+    pub shop: i32,
+    pub submit: i32,
+    pub review: i32,
 }
 
 impl WebxdcVersions {
-    pub fn set(&mut self, webxdc: Webxdc, version: String) {
+    pub fn set(&mut self, webxdc: Webxdc, version: i32) {
         match webxdc {
             Webxdc::Shop => self.shop = version,
             Webxdc::Submit => self.submit = version,
@@ -221,11 +217,11 @@ impl WebxdcVersions {
         }
     }
 
-    pub fn get(&self, webxdc: Webxdc) -> &str {
+    pub fn get(&self, webxdc: Webxdc) -> i32 {
         match webxdc {
-            Webxdc::Shop => &self.shop,
-            Webxdc::Submit => &self.submit,
-            Webxdc::Review => &self.review,
+            Webxdc::Shop => self.shop,
+            Webxdc::Submit => self.submit,
+            Webxdc::Review => self.review,
         }
     }
 }
@@ -238,7 +234,7 @@ pub async fn read_webxdc_versions() -> anyhow::Result<WebxdcVersions> {
         }
     }
 
-    let mut futures: Vec<JoinHandle<anyhow::Result<(Webxdc, String)>>> = vec![];
+    let mut futures: Vec<JoinHandle<anyhow::Result<(Webxdc, i32)>>> = vec![];
     for webxdc in Webxdc::iter() {
         futures.push(tokio::spawn(async move {
             let version = get_webxdc_version(&webxdc.get_str_path()?).await?;
@@ -246,14 +242,37 @@ pub async fn read_webxdc_versions() -> anyhow::Result<WebxdcVersions> {
         }))
     }
 
-    let mut versions = WebxdcVersions {
-        shop: String::new(),
-        submit: String::new(),
-        review: String::new(),
-    };
+    let mut versions = WebxdcVersions::default();
     for result in join_all(futures).await {
         let (webxdc, version) = result??;
         versions.set(webxdc, version);
     }
     Ok(versions)
+}
+
+#[derive(Debug, PartialEq)]
+pub enum AddType {
+    /// Add a new app_info
+    Added,
+    /// Update an existing app_info
+    Updated,
+    /// Ignored
+    Ignored,
+}
+
+pub async fn maybe_upgrade_xdc(
+    app_info: &mut AppInfo,
+    conn: &mut SqliteConnection,
+) -> anyhow::Result<AddType> {
+    Ok(
+        if db::app_version_exists(conn, &app_info.app_id, app_info.version).await? {
+            AddType::Ignored
+        } else if db::app_exists(conn, &app_info.app_id).await? {
+            db::create_app_info(conn, app_info).await?;
+            AddType::Updated
+        } else {
+            db::create_app_info(conn, app_info).await?;
+            AddType::Added
+        },
+    )
 }
