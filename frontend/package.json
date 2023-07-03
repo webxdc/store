@@ -5,10 +5,7 @@
   "scripts": {
     "start": "vite",
     "dev": "vite",
-    "build-shop": "VITE_APP=shop vite build",
-    "build-submit": "VITE_APP=submit vite build",
-    "build-review": "VITE_APP=review vite build",
-    "build": "npm run build-shop && npm run build-submit && npm run build-review && ./create_xdc.sh",
+    "build": "vite build && ./create_xdc.sh",
     "serve": "vite preview",
     "lint": "eslint . --ext .tsx",
     "test": "vitest run"
