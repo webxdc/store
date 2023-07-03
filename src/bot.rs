@@ -92,7 +92,7 @@ impl Bot {
                 let config = Self::setup(&context).await.context("Failed to setup bot")?;
                 let conn = &mut *db.acquire().await?;
                 db::set_config(&mut *db.acquire().await?, &config).await?;
-                
+
                 // setc chat type for genesis group
                 db::set_chat_type(conn, config.genesis_group, ChatType::Genesis).await?;
 
@@ -201,13 +201,9 @@ impl Bot {
                     Ok(chat_type) => {
                         let contacts = chat::get_chat_contacts(context, chat_id).await?;
                         let filtered = contacts.into_iter().filter(|ci| !ci.is_special());
-                        match chat_type {
-                            ChatType::Genesis => {
-                                info!("Updating genesis contacts");
-                                db::set_genesis_members(conn, &filtered.collect::<Vec<_>>())
-                                    .await?;
-                            }
-                            _ => (),
+                        if chat_type == ChatType::Genesis {
+                            info!("Updating genesis contacts");
+                            db::set_genesis_members(conn, &filtered.collect::<Vec<_>>()).await?;
                         };
                     }
                     Err(_e) => {

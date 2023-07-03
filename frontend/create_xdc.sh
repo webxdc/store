@@ -11,4 +11,3 @@ echo "Building store.xdc"
 cp ../build-files/shop/* .
 zip -9 --recurse-paths "store.xdc" *
 cp store.xdc "$DESTDIR"
-cd ..
