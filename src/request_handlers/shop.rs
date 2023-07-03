@@ -55,11 +55,11 @@ pub enum ShopResponse {
         error: String,
     },
     Update {
-        /// List of new app ids.
+        /// List of new / updated app infos.
         app_infos: Vec<AppInfo>,
-        /// List of removed [AppInfo] ids.
         serial: i32,
-        /// `app_id`s of cached apps that will receive an update now.
+        /// `app_id`s of apps that will receive an update.
+        /// The frontend can use these to set the state to updating.
         updating: Vec<String>,
     },
 }
