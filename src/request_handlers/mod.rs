@@ -11,9 +11,7 @@ use std::path::{Path, PathBuf};
 use ts_rs::TS;
 
 pub mod genisis;
-pub mod review;
 pub mod shop;
-pub mod submit;
 
 #[derive(Deserialize)]
 pub struct WexbdcManifest {
@@ -106,24 +104,13 @@ impl AppInfo {
         }
         Ok(upgraded)
     }
-
-    pub fn update_from_request(self, app_info: AppInfo) -> Self {
-        Self {
-            submitter_uri: app_info.submitter_uri,
-            ..self
-        }
-    }
 }
 
 #[derive(Serialize, Deserialize, Type, Clone, Copy, Debug, PartialEq)]
 
 pub enum ChatType {
     Shop,
-    Submit,
-    Review,
     Genesis,
-    ReviewPool,
-    TesterPool,
 }
 
 /// A generic webxdc update

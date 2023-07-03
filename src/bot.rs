@@ -4,24 +4,23 @@ use deltachat::{
     chat::{self, ChatId, ProtectionStatus},
     config::Config,
     context::Context,
-    message::{Message, MsgId, Viewtype},
+    message::{Message, MsgId},
     securejoin,
     stock_str::StockStrings,
     EventType, Events,
 };
-use itertools::Itertools;
 use log::{debug, error, info, trace, warn};
 use qrcode_generator::QrCodeEcc;
 use serde::{Deserialize, Serialize};
 use sqlx::{pool::PoolConnection, Sqlite, SqlitePool};
-use std::{collections::HashSet, fs, sync::Arc};
+use std::{fs, sync::Arc};
 
 use crate::{
     db::{self, MIGRATOR},
     messages::store_message,
     project_dirs,
     request_handlers::{
-        genisis, review, shop, submit, ChatType, GeneralFrontendRequest, GeneralFrontendResponse,
+        genisis, shop, ChatType, GeneralFrontendRequest, GeneralFrontendResponse,
         WebxdcStatusUpdate,
     },
     utils::{
@@ -35,13 +34,9 @@ use crate::{
 pub struct BotConfig {
     pub genesis_qr: String,
     pub invite_qr: String,
-    pub tester_group: ChatId,
-    pub reviewee_group: ChatId,
     pub genesis_group: ChatId,
     pub serial: i32,
     pub shop_xdc_version: String,
-    pub submit_xdc_version: String,
-    pub review_xdc_version: String,
 }
 
 /// Github Bot state
@@ -97,11 +92,9 @@ impl Bot {
                 let config = Self::setup(&context).await.context("Failed to setup bot")?;
                 let conn = &mut *db.acquire().await?;
                 db::set_config(&mut *db.acquire().await?, &config).await?;
-
-                // set chat types
+                
+                // setc chat type for genesis group
                 db::set_chat_type(conn, config.genesis_group, ChatType::Genesis).await?;
-                db::set_chat_type(conn, config.reviewee_group, ChatType::ReviewPool).await?;
-                db::set_chat_type(conn, config.tester_group, ChatType::TesterPool).await?;
 
                 // save qr codes to disk
                 qrcode_generator::to_png_to_file(
@@ -139,30 +132,20 @@ impl Bot {
         })
     }
 
-    /// Creates special groups and returns the complete bot config.
+    /// Creates genesis group and qr-codes.
+    /// Returns the complete bot config.
     async fn setup(context: &Context) -> Result<BotConfig> {
         let genesis_group =
             chat::create_group_chat(context, ProtectionStatus::Protected, "Appstore: Genesis")
                 .await?;
 
-        let reviewee_group =
-            chat::create_group_chat(context, ProtectionStatus::Protected, "Appstore: Publishers")
-                .await?;
-
-        let tester_group =
-            chat::create_group_chat(context, ProtectionStatus::Protected, "Appstore: Testers")
-                .await?;
-
         let genesis_qr = securejoin::get_securejoin_qr(context, Some(genesis_group)).await?;
-
         let invite_qr = securejoin::get_securejoin_qr(context, None).await?;
 
         Ok(BotConfig {
             genesis_qr,
             invite_qr,
-            reviewee_group,
             genesis_group,
-            tester_group,
             serial: 0,
             ..Default::default()
         })
@@ -220,93 +203,9 @@ impl Bot {
                         let filtered = contacts.into_iter().filter(|ci| !ci.is_special());
                         match chat_type {
                             ChatType::Genesis => {
-                                info!("updating genesis contacts");
+                                info!("Updating genesis contacts");
                                 db::set_genesis_members(conn, &filtered.collect::<Vec<_>>())
                                     .await?;
-                            }
-                            ChatType::ReviewPool => {
-                                info!("updating reviewer contacts");
-                                db::set_publishers(conn, &filtered.collect::<Vec<_>>()).await?;
-                            }
-                            ChatType::TesterPool => {
-                                info!("updating tester contacts");
-                                db::set_testers(conn, &filtered.collect::<Vec<_>>()).await?;
-                            }
-                            ChatType::Submit => {
-                                let new_members = filtered.collect::<HashSet<_>>();
-                                if new_members.len() == 1 {
-                                    info!("submit chat has only one member left, deleting");
-                                    db::delete_submit_chat(
-                                        &mut *state.db.acquire().await?,
-                                        chat_id,
-                                    )
-                                    .await?;
-                                    chat_id.delete(context).await?;
-                                }
-                            }
-                            ChatType::Review => {
-                                let mut conn = state.db.acquire().await?;
-                                let review_chat = db::get_review_chat(&mut conn, chat_id).await?;
-                                let new_members = filtered.collect::<HashSet<_>>();
-                                let old_members: HashSet<_> =
-                                    review_chat.get_members().into_iter().collect();
-                                let removed_members = old_members.difference(&new_members);
-                                for removed_member in removed_members {
-                                    // handle publisher removal
-                                    if *removed_member == review_chat.publisher {
-                                        match db::get_new_random_publisher(
-                                            &mut conn,
-                                            *removed_member,
-                                        )
-                                        .await
-                                        {
-                                            Ok(new_publisher) => {
-                                                db::set_review_chat_publisher(
-                                                    &mut conn,
-                                                    chat_id,
-                                                    new_publisher,
-                                                )
-                                                .await?;
-                                            }
-                                            Err(_) => warn!(
-                                                "Could not find a new publisher for chat {}",
-                                                chat_id
-                                            ),
-                                        }
-                                    }
-                                    // handle tester removal
-                                    else if review_chat.testers.contains(removed_member) {
-                                        let mut new_tester =
-                                            db::get_random_tester(&mut conn).await?;
-                                        let mut count = 0;
-                                        while new_tester == *removed_member || count >= 10 {
-                                            new_tester = db::get_random_tester(&mut conn).await?;
-                                            count += 1;
-                                        }
-                                        if count == 10 {
-                                            warn!(
-                                                "Could not find a new tester for chat {}",
-                                                chat_id
-                                            );
-                                            continue;
-                                        }
-                                        let mut new_testers = review_chat
-                                            .testers
-                                            .iter()
-                                            .copied()
-                                            .filter(|t| t != removed_member)
-                                            .collect_vec();
-
-                                        new_testers.push(new_tester);
-
-                                        db::set_review_chat_testers(
-                                            &mut conn,
-                                            chat_id,
-                                            &new_testers,
-                                        )
-                                        .await?;
-                                    }
-                                }
                             }
                             _ => (),
                         };
@@ -362,24 +261,11 @@ impl Bot {
                 info!("Handling message with type <{chat_type:?}>");
                 match chat_type {
                     ChatType::Shop => {
-                        let msg = Message::load_from_db(context, msg_id).await?;
-                        if msg.get_viewtype() == Viewtype::Webxdc {
-                            shop::handle_webxdc(context, state, msg).await?;
-                        } else {
-                            shop::handle_message(context, state, chat_id).await?;
-                        }
+                        shop::handle_message(context, state, chat_id).await?;
                     }
-                    ChatType::Submit => {
-                        let msg = Message::load_from_db(context, msg_id).await?;
-                        if msg.get_viewtype() == Viewtype::Webxdc {
-                            submit::handle_webxdc(context, chat_id, state, msg).await?;
-                        }
-                    }
-                    ChatType::Review => {}
                     ChatType::Genesis => {
                         genisis::handle_message(context, state, chat_id, msg_id).await?
                     }
-                    ChatType::ReviewPool | ChatType::TesterPool => (),
                 }
             }
             Err(e) => match e {
@@ -449,14 +335,8 @@ impl Bot {
         }
 
         match chat_type {
-            ChatType::Submit => {
-                submit::handle_status_update(context, state, chat_id, update).await?
-            }
             ChatType::Shop => shop::handle_status_update(context, state, msg_id, update).await?,
-            ChatType::ReviewPool | ChatType::TesterPool | ChatType::Genesis => (),
-            ChatType::Review => {
-                review::handle_status_update(context, state, chat_id, update).await?
-            }
+            _ => (),
         }
 
         Ok(())

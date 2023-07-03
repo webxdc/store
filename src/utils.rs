@@ -5,7 +5,6 @@ use async_zip::tokio::read::fs::ZipFileReader;
 use deltachat::{
     chat::{self, ChatId},
     config::Config,
-    contact::{Contact, ContactId},
     context::Context,
     message::{Message, MsgId, Viewtype},
 };
@@ -95,13 +94,6 @@ pub async fn send_newest_updates(
     Ok(())
 }
 
-pub async fn get_contact_name(context: &Context, contact_id: ContactId) -> String {
-    Contact::get_by_id(context, contact_id)
-        .await
-        .map(|contact| contact.get_name_n_addr())
-        .unwrap_or_else(|_| contact_id.to_string())
-}
-
 pub async fn read_string(reader: &ZipFileReader, index: usize) -> anyhow::Result<String> {
     let mut entry = reader.reader_with_entry(index).await?;
     let mut data = String::new();
@@ -114,15 +106,6 @@ pub async fn read_vec(reader: &ZipFileReader, index: usize) -> anyhow::Result<Ve
     let mut data = Vec::new();
     entry.read_to_end_checked(&mut data).await?;
     Ok(data)
-}
-
-/// Sends an app_info to the frontend
-pub async fn send_app_info(
-    context: &Context,
-    app_info: &AppInfo,
-    msg_id: MsgId,
-) -> anyhow::Result<()> {
-    send_update_payload_only(context, msg_id, app_info).await
 }
 
 /// Sends a [deltachat::webxdc::StatusUpdateItem] with only the given payload.

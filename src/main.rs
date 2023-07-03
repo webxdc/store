@@ -1,6 +1,5 @@
 #![warn(clippy::all, clippy::indexing_slicing, clippy::unwrap_used)]
 mod bot;
-mod bot_commands;
 mod cli;
 mod db;
 mod import;
