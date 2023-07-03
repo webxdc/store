@@ -156,10 +156,25 @@ You need to have installed:
 ### Building the frontend
 
 The bot uses WebXDC apps as "frontend" to interact with users.
-Go to the `frontend` folder and install the packages using `pnpm install`.
+Go to the `frontend` folder and install dependencies running:
 
-Build the frontend by running `pnpm build`.
-This step creates a `bot-data` directory in the root of the repository
+```
+pnpm install
+```
+
+Build the frontend by running:
+
+```
+pnpm build
+```
+
+To package the frontend with developer tools inside for debugging:
+
+```
+NODE_ENV=debug pnpm build
+```
+
+This step creates an `assets` directory in the root of the repository
 with files `store.xdc`, `review-helper.xdc` and `submit-helper.xdc`.
 
 ### Building the bot

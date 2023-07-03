@@ -17,6 +17,7 @@
   "devDependencies": {
     "@antfu/eslint-config": "^0.39.3",
     "@unocss/eslint-config": "^0.52.2",
+    "eruda": "^3.0.0",
     "eslint": "^8.42.0",
     "fake-indexeddb": "^4.0.1",
     "jsdom": "latest",
