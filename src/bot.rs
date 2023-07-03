@@ -330,9 +330,8 @@ impl Bot {
             return Ok(());
         }
 
-        match chat_type {
-            ChatType::Shop => shop::handle_status_update(context, state, msg_id, update).await?,
-            _ => (),
+        if chat_type == ChatType::Shop {
+            shop::handle_status_update(context, state, msg_id, update).await?
         }
 
         Ok(())
