@@ -171,7 +171,7 @@ pnpm build
 To package the frontend with developer tools inside for debugging:
 
 ```
-NODE_ENV=debug pnpm build
+ERUDA=yes pnpm build
 ```
 
 This step creates an `assets` directory in the root of the repository

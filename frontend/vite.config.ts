@@ -24,7 +24,7 @@ function eruda() {
         },
       ];
       // @ts-ignore
-      if (process.env.NODE_ENV !== "production") {
+      if (process.env.ERUDA) {
         return {
           html,
           tags,
