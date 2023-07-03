@@ -36,14 +36,14 @@ jobs:
 
   frontend_test:
     name: test the frontend
-      runs-on: ubuntu-latest
-      steps:
-        - uses: actions/checkout@v3
-        - name: Build the frontend
-          run: |
-            npx pnpm install
-            pnpm test
-          working-directory: frontend
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - name: Build the frontend
+        run: |
+          npx pnpm install
+          pnpm test
+        working-directory: frontend
 
   build_dist:
     name: Build the distribution tarball
