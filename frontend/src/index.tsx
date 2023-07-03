@@ -16,7 +16,7 @@ import 'virtual:uno.css'
 import '@unocss/reset/tailwind.css'
 import { AppInfoDB } from './db/shop_db'
 import OutdatedView from './components/OutdatedView'
-import { updateHandler } from './shop-logic'
+import { to_app_infos_by_id, updateHandler } from './shop-logic'
 
 const fuse_options = {
   keys: [
@@ -124,13 +124,6 @@ const AppList: Component<AppListProps> = (props) => {
       </For>
     </Show>
   )
-}
-
-function to_app_infos_by_id<T extends { app_id: string }>(app_infos: T[]): Record<string, T> {
-  return app_infos.reduce((acc, appinfo) => {
-    acc[appinfo.app_id] = appinfo
-    return acc
-  }, {} as Record<string, T>)
 }
 
 const Shop: Component = () => {
