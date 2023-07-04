@@ -97,22 +97,28 @@ impl Bot {
                 db::set_chat_type(conn, config.genesis_group, ChatType::Genesis).await?;
 
                 // save qr codes to disk
+                let dest_path = dirs.config_dir().to_path_buf().join(GENESIS_QR);
                 qrcode_generator::to_png_to_file(
                     &config.genesis_qr,
                     QrCodeEcc::Low,
                     1024,
-                    dirs.config_dir().to_path_buf().join(GENESIS_QR),
+                    &dest_path,
                 )
-                .context("failed to generate genesis QR at {GENESIS_QR}")?;
-                eprintln!("Generated genesis group join QR-code at {GENESIS_QR}");
+                .context("failed to generate genesis QR at {dest_path}")?;
+                eprintln!(
+                    "Generated genesis group join QR-code at {}",
+                    dest_path.display()
+                );
+
+                let dest_path = dirs.config_dir().to_path_buf().join(INVITE_QR);
                 qrcode_generator::to_png_to_file(
                     &config.invite_qr,
                     QrCodeEcc::Low,
                     1024,
-                    dirs.config_dir().to_path_buf().join(INVITE_QR),
+                    &dest_path,
                 )
-                .context("failed to generate invite QR at {INVITE_QR}")?;
-                eprintln!("Generated 1:1 invite QR-code at {INVITE_QR}");
+                .context("failed to generate invite QR at {dest_path}")?;
+                eprintln!("Generated 1:1 invite QR-code at {}", dest_path.display());
                 config
             }
         };
