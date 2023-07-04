@@ -3,17 +3,15 @@ use crate::{
     bot::State,
     db,
     messages::store_message,
-    request_handlers::{self, submit::SubmitChat, ChatType},
-    utils::{send_app_info, send_newest_updates, send_update_payload_only, send_webxdc, Webxdc},
+    utils::{send_newest_updates, send_update_payload_only, send_webxdc, Webxdc},
 };
 use anyhow::Context as _;
 use base64::encode;
 use deltachat::{
-    chat::{self, ChatId, ProtectionStatus},
+    chat::{self, ChatId},
     constants,
-    contact::Contact,
     context::Context,
-    message::{Message, MsgId},
+    message::MsgId,
 };
 use log::{info, warn};
 use serde::{Deserialize, Serialize};
@@ -81,45 +79,6 @@ pub async fn handle_message(
         .await?;
         send_newest_updates(context, msg, &mut *state.db.acquire().await?, 0, vec![]).await?;
     }
-    Ok(())
-}
-
-pub async fn handle_webxdc(
-    context: &Context,
-    state: Arc<State>,
-    msg: Message,
-) -> anyhow::Result<()> {
-    info!("Handling webxdc message in shop chat");
-    let conn = &mut *state.db.acquire().await?;
-    let mut app_info = AppInfo::from_xdc(&msg.get_file(context).context("Can't get file")?).await?;
-    let contact = Contact::load_from_db(context, msg.get_from_id()).await?;
-
-    app_info.submitter_uri = Some(contact.get_authname().to_string());
-
-    db::create_app_info(conn, &mut app_info).await?;
-
-    let chat_name = format!("Submit: {}", app_info.name);
-    let chat_id = chat::create_group_chat(context, ProtectionStatus::Protected, &chat_name).await?;
-    db::set_chat_type(conn, chat_id, ChatType::Submit).await?;
-
-    let creator = msg.get_from_id();
-    chat::add_contact_to_chat(context, chat_id, creator).await?;
-
-    chat::forward_msgs(context, &[msg.get_id()], chat_id).await?;
-    let creator_webxdc = send_webxdc(context, &state, chat_id, Webxdc::Submit, None).await?;
-    send_app_info(context, &app_info, creator_webxdc).await?;
-
-    db::create_submit_chat(
-        conn,
-        &SubmitChat {
-            submit_chat: chat_id,
-            submit_helper: creator_webxdc,
-            app_info: app_info.id,
-        },
-    )
-    .await?;
-
-    request_handlers::submit::handle_webxdc(context, chat_id, state, msg).await?;
     Ok(())
 }
 

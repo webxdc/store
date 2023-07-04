@@ -1,6 +1,5 @@
 #![warn(clippy::all, clippy::indexing_slicing, clippy::unwrap_used)]
 mod bot;
-mod bot_commands;
 mod cli;
 mod db;
 mod import;
@@ -21,8 +20,6 @@ use utils::AddType;
 const GENESIS_QR: &str = "genesis_invite_qr.png";
 const INVITE_QR: &str = "1o1_invite_qr.png";
 const STORE_XDC: &str = "store.xdc";
-const SUBMIT_HELPER_XDC: &str = "submit-helper.xdc";
-const REVIEW_HELPER_XDC: &str = "review-helper.xdc";
 const VERSION: &str = include_file_str!("VERSION");
 
 pub(crate) fn project_dirs() -> Result<ProjectDirs> {

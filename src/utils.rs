@@ -5,7 +5,6 @@ use async_zip::tokio::read::fs::ZipFileReader;
 use deltachat::{
     chat::{self, ChatId},
     config::Config,
-    contact::{Contact, ContactId},
     context::Context,
     message::{Message, MsgId, Viewtype},
 };
@@ -22,7 +21,7 @@ use crate::{
     bot::State,
     db,
     request_handlers::{shop::ShopResponse, AppInfo, WexbdcManifest},
-    REVIEW_HELPER_XDC, STORE_XDC, SUBMIT_HELPER_XDC,
+    STORE_XDC,
 };
 
 pub async fn configure_from_env(ctx: &Context) -> Result<()> {
@@ -95,13 +94,6 @@ pub async fn send_newest_updates(
     Ok(())
 }
 
-pub async fn get_contact_name(context: &Context, contact_id: ContactId) -> String {
-    Contact::get_by_id(context, contact_id)
-        .await
-        .map(|contact| contact.get_name_n_addr())
-        .unwrap_or_else(|_| contact_id.to_string())
-}
-
 pub async fn read_string(reader: &ZipFileReader, index: usize) -> anyhow::Result<String> {
     let mut entry = reader.reader_with_entry(index).await?;
     let mut data = String::new();
@@ -114,15 +106,6 @@ pub async fn read_vec(reader: &ZipFileReader, index: usize) -> anyhow::Result<Ve
     let mut data = Vec::new();
     entry.read_to_end_checked(&mut data).await?;
     Ok(data)
-}
-
-/// Sends an app_info to the frontend
-pub async fn send_app_info(
-    context: &Context,
-    app_info: &AppInfo,
-    msg_id: MsgId,
-) -> anyhow::Result<()> {
-    send_update_payload_only(context, msg_id, app_info).await
 }
 
 /// Sends a [deltachat::webxdc::StatusUpdateItem] with only the given payload.
@@ -172,16 +155,12 @@ pub async fn get_webxdc_version(file: impl AsRef<Path>) -> anyhow::Result<i32> {
 #[derive(Clone, Copy, Type)]
 pub enum Webxdc {
     Shop,
-    Submit,
-    Review,
 }
 
 impl Webxdc {
     pub fn get_path(&self) -> Result<PathBuf> {
         let filename = match self {
             Webxdc::Shop => STORE_XDC,
-            Webxdc::Submit => SUBMIT_HELPER_XDC,
-            Webxdc::Review => REVIEW_HELPER_XDC,
         };
         let path = assets_path()?.join(filename);
         Ok(path)
@@ -195,33 +174,25 @@ impl Webxdc {
     }
 
     pub fn iter() -> impl Iterator<Item = Webxdc> {
-        [Webxdc::Shop, Webxdc::Submit, Webxdc::Review]
-            .iter()
-            .copied()
+        [Webxdc::Shop].iter().copied()
     }
 }
 
 #[derive(Debug, PartialEq, Eq, Default)]
 pub struct WebxdcVersions {
     pub shop: i32,
-    pub submit: i32,
-    pub review: i32,
 }
 
 impl WebxdcVersions {
     pub fn set(&mut self, webxdc: Webxdc, version: i32) {
         match webxdc {
             Webxdc::Shop => self.shop = version,
-            Webxdc::Submit => self.submit = version,
-            Webxdc::Review => self.review = version,
         }
     }
 
     pub fn get(&self, webxdc: Webxdc) -> i32 {
         match webxdc {
             Webxdc::Shop => self.shop,
-            Webxdc::Submit => self.submit,
-            Webxdc::Review => self.review,
         }
     }
 }
