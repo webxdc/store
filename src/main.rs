@@ -65,7 +65,7 @@ async fn main() -> anyhow::Result<()> {
             let bot = Bot::new().await.context("Failed to create bot")?;
             match db::get_config(&mut *bot.get_db_connection().await?).await {
                 Ok(config) => {
-                    println!("Genisis invite qr:");
+                    println!("Genesis invite qr:");
                     qr2term::print_qr(config.genesis_qr)?;
                     println!("Bot invite qr:");
                     qr2term::print_qr(config.invite_qr)?;

@@ -20,7 +20,7 @@ use crate::{
     messages::store_message,
     project_dirs,
     request_handlers::{
-        genisis, store, ChatType, GeneralFrontendRequest, GeneralFrontendResponse,
+        genesis, store, ChatType, GeneralFrontendRequest, GeneralFrontendResponse,
         WebxdcStatusUpdate,
     },
     utils::{
@@ -104,7 +104,7 @@ impl Bot {
                     dirs.config_dir().to_path_buf().join(GENESIS_QR),
                 )
                 .context("failed to generate genesis QR at {GENESIS_QR}")?;
-                eprintln!("Generated genisis group join QR-code at {GENESIS_QR}");
+                eprintln!("Generated genesis group join QR-code at {GENESIS_QR}");
                 qrcode_generator::to_png_to_file(
                     &config.invite_qr,
                     QrCodeEcc::Low,
@@ -260,7 +260,7 @@ impl Bot {
                         store::handle_message(context, state, chat_id).await?;
                     }
                     ChatType::Genesis => {
-                        genisis::handle_message(context, state, chat_id, msg_id).await?
+                        genesis::handle_message(context, state, chat_id, msg_id).await?
                     }
                 }
             }

@@ -10,7 +10,7 @@ use sqlx::Type;
 use std::path::{Path, PathBuf};
 use ts_rs::TS;
 
-pub mod genisis;
+pub mod genesis;
 pub mod store;
 
 #[derive(Deserialize)]
