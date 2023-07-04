@@ -10,8 +10,8 @@ use sqlx::Type;
 use std::path::{Path, PathBuf};
 use ts_rs::TS;
 
-pub mod genisis;
-pub mod shop;
+pub mod genesis;
+pub mod store;
 
 #[derive(Deserialize)]
 pub struct WexbdcManifest {
@@ -109,7 +109,7 @@ impl AppInfo {
 #[derive(Serialize, Deserialize, Type, Clone, Copy, Debug, PartialEq)]
 
 pub enum ChatType {
-    Shop,
+    Store,
     Genesis,
 }
 

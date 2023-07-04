@@ -20,7 +20,7 @@ use tokio::task::JoinHandle;
 use crate::{
     bot::State,
     db,
-    request_handlers::{shop::ShopResponse, AppInfo, WexbdcManifest},
+    request_handlers::{store::StoreResponse, AppInfo, WexbdcManifest},
     STORE_XDC,
 };
 
@@ -85,7 +85,7 @@ pub async fn send_newest_updates(
 ) -> anyhow::Result<()> {
     let app_infos: Vec<_> = db::get_active_app_infos_since(db, serial).await?;
     let serial = db::get_last_serial(db).await?;
-    let resp = ShopResponse::Update {
+    let resp = StoreResponse::Update {
         app_infos,
         serial,
         updating,
@@ -154,13 +154,13 @@ pub async fn get_webxdc_version(file: impl AsRef<Path>) -> anyhow::Result<i32> {
 
 #[derive(Clone, Copy, Type)]
 pub enum Webxdc {
-    Shop,
+    Store,
 }
 
 impl Webxdc {
     pub fn get_path(&self) -> Result<PathBuf> {
         let filename = match self {
-            Webxdc::Shop => STORE_XDC,
+            Webxdc::Store => STORE_XDC,
         };
         let path = assets_path()?.join(filename);
         Ok(path)
@@ -174,25 +174,25 @@ impl Webxdc {
     }
 
     pub fn iter() -> impl Iterator<Item = Webxdc> {
-        [Webxdc::Shop].iter().copied()
+        [Webxdc::Store].iter().copied()
     }
 }
 
 #[derive(Debug, PartialEq, Eq, Default)]
 pub struct WebxdcVersions {
-    pub shop: i32,
+    pub store: i32,
 }
 
 impl WebxdcVersions {
     pub fn set(&mut self, webxdc: Webxdc, version: i32) {
         match webxdc {
-            Webxdc::Shop => self.shop = version,
+            Webxdc::Store => self.store = version,
         }
     }
 
     pub fn get(&self, webxdc: Webxdc) -> i32 {
         match webxdc {
-            Webxdc::Shop => self.shop,
+            Webxdc::Store => self.store,
         }
     }
 }

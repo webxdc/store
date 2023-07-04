@@ -60,7 +60,7 @@ struct DBBotConfig {
     pub invite_qr: String,
     pub genesis_group: i32,
     pub serial: i32,
-    pub shop_xdc_version: String,
+    pub store_xdc_version: String,
 }
 
 impl TryFrom<DBBotConfig> for BotConfig {
@@ -71,7 +71,7 @@ impl TryFrom<DBBotConfig> for BotConfig {
             invite_qr: db_bot_config.invite_qr,
             genesis_group: ChatId::new(u32::try_from(db_bot_config.genesis_group)?),
             serial: db_bot_config.serial,
-            shop_xdc_version: db_bot_config.shop_xdc_version,
+            store_xdc_version: db_bot_config.store_xdc_version,
         })
     }
 }
@@ -80,20 +80,20 @@ pub type RecordId = i32;
 
 pub async fn set_config(c: &mut SqliteConnection, config: &BotConfig) -> anyhow::Result<()> {
     sqlx::query(
-        "INSERT INTO config (genesis_qr, invite_qr, genesis_group, serial, shop_xdc_version) VALUES (?, ?, ?, ?, ?)",
+        "INSERT INTO config (genesis_qr, invite_qr, genesis_group, serial, store_xdc_version) VALUES (?, ?, ?, ?, ?)",
     )
     .bind(&config.genesis_qr)
     .bind(&config.invite_qr)
     .bind(config.genesis_group.to_u32())
     .bind(config.serial)
-    .bind(&config.shop_xdc_version)
+    .bind(&config.store_xdc_version)
     .execute(c).await?;
     Ok(())
 }
 
 pub async fn get_config(c: &mut SqliteConnection) -> anyhow::Result<BotConfig> {
     let res: anyhow::Result<BotConfig> = sqlx::query_as::<_, DBBotConfig>(
-        "SELECT genesis_qr, invite_qr, genesis_group, serial, shop_xdc_version FROM config",
+        "SELECT genesis_qr, invite_qr, genesis_group, serial, store_xdc_version FROM config",
     )
     .fetch_one(c)
     .await
@@ -318,7 +318,7 @@ mod tests {
             invite_qr: "invite_qr".to_string(),
             genesis_group: ChatId::new(1),
             serial: 0,
-            shop_xdc_version: "1.1.0".to_string(),
+            store_xdc_version: "1.1.0".to_string(),
         };
         set_config(&mut conn, &config).await.unwrap();
         let loaded_config = get_config(&mut conn).await.unwrap();
@@ -353,7 +353,7 @@ mod tests {
         MIGRATOR.run(&mut conn).await.unwrap();
 
         let msg = MsgId::new(1);
-        set_webxdc_version(&mut conn, msg, 1, Webxdc::Shop)
+        set_webxdc_version(&mut conn, msg, 1, Webxdc::Store)
             .await
             .unwrap();
         let (_, loaded_version) = get_webxdc_version(&mut conn, msg).await.unwrap();

@@ -2,7 +2,7 @@ This document should act as an entry point for new developers and the dc-team to
 bettor overview of the bots' inner workings as well as what is implemented and not at the moment.
 
 ## Structure
-The bot currently uses four different chat types: `Shop`, `Submit`, `Review`, and `Genesis`. 
+The bot currently uses four different chat types: `Store`, `Submit`, `Review`, and `Genesis`. 
 Upon receiving a message or a `webxdcStatusUpdate` the bot will use the map-like `chat_to_chat_type`
 database table to get the correct chat-type for each `ChatId`. 
 This happens in the `bot.rs` file where the bots' creation/configuration and starting take place. 
@@ -13,9 +13,9 @@ receive a `State` instance which holds the bot-state (for example a connection p
 and the Deltachat `Context` object which is necessary to send messages receive chats etc. etc.
 
 ## Chat Types
-These are the four different chat types of which only `Shop` is part of the MVP:
+These are the four different chat types of which only `Store` is part of the MVP:
 
-- The `Shop` chat is the primary 1:1 with a bot-user who wants to use webxdcs from the store.
+- The `Store` chat is the primary 1:1 with a bot-user who wants to use webxdcs from the store.
   Upon receiving a 1:1 chat message _or_ when a `DC::Contact` is verified with a QR-code, 
   the bot creates this kind of chat and sends the initial `store. xdc`. 
   Currently implemented interaction is:
@@ -24,7 +24,7 @@ These are the four different chat types of which only `Shop` is part of the MVP:
     - Searching the store
     - Downloading apps
 
-- The `Submit` chat is created by the bot when he receives a webxdc in the `shop`-chat. 
+- The `Submit` chat is created by the bot when he receives a webxdc in the `store`-chat. 
   This chat handles the submission of one singular webxdc app, identified by its `app_id`. 
   When this chat is created, the original submitter is added to the chat, 
   the submitted webxdc is forwarded and a helper xdc (submit-helper.xdc) is sent to the chat.
@@ -38,7 +38,7 @@ These are the four different chat types of which only `Shop` is part of the MVP:
   but at the moment it has no more functionality than letting users join the testers and publishers.
 
 In general, to add a webxdc as a developer without CLI access the three consecutive chat types are used: 
-1. `Shop`: To initiate a submission.
+1. `Store`: To initiate a submission.
 2. `Submit`: To check all needed properties and start a review.
 3. `Review`: To test a submitted webxdc and finally release it to the store.
 

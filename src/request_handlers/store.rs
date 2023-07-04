@@ -21,7 +21,7 @@ use ts_rs::TS;
 #[derive(Deserialize, TS)]
 #[ts(export)]
 #[ts(export_to = "frontend/src/bindings/")]
-enum ShopRequest {
+enum StoreRequest {
     Update {
         /// Requested update sequence number.
         serial: u32,
@@ -39,7 +39,7 @@ enum ShopRequest {
 #[ts(export)]
 #[ts(export_to = "frontend/src/bindings/")]
 #[serde(tag = "type")]
-pub enum ShopResponse {
+pub enum StoreResponse {
     DownloadOkay {
         /// app_id of the downloaded app.
         app_id: String,
@@ -73,7 +73,7 @@ pub async fn handle_message(
             context,
             &state,
             chat_id,
-            Webxdc::Shop,
+            Webxdc::Store,
             Some(store_message()),
         )
         .await?;
@@ -88,9 +88,9 @@ pub async fn handle_status_update(
     msg_id: MsgId,
     update: String,
 ) -> anyhow::Result<()> {
-    if let Ok(req) = serde_json::from_str::<WebxdcStatusUpdate<ShopRequest>>(&update) {
+    if let Ok(req) = serde_json::from_str::<WebxdcStatusUpdate<StoreRequest>>(&update) {
         match req.payload {
-            ShopRequest::Update { serial, apps } => {
+            StoreRequest::Update { serial, apps } => {
                 info!("Handling store update request");
 
                 // Get all updating xdcs
@@ -122,7 +122,7 @@ pub async fn handle_status_update(
                     send_update_payload_only(&context, msg_id, resp).await?;
                 }
             }
-            ShopRequest::Download { app_id } => {
+            StoreRequest::Download { app_id } => {
                 info!("Handling store download");
                 let resp = handle_download(&state, app_id).await;
                 send_update_payload_only(context, msg_id, resp).await?;
@@ -137,12 +137,12 @@ pub async fn handle_status_update(
     Ok(())
 }
 
-pub async fn handle_download(state: &State, app_id: String) -> ShopResponse {
+pub async fn handle_download(state: &State, app_id: String) -> StoreResponse {
     match get_webxdc_data(state, &app_id).await {
-        Ok((data, name)) => ShopResponse::DownloadOkay { data, name, app_id },
+        Ok((data, name)) => StoreResponse::DownloadOkay { data, name, app_id },
         Err(e) => {
             warn!("Error while handling download request: {}", e);
-            ShopResponse::DownloadError {
+            StoreResponse::DownloadError {
                 error: e.to_string(),
                 app_id,
             }

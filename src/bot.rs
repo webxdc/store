@@ -20,7 +20,7 @@ use crate::{
     messages::store_message,
     project_dirs,
     request_handlers::{
-        genisis, shop, ChatType, GeneralFrontendRequest, GeneralFrontendResponse,
+        genesis, store, ChatType, GeneralFrontendRequest, GeneralFrontendResponse,
         WebxdcStatusUpdate,
     },
     utils::{
@@ -36,7 +36,7 @@ pub struct BotConfig {
     pub invite_qr: String,
     pub genesis_group: ChatId,
     pub serial: i32,
-    pub shop_xdc_version: String,
+    pub store_xdc_version: String,
 }
 
 /// Github Bot state
@@ -104,7 +104,7 @@ impl Bot {
                     dirs.config_dir().to_path_buf().join(GENESIS_QR),
                 )
                 .context("failed to generate genesis QR at {GENESIS_QR}")?;
-                eprintln!("Generated genisis group join QR-code at {GENESIS_QR}");
+                eprintln!("Generated genesis group join QR-code at {GENESIS_QR}");
                 qrcode_generator::to_png_to_file(
                     &config.invite_qr,
                     QrCodeEcc::Low,
@@ -208,14 +208,14 @@ impl Bot {
                     }
                     Err(_e) => {
                         info!(
-                        "Chat {chat_id} is not in the database, adding it as chat with type shop"
+                        "Chat {chat_id} is not in the database, adding it as chat with type store"
                     );
-                        db::set_chat_type(conn, chat_id, ChatType::Shop).await?;
+                        db::set_chat_type(conn, chat_id, ChatType::Store).await?;
                         let msg = send_webxdc(
                             context,
                             &state,
                             chat_id,
-                            Webxdc::Shop,
+                            Webxdc::Store,
                             Some(store_message()),
                         )
                         .await?;
@@ -256,20 +256,20 @@ impl Bot {
             Ok(chat_type) => {
                 info!("Handling message with type <{chat_type:?}>");
                 match chat_type {
-                    ChatType::Shop => {
-                        shop::handle_message(context, state, chat_id).await?;
+                    ChatType::Store => {
+                        store::handle_message(context, state, chat_id).await?;
                     }
                     ChatType::Genesis => {
-                        genisis::handle_message(context, state, chat_id, msg_id).await?
+                        genesis::handle_message(context, state, chat_id, msg_id).await?
                     }
                 }
             }
             Err(e) => match e {
                 sqlx::Error::RowNotFound => {
-                    info!("creating new 1:1 chat with type Shop");
-                    db::set_chat_type(&mut *state.db.acquire().await?, chat_id, ChatType::Shop)
+                    info!("creating new 1:1 chat with type Store");
+                    db::set_chat_type(&mut *state.db.acquire().await?, chat_id, ChatType::Store)
                         .await?;
-                    shop::handle_message(context, state, chat_id).await?;
+                    store::handle_message(context, state, chat_id).await?;
                 }
                 _ => warn!("Problem while retrieving [ChatType]: {}", e),
             },
@@ -330,8 +330,8 @@ impl Bot {
             return Ok(());
         }
 
-        if chat_type == ChatType::Shop {
-            shop::handle_status_update(context, state, msg_id, update).await?
+        if chat_type == ChatType::Store {
+            store::handle_status_update(context, state, msg_id, update).await?
         }
 
         Ok(())

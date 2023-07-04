@@ -345,7 +345,7 @@ def test_frontend_update(acfactory, storebot):
     payload = status_updates[2]["payload"]
     assert payload == {"critical": True, "type": "Outdated", "version": 1000}
 
-    # In shop.xdc the update button should send this message
+    # In store.xdc the update button should send this message
     msg_in.send_status_update({"payload": {"type": "UpdateWebxdc"}}, "")
 
     ac1._evtracker.get_matching("DC_EVENT_WEBXDC_STATUS_UPDATE")  # Self-sent
