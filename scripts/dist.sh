@@ -13,7 +13,7 @@ TMP="$(mktemp -d)"
 export DESTDIR="$TMP/xdcstore"
 mkdir "$DESTDIR"
 
-npm run build
+npx pnpm build
 
 # Build the backend.
 cd "$SRC"
