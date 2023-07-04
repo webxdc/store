@@ -5,7 +5,7 @@ CREATE TABLE IF NOT EXISTS config (
     genesis_qr TEXT NOT NULL,
     genesis_group INTEGER NOT NULL,
     serial INTEGER NOT NULL,
-    shop_xdc_version TEXT NOT NULL
+    store_xdc_version TEXT NOT NULL
 );
 
 CREATE TABLE IF NOT EXISTS chat_to_chat_type (
