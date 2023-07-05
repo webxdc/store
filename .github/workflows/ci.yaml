@@ -53,8 +53,8 @@ jobs:
         with:
           ref: ${{ github.event.pull_request.head.sha }}
 
-      - uses: pnpm/action-setup@v2
-        working-directory: frontend
+      - run: |
+          npm install -g pnpm
 
       - run: |
           sudo apt install musl-tools
