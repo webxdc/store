@@ -79,7 +79,7 @@ function AppInfoModal(item: AppInfoWithState, onDownload: () => void, onForward:
               <p class="break-all text-sm text-gray-600"><span class="font-bold"> Source code: </span>{item.source_code_url}</p>
               <p class="text-sm text-gray-600"><span class="font-bold"> Version: </span>{item.version}</p>
             </div>
-            <button class="self-center btn-gray" onClick={onRemove}>Remove from cache</button>
+            {(item.state === AppState.Received || item.state === AppState.Updating) && <button class="self-center btn-gray" onClick={onRemove}>Remove from cache</button>}
           </div>
         )
       }
@@ -203,7 +203,7 @@ const Shop: Component = () => {
           <div class="flex items-center justify-between gap-2">
             <div>
               <h1 class="flex-shrink text-2xl font-bold" onclick={() => setShowCommit(!showCommit())}>
-                Webxdc Appstore
+                Store
               </h1>
               {showCommit() && <p class="whitespace-nowrap text-sm unimportant"> @ {import.meta.env.VITE_COMMIT} </p>}
             </div>
@@ -234,8 +234,8 @@ const Shop: Component = () => {
                 </div>
               </li>
               <li class="my-3 flex justify-center gap-3">
-                <button class="btn-gray" onClick={() => setShowCache(false)}> All Apps </button>
-                <button class="btn-gray" onClick={() => setShowCache(true)}> Cached Apps</button>
+                <button class="border-2 btn-gray" classList={{ 'border-none': showCache() }} onClick={() => setShowCache(false)}> All Apps </button>
+                <button class="border-2 btn-gray" classList={{ 'border-none': !showCache() }} onClick={() => setShowCache(true)}> Downloaded</button>
               </li>
               <Show when={!(lastSerial() === 0)} fallback={
                 <p class="text-center unimportant">Loading store..</p>
