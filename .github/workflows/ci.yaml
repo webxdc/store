@@ -54,6 +54,9 @@ jobs:
           ref: ${{ github.event.pull_request.head.sha }}
 
       - run: |
+          npm install -g pnpm
+
+      - run: |
           sudo apt install musl-tools
           rustup target add x86_64-unknown-linux-musl
 

@@ -7,13 +7,13 @@ SRC="$PWD"
 
 # Build the frontend.
 cd "$SRC/frontend"
-npx pnpm install
+pnpm install
 
 TMP="$(mktemp -d)"
 export DESTDIR="$TMP/xdcstore"
 mkdir "$DESTDIR"
 
-npm run build
+pnpm build
 
 # Build the backend.
 cd "$SRC"
