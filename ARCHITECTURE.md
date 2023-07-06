@@ -45,9 +45,9 @@ Other than that no more use cases are intended as of writing this.
 
 Updating the App Index happens by importing newer versions of webxdc app files with the CLI. 
 For every added webxdc app the `app-id` and `version` are checked and a new `AppInfo` is created 
-and added to the database. 
+and added to the bot database. 
 If there already is an `AppInfo` with the same `app-id` but an older version, 
-then this older `AppInfo` will be invalidated. 
+then only the newer `AppInfo` version will be served to the frontend. 
 
 Every change to the app index increases a "serial" 
 which the frontend and bot use for synchronization, see `Synchronizing the App Index`. 
