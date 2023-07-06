@@ -5,17 +5,20 @@
 Welcome to the WebXDC store (also xdc store for short) which currently consists of:
 
 - **Store bot**: a Rust-implemented bot which operates on an e-mail
-  address and sends out a store xdc app. 
+  address and sends out a store xdc app ("frontend"). 
 
-- **Store xdc**: gets sent from the bot to users when they setup contact
+- **Store xdc** (frontend): gets sent from the bot to users when they setup contact
   or send the bot a message.  The store xdc supports search and
   discovery of the **app index**, including forwarding/sharing an app into user-chosen chats. 
 
 - The store bot command line interface allows to import apps to 
   make them available in the **app index** which is presented by the store xdc. 
 
+Currently all Bot/Frontend communication happens via Delta Chat messaging. 
+The Bot does not need to be internet-reachable. 
 
-## Getting started with sharing a first app to a chat group 
+
+## Getting started with sharing ("installing") a first app to a chat group 
 
 TODO: make bot available via sending a message to: xdcstore@testrun.org 
 
