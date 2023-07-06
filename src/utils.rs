@@ -1,5 +1,8 @@
 //! Utility functions
 
+use std::fs::File;
+use std::io::Write;
+
 use anyhow::{bail, Context as _, Result};
 use async_zip::tokio::read::fs::ZipFileReader;
 use deltachat::{
@@ -8,6 +11,7 @@ use deltachat::{
     context::Context,
     message::{Message, MsgId, Viewtype},
 };
+use directories::ProjectDirs;
 use futures::future::join_all;
 use serde::Serialize;
 use sqlx::{SqliteConnection, Type};
@@ -24,6 +28,10 @@ use crate::{
     STORE_XDC,
 };
 
+pub(crate) fn project_dirs() -> Result<ProjectDirs> {
+    ProjectDirs::from("", "", "XDC Store").context("cannot determine home directory")
+}
+
 pub async fn configure_from_env(ctx: &Context) -> Result<()> {
     let addr = env::var("addr").context("Missing environment variable addr")?;
     ctx.set_config(Config::Addr, Some(&addr)).await?;
@@ -37,22 +45,16 @@ pub async fn configure_from_env(ctx: &Context) -> Result<()> {
     Ok(())
 }
 
-/// Returns the path to assets directory.
-///
-/// Searches for "assets" directory near the bot binary.
-/// If it does not exist, assumes that it is a development setup
-/// and "assets" directory can be found in the current working directory.
-pub(crate) fn assets_path() -> Result<PathBuf> {
-    let exe = std::env::current_exe().context("cannot determine executable path")?;
-    let dir = exe
-        .parent()
-        .with_context(|| format!("cannot determine binary directory for {}", exe.display()))?
-        .join("assets");
-    if dir.exists() {
-        Ok(dir)
-    } else {
-        Ok(PathBuf::from("assets"))
-    }
+pub(crate) fn unpack_assets() -> Result<()> {
+    let store_bytes = include_bytes!("../assets/store.xdc");
+
+    std::fs::create_dir_all(project_dirs()?.config_dir())?;
+
+    let store_path = Webxdc::Store.get_path().context("cannot get webxdc path")?;
+    let mut file = File::create(&store_path)
+        .with_context(|| format!("failed to create {}", store_path.display()))?;
+    file.write_all(store_bytes)?;
+    Ok(())
 }
 
 /// Send a webxdc to a chat.
@@ -162,7 +164,7 @@ impl Webxdc {
         let filename = match self {
             Webxdc::Store => STORE_XDC,
         };
-        let path = assets_path()?.join(filename);
+        let path = project_dirs()?.config_dir().to_path_buf().join(filename);
         Ok(path)
     }
 

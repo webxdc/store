@@ -1,8 +1,8 @@
 #!/bin/sh
 
-: "${DESTDIR:=$PWD/..}"
+set -e
 
-DESTDIR="$DESTDIR/assets"
+DESTDIR="$PWD/../assets"
 
 mkdir -p "$DESTDIR"
 cd dist

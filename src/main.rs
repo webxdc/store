@@ -6,25 +6,21 @@ mod import;
 mod messages;
 mod request_handlers;
 mod utils;
-use std::{fs::create_dir_all, path::PathBuf};
+use std::fs::create_dir_all;
+use std::path::PathBuf;
 
-use anyhow::{Context as _, Result};
+use anyhow::Context as _;
 use bot::Bot;
 use build_script_file_gen::include_file_str;
 use clap::Parser;
 use cli::{BotActions, BotCli};
-use directories::ProjectDirs;
 use tokio::signal;
-use utils::AddType;
+use utils::{project_dirs, AddType};
 
 const GENESIS_QR: &str = "genesis_invite_qr.png";
 const INVITE_QR: &str = "1o1_invite_qr.png";
 const STORE_XDC: &str = "store.xdc";
 const VERSION: &str = include_file_str!("VERSION");
-
-pub(crate) fn project_dirs() -> Result<ProjectDirs> {
-    ProjectDirs::from("", "", "XDC Store").context("cannot determine home directory")
-}
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {

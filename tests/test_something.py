@@ -1,4 +1,3 @@
-import shutil
 import subprocess
 import base64
 import zipfile
@@ -34,22 +33,6 @@ def bot_home_path(tmp_path_factory):
     return tmp_path_factory.mktemp("bothome")
 
 
-@pytest.fixture
-def bot_install_path(tmp_path_factory):
-    """Path where the bot is installed.
-
-    The bot binary is symlinked,
-    but assets can be modified during the test.
-    """
-    tmp = tmp_path_factory.mktemp("botinstall")
-
-    shutil.copyfile(bot_binary_path(), tmp / "xdcstore")
-    (tmp / "xdcstore").chmod(0o700)
-
-    shutil.copytree(bot_assets_path(), tmp / "assets")
-    return tmp
-
-
 class BotProcess:
     addr: str
     process: Popen
@@ -60,7 +43,7 @@ class BotProcess:
         self.binary_path = binary_path
         self.home_path = home_path
 
-    def start(self):
+    def start(self, **kwargs):
         self.process = Popen(
             [self.binary_path, "start"],
             cwd=self.binary_path.parent,
@@ -69,6 +52,7 @@ class BotProcess:
                 "addr": self.addr,
                 "mail_pw": self.password,
                 "RUST_LOG": "xdcstore=info",
+                **kwargs,
             },
         )
 
@@ -97,12 +81,12 @@ class BotProcess:
 
 
 @pytest.fixture
-def storebot_stopped(acfactory, bot_install_path, bot_home_path):
+def storebot_stopped(acfactory, bot_home_path):
     """Stopped store bot without any apps."""
     config = acfactory.get_next_liveconfig()
 
     return BotProcess(
-        config["addr"], config["mail_pw"], bot_install_path / "xdcstore", bot_home_path
+        config["addr"], config["mail_pw"], bot_binary_path(), bot_home_path
     )
 
 
@@ -288,7 +272,7 @@ def test_download(acfactory, storebot_example):
 
 def update_manifest_version(bot_path, new_version):
     temp_zip_file = bot_path / "temp.xdc"
-    zip_file_path = bot_path / "assets" / "store.xdc"
+    zip_file_path = bot_path / "store.xdc"
     with zipfile.ZipFile(zip_file_path, "r") as zip_read, zipfile.ZipFile(
         temp_zip_file, "w"
     ) as zip_write:
@@ -328,11 +312,11 @@ def test_frontend_update(acfactory, storebot):
     )  # Inital store hydration
     assert msg_in.is_webxdc()
 
-    update_manifest_version(storebot.binary_path.parent, 1000)
+    update_manifest_version(storebot.home_path / ".config" / "xdcstore", 1000)
 
     # Start the bot again to load the newer store.xdc version
     storebot.stop()
-    storebot.start()
+    storebot.start(XDCSTORE_KEEP_ASSETS="yes")
 
     msg_in.send_status_update({"payload": {"Update": {"serial": 0}}}, "")
     ac1._evtracker.get_matching("DC_EVENT_WEBXDC_STATUS_UPDATE")  # Self-sent
