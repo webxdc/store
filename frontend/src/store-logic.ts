@@ -3,13 +3,13 @@ import type { SetStoreFunction } from 'solid-js/store'
 import { produce } from 'solid-js/store'
 import type { AppInfoWithState, AppInfosById } from './types'
 import { AppState } from './types'
-import type { ShopResponse } from './bindings/ShopResponse'
-import type { AppInfoDB } from './db/shop_db'
+import type { StoreResponse } from './bindings/StoreResponse'
+import type { AppInfoDB } from './db/store_db'
 import { isOutdatedResponse, isUpdateSendResponse as isUpdateSentResponse } from './utils'
 
-export type DownloadResponseOkay = Extract<ShopResponse, { type: 'DownloadOkay' }>
-export type DownloadResponseError = Extract<ShopResponse, { type: 'DownloadError' }>
-export type UpdateResponse = Extract<ShopResponse, { type: 'Update' }>
+export type DownloadResponseOkay = Extract<StoreResponse, { type: 'DownloadOkay' }>
+export type DownloadResponseError = Extract<StoreResponse, { type: 'DownloadError' }>
+export type UpdateResponse = Extract<StoreResponse, { type: 'Update' }>
 
 function isDownloadResponseOkay(p: any): p is DownloadResponseOkay {
   return p.type === 'DownloadOkay'
