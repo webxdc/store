@@ -20,7 +20,7 @@ The bot currently uses two different chat types: `Store` and `Genesis`:
     - Receive updates to the app index
     - Searching the app index 
     - Downloading apps
-    - Sharing an app to a chat ("installing") 
+    - Sharing an app to a chat
 
 Upon receiving a message or a `webxdcStatusUpdate` the bot will use 
 the map-like `chat_to_chat_type` database table 
