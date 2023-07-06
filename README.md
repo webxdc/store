@@ -62,7 +62,9 @@ the central point of interaction for users:
 
 ### Installing pre-built binary releases
 
-TODO: Download the latest release from https://github.com/webxdc/store/releases,
+**WARNING: this program is currently in early alpha stage, compatibility with future versions is not warrantied, use at your own risk**
+
+Download the latest release from https://github.com/webxdc/store/releases,
 extract the compressed archive to the desired location, it containts the bot command line
 program and required assets. In the following steps it is assumed that you added the program
 to your PATH variable, but you can run the binary directly.
@@ -225,6 +227,11 @@ and activate it with `. env/bin/activate`. Afterwards run `pytest`.
 
 ### Releasing
 
-TODO: create the tarball and a GitHub release on version tags.
+To automatically build and create a new GitHub release:
+
+```
+git tag -a v1.0.1
+git push origin v1.0.1
+```
 
 To create locally the distribution tarball run the script at `./scripts/dist.sh`
