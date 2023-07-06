@@ -16,6 +16,10 @@ jobs:
         uses: swatinem/rust-cache@v2
       - name: rustfmt
         run: cargo fmt --all -- --check
+      - name: create mock assets
+        run: |
+          mkdir assets
+          touch assets/store.xdc
       - name: clippy
         run: cargo clippy --workspace --all-targets --all-features -- -D warnings
       - name: check

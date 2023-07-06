@@ -25,7 +25,7 @@ use crate::{
     },
     utils::{
         configure_from_env, read_webxdc_versions, send_newest_updates, send_update_payload_only,
-        send_webxdc, Webxdc, WebxdcVersions,
+        send_webxdc, unpack_assets, Webxdc, WebxdcVersions,
     },
     GENESIS_QR, INVITE_QR, VERSION,
 };
@@ -56,6 +56,13 @@ impl Bot {
     /// Creates a new instance of the bot.
     /// Handles the configuration for dc and the bot itself.
     pub async fn new() -> Result<Self> {
+        if std::env::var("XDCSTORE_KEEP_ASSETS")
+            .unwrap_or_default()
+            .is_empty()
+        {
+            unpack_assets().context("failed to unpack assets")?;
+        }
+
         let dirs = project_dirs()?;
 
         std::fs::create_dir_all(dirs.config_dir())?;
