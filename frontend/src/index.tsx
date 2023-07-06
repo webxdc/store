@@ -203,7 +203,7 @@ const Shop: Component = () => {
           <div class="flex items-center justify-between gap-2">
             <div>
               <h1 class="flex-shrink text-2xl font-bold" onclick={() => setShowCommit(!showCommit())}>
-                Store
+                Webxdc Store
               </h1>
               {showCommit() && <p class="whitespace-nowrap text-sm unimportant"> @ {import.meta.env.VITE_COMMIT} </p>}
             </div>

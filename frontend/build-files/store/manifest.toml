@@ -1,5 +1,5 @@
-name = "Webxdc Webstore"
+name = "Webxdc Store"
 app_id = "store-xdc"
 description = "store xdc"
 source_code_url = "https://github.com/webxdc/store"
-version = 1
+version = 2
