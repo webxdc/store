@@ -6,17 +6,17 @@ import { formatDistance } from 'date-fns'
 import Fuse from 'fuse.js'
 import { createStore } from 'solid-js/store'
 import type { ReceivedStatusUpdate } from './webxdc'
-import type { ShopResponse } from './bindings/ShopResponse'
-import type { ShopRequest } from './bindings/ShopRequest'
+import type { StoreResponse } from './bindings/StoreResponse'
+import type { StoreRequest } from './bindings/StoreRequest'
 import mock from './mock'
 import type { AppInfoWithState, AppInfosById } from './types'
 import { AppState } from './types'
 import './index.sass'
 import 'virtual:uno.css'
 import '@unocss/reset/tailwind.css'
-import { AppInfoDB } from './db/shop_db'
+import { AppInfoDB } from './db/store_db'
 import OutdatedView from './components/OutdatedView'
-import { to_app_infos_by_id, updateHandler } from './shop-logic'
+import { to_app_infos_by_id, updateHandler } from './store-logic'
 
 const fuse_options = {
   keys: [
@@ -27,8 +27,8 @@ const fuse_options = {
   threshold: 0.4,
 }
 
-type DownloadResponseOkay = Extract<ShopResponse, { type: 'DownloadOkay' }>
-type UpdateResponse = Extract<ShopResponse, { type: 'Update' }>
+type DownloadResponseOkay = Extract<StoreResponse, { type: 'DownloadOkay' }>
+type UpdateResponse = Extract<StoreResponse, { type: 'Update' }>
 
 function AppInfoModal(item: AppInfoWithState, onDownload: () => void, onForward: () => void, onRemove: () => void) {
   const [isExpanded, setIsExpanded] = createSignal(false)
@@ -126,7 +126,7 @@ const AppList: Component<AppListProps> = (props) => {
   )
 }
 
-const Shop: Component = () => {
+const Store: Component = () => {
   const [appInfo, setAppInfo] = createStore({} as AppInfosById)
   const [lastSerial, setlastSerial] = useStorage('last-serial', 0) // Last store-serial
   const [updateNeeded, setUpdateNeeded] = useStorage('update-needed', false) // Flag if the frontend is outdated
@@ -170,14 +170,14 @@ const Shop: Component = () => {
 
     const cached_apps = cached().map(app_info => ([app_info.app_id, app_info.version] as [string, number]))
     window.webxdc.sendUpdate({
-      payload: { Update: { serial: lastUpdateSerial(), apps: cached_apps } } as ShopRequest,
+      payload: { Update: { serial: lastUpdateSerial(), apps: cached_apps } } as StoreRequest,
     }, '')
   }
 
   async function handleDownload(app_id: string) {
     setAppInfo(app_id, 'state', AppState.Downloading)
     window.webxdc.sendUpdate({
-      payload: { Download: { app_id } } as ShopRequest,
+      payload: { Download: { app_id } } as StoreRequest,
     }, '')
   }
 
@@ -203,7 +203,7 @@ const Shop: Component = () => {
           <div class="flex items-center justify-between gap-2">
             <div>
               <h1 class="flex-shrink text-2xl font-bold" onclick={() => setShowCommit(!showCommit())}>
-                Store
+                Webxdc Store
               </h1>
               {showCommit() && <p class="whitespace-nowrap text-sm unimportant"> @ {import.meta.env.VITE_COMMIT} </p>}
             </div>
@@ -255,4 +255,4 @@ const Shop: Component = () => {
 }
 
 const root = document.getElementById('root')
-render(() => <Shop />, root!)
+render(() => <Store />, root!)

@@ -1,20 +1,20 @@
 // Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
 
-exports[`Shop receiving updates > Handles download okay 1`] = `
+exports[`Store receiving updates > Handles download okay 1`] = `
 {
   "base64": "test",
   "name": "test.xdc",
 }
 `;
 
-exports[`Shop receiving updates > Handles download okay 2`] = `
+exports[`Store receiving updates > Handles download okay 2`] = `
 {
   "base64": "test",
   "name": "test.xdc",
 }
 `;
 
-exports[`Shop receiving updates > Handles ongoing AppIndex updates 1`] = `
+exports[`Store receiving updates > Handles ongoing AppIndex updates 1`] = `
 {
   "12": {
     "app_id": "12",
@@ -70,7 +70,7 @@ exports[`Shop receiving updates > Handles ongoing AppIndex updates 1`] = `
 }
 `;
 
-exports[`Shop receiving updates > Handles ongoing AppIndex updates 2`] = `
+exports[`Store receiving updates > Handles ongoing AppIndex updates 2`] = `
 [
   {
     "app_id": "12",

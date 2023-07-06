@@ -2,11 +2,11 @@ import { describe, expect, it, test, vi } from 'vitest'
 import { type Setter } from 'solid-js'
 import type { SetStoreFunction } from 'solid-js/store'
 import { createStore } from 'solid-js/store'
-import { AppInfoDB } from '../src/db/shop_db'
+import { AppInfoDB } from '../src/db/store_db'
 import { AppState } from '../src/types'
 import type { AppInfoWithState, AppInfosById } from '../src/types'
-import type { DownloadResponseError, DownloadResponseOkay, UpdateResponse } from '../src/shop-logic'
-import { to_app_infos_by_id, updateHandler } from '../src/shop-logic'
+import type { DownloadResponseError, DownloadResponseOkay, UpdateResponse } from '../src/store-logic'
+import { to_app_infos_by_id, updateHandler } from '../src/store-logic'
 import type { WebxdcOutdatedResponse, WebxdcUpdateSentResponse } from '../src/utils'
 import 'fake-indexeddb/auto'
 import mock from '../src/mock'
@@ -20,10 +20,10 @@ const general_handlers = {
   setUpdateReceived: ((() => { }) as Setter<boolean>),
 }
 
-describe('Shop receiving updates', () => {
+describe('Store receiving updates', () => {
   test('Handles outdated response', () => {
     const handlers = {
-      db: new AppInfoDB('shoptesting'),
+      db: new AppInfoDB('storetesting'),
       appInfo: {},
       ...general_handlers,
     }
@@ -42,7 +42,7 @@ describe('Shop receiving updates', () => {
 
   test('Handes update received', () => {
     const handlers = {
-      db: new AppInfoDB('shoptesting'),
+      db: new AppInfoDB('storetesting'),
       appInfo: {},
       ...general_handlers,
     }
@@ -58,7 +58,7 @@ describe('Shop receiving updates', () => {
 
   test('Handles download error', () => {
     const handlers = {
-      db: new AppInfoDB('shoptesting'),
+      db: new AppInfoDB('storetesting'),
       appInfo: {},
       ...general_handlers,
     }
@@ -75,7 +75,7 @@ describe('Shop receiving updates', () => {
   })
 
   test('Handles download okay', async () => {
-    const db = new AppInfoDB('shoptesting1')
+    const db = new AppInfoDB('storetesting1')
     const handlers = {
       ...general_handlers,
       db,
@@ -115,7 +115,7 @@ describe('Shop receiving updates', () => {
   })
 
   test('Handles new AppIndex', async () => {
-    const db = new AppInfoDB('shoptesting2')
+    const db = new AppInfoDB('storetesting2')
     const handlers = {
       db,
       ...general_handlers,
@@ -138,7 +138,7 @@ describe('Shop receiving updates', () => {
   })
 
   test('Handles ongoing AppIndex updates', async () => {
-    const db = new AppInfoDB('shoptesting3')
+    const db = new AppInfoDB('storetesting3')
     const advanced_state = to_app_infos_by_id(mock.slice(0, 2))
     await db.insertMultiple(Object.values(advanced_state))
     expect(await db.get_all()).toStrictEqual(Object.values(advanced_state))
