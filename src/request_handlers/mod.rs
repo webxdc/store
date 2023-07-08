@@ -6,8 +6,9 @@ use crate::{
 use async_zip::tokio::read::fs::ZipFileReader;
 use base64::encode;
 use serde::{Deserialize, Serialize};
-use sqlx::Type;
+use sqlx::{Decode, FromRow, Type};
 use std::path::{Path, PathBuf};
+use tokio::fs::File;
 use ts_rs::TS;
 
 pub mod genesis;
@@ -34,7 +35,7 @@ pub struct WexbdcManifest {
     pub submitter_uri: Option<String>,
 }
 
-#[derive(TS, Deserialize, Serialize, Clone, Debug, Default, PartialEq)]
+#[derive(TS, Deserialize, Serialize, Clone, Debug, Default, PartialEq, FromRow, Decode)]
 #[ts(export)]
 #[ts(export_to = "frontend/src/bindings/")]
 pub struct AppInfo {
@@ -42,6 +43,7 @@ pub struct AppInfo {
     pub id: RecordId,
     pub app_id: String,                  // manifest
     pub version: i32,                    // manifest
+    pub date: u32,                       // manifest
     pub name: String,                    // manifest
     pub submitter_uri: Option<String>,   // bot
     pub source_code_url: Option<String>, // manifest
@@ -49,6 +51,7 @@ pub struct AppInfo {
     pub description: String,             // submit
     #[serde(skip)]
     pub xdc_blob_path: PathBuf, // bot
+    pub size: u32,                       //bot
     #[serde(skip)]
     pub originator: RecordId, // bot
 }
@@ -56,8 +59,10 @@ pub struct AppInfo {
 impl AppInfo {
     /// Create appinfo from webxdc file.
     pub async fn from_xdc(file: &Path) -> anyhow::Result<Self> {
+        let size = u32::try_from(File::open(&file).await?.metadata().await?.len())?;
+
         let mut app = AppInfo {
-            xdc_blob_path: file.to_path_buf(),
+            size,
             ..Default::default()
         };
         app.update_from_xdc(file.to_path_buf()).await?;
