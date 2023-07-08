@@ -13,21 +13,22 @@
   "license": "MIT",
   "devDependencies": {
     "@antfu/eslint-config": "^0.39.3",
+    "@testing-library/jest-dom": "5.16.4",
     "@unocss/eslint-config": "^0.52.2",
     "eruda": "^3.0.0",
     "eslint": "^8.42.0",
     "fake-indexeddb": "^4.0.1",
     "jsdom": "latest",
-    "@testing-library/jest-dom": "5.16.4",
-    "vitest": "^0.32.2",
     "typescript": "^5.1.3",
     "vite": "^4.3.9",
-    "vite-plugin-solid": "^2.7.0"
+    "vite-plugin-solid": "^2.7.0",
+    "vitest": "^0.32.2"
   },
   "dependencies": {
     "@iconify-json/carbon": "^1.1.17",
     "@iconify-json/eos-icons": "^1.1.6",
     "@iconify-json/material-symbols": "^1.1.48",
+    "@solidjs/router": "^0.8.2",
     "@unocss/reset": "^0.53.0",
     "date-fns": "^2.30.0",
     "fuse.js": "^6.6.2",
