@@ -1,7 +1,7 @@
 import { render } from 'solid-js/web'
 import { createContext, createEffect, onMount } from 'solid-js'
-import { createStore } from 'solid-js/store'
-import { Route, Router, Routes } from '@solidjs/router'
+import { createStore, unwrap } from 'solid-js/store'
+import { Route, Router, Routes, hashIntegration } from '@solidjs/router'
 import Info from './pages/info'
 import Store from '~/pages/store'
 import '~/index.sass'
@@ -32,7 +32,7 @@ const wrapper = {
   update: () => {
     setMeta('updating', true)
     window.webxdc.sendUpdate({
-      payload: { Update: { serial: meta.last_update_serial, apps: meta.cached } } as StoreRequest,
+      payload: { Update: { serial: meta.last_update_serial, apps: unwrap(meta.cached) } } as StoreRequest,
     }, '')
   },
 }
@@ -52,14 +52,14 @@ render(
     createEffect(() => localStorage.setItem('meta', JSON.stringify({ ...meta, last_update: meta.last_update.getTime() })))
 
     return (
-    <metadataContext.Provider value={wrapper}>
-      <Router>
-        <Routes>
-          <Route path="/" component={Store} />
-          <Route path="/info" component={Info} />
-        </Routes>
-      </Router>
-    </metadataContext.Provider>
+      <metadataContext.Provider value={wrapper}>
+        <Router source={hashIntegration()}>
+          <Routes>
+            <Route path="/" component={Store} />
+            <Route path="/info" component={Info} />
+          </Routes>
+        </Router>
+      </metadataContext.Provider>
     )
   },
   document.getElementById('root')!,
