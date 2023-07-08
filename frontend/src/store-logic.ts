@@ -43,9 +43,7 @@ export async function updateHandler(
   db: AppInfoDB,
   appInfo: AppInfosById,
   setAppInfo: SetStoreFunction<AppInfosById>,
-  setlastUpdateSerial: Setter<number>,
-  setIsUpdating: Setter<boolean>,
-  setlastUpdate: Setter<Date>,
+  updateDone: (new_serial: number) => void,
   setUpdateNeeded: Setter<boolean>,
   setUpdateReceived: Setter<boolean>,
 ) {
@@ -84,9 +82,7 @@ export async function updateHandler(
       await db.updateMultiple(updated.map(key => ({ ...app_infos[key], state: appInfo[key].state !== AppState.Initial ? AppState.Updating : AppState.Initial })))
     }
 
-    setlastUpdateSerial(payload.serial)
-    setIsUpdating(false)
-    setlastUpdate(new Date())
+    updateDone(payload.serial)
   }
   else if (isDownloadResponseOkay(payload)) {
     console.log('Received webxdc')

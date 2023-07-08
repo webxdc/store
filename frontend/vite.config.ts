@@ -1,3 +1,4 @@
+import path from 'node:path'
 import { readFileSync } from 'node:fs'
 import { execSync } from 'node:child_process'
 import { defineConfig } from 'vite'
@@ -35,8 +36,13 @@ function eruda() {
 }
 
 export default defineConfig(() => {
-  process.env.VITE_COMMIT = String(execSync('git describe --always'))
+  process.env.VITE_COMMIT = String(execSync('git describe --always').toString().trim())
   return {
+    resolve: {
+      alias: {
+        '~/': `${path.resolve(__dirname, 'src')}/`,
+      },
+    },
     plugins: [eruda(), solidPlugin(), unocssPlugin()],
     build: {
       target: ['es2020', 'edge88', 'firefox78', 'chrome74', 'safari14'],
