@@ -93,7 +93,7 @@ function AppInfoModal(item: AppInfoWithState, onDownload: () => void, onForward:
 
 interface AppListProps {
   items: AppInfoWithState[]
-  search: string
+  search_query: string
   onDownload: (id: string) => void
   onForward: (id: string) => void
   onRemove: (id: string) => void
@@ -107,8 +107,8 @@ const AppList: Component<AppListProps> = (props) => {
   })
 
   const filtered_items = createMemo(() => {
-    if (props.search !== '') {
-      return fuse!.search(props.search).map(fr => fr.item)
+    if (props.search_query !== '') {
+      return fuse!.search(props.search_query).map(fr => fr.item)
     }
     else {
       return props.items
@@ -138,7 +138,6 @@ const Store: Component = () => {
   const [isUpdating, setIsUpdating] = createSignal(false)
   const [search, setSearch] = createSignal('')
   const [showCommit, setShowCommit] = createSignal(false) // Show the commit hash when heading was clicked
-  const [showCache, setShowCache] = createSignal(false)
   const cached = createMemo(() => Object.values(appInfo).filter(app_info => app_info.state !== AppState.Initial))
 
   // automatically update the app list
@@ -233,15 +232,11 @@ const Store: Component = () => {
                   </button>
                 </div>
               </li>
-              <li class="my-3 flex justify-center gap-3">
-                <button class="border-2 btn-gray" classList={{ 'border-none': showCache() }} onClick={() => setShowCache(false)}> All Apps </button>
-                <button class="border-2 btn-gray" classList={{ 'border-none': !showCache() }} onClick={() => setShowCache(true)}> Downloaded</button>
-              </li>
               <Show when={!(lastSerial() === 0)} fallback={
                 <p class="text-center unimportant">Loading store..</p>
               }>
                 <AppList
-                  items={showCache() ? cached() : Object.values(appInfo)} search={search()}
+                  items={Object.values(appInfo)} search_query={search()}
                   onDownload={handleDownload}
                   onForward={handleForward}
                   onRemove={handleRemove} ></AppList>
