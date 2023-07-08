@@ -1,9 +1,9 @@
 import { render } from 'solid-js/web'
-import { Route, Router, Routes } from '@solidjs/router'
-import { createContext } from 'solid-js'
+import { createContext, createEffect, onMount } from 'solid-js'
 import { createStore } from 'solid-js/store'
+import { Route, Router, Routes } from '@solidjs/router'
+import Info from './pages/info'
 import Store from '~/pages/store'
-import Info from '~/pages/info'
 import '~/index.sass'
 import 'virtual:uno.css'
 import '@unocss/reset/tailwind.css'
@@ -40,15 +40,27 @@ const wrapper = {
 export const metadataContext = createContext(wrapper)
 
 render(
-  () => (
+  () => {
+    onMount(() => {
+      const userString = localStorage.getItem('meta')
+      if (!userString)
+        return
+      const parsed = JSON.parse(userString)
+      setMeta(() => ({ ...parsed, last_update: new Date(parsed.last_update) }))
+    })
+
+    createEffect(() => localStorage.setItem('meta', JSON.stringify({ ...meta, last_update: meta.last_update.getTime() })))
+
+    return (
     <metadataContext.Provider value={wrapper}>
       <Router>
         <Routes>
-          <Route path="/" element={<Store />} />
-          <Route path="/info" element={<Info />} />
+          <Route path="/" component={Store} />
+          <Route path="/info" component={Info} />
         </Routes>
       </Router>
     </metadataContext.Provider>
-  ),
+    )
+  },
   document.getElementById('root')!,
 )

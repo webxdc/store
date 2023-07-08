@@ -77,7 +77,7 @@ function AppInfoModal(item: AppInfoWithState, onDownload: () => void, onForward:
               <p class="break-all text-sm text-gray-600"><span class="font-bold"> Source code: </span>{item.source_code_url}</p>
               <p class="text-sm text-gray-600"><span class="font-bold"> Version: </span>{item.version}</p>
             </div>
-            {(item.state === AppState.Received || item.state === AppState.Updating) && <button class="self-center btn-gray" onClick={onRemove}>Remove from cache</button>}
+            {(item.state === AppState.Received || item.state === AppState.Updating) && <button class="self-center btn" onClick={onRemove}>Remove from cache</button>}
           </div>
         )
       }
@@ -129,9 +129,6 @@ const Store: Component = () => {
   const [lastSerial, setlastSerial] = useStorage('last-serial', 0) // Last store-serial
   const [updateNeeded, setUpdateNeeded] = useStorage('update-needed', false) // Flag if the frontend is outdated
   const [updateReceived, setUpdateReceived] = useStorage('update-received', false)
-  const [lastUpdateSerial, setlastUpdateSerial] = useStorage('last-update-serial', 0) // Last serial to initialize updateListener
-  const [lastUpdate, setlastUpdate] = useStorage('last-update', new Date())
-
   const [query, setSearch] = createSignal('')
   const cached = createMemo(() => Object.values(appInfo).filter(app_info => app_info.state !== AppState.Initial))
 
@@ -139,7 +136,7 @@ const Store: Component = () => {
   createEffect(() => setCached(cached().map(app_info => ([app_info.app_id, app_info.version]))))
 
   // automatically update the app list
-  const past_time = Math.abs(new Date().getTime() - lastUpdate().getTime()) / 1000
+  const past_time = Math.abs(new Date().getTime() - meta.last_update.getTime()) / 1000
   if (appInfo === undefined || (past_time > 60 * 60)) {
     update()
   }
@@ -193,7 +190,7 @@ const Store: Component = () => {
                 Webxdc Store
               </h1>
             </div>
-            <A class="rounded-xl p-2 btn-gray" href='/info'>
+            <A class="rounded-xl p-2 btn" href='/info'>
               <Show when={meta.updating} fallback={
                 <div class="border border-blue-500 rounded" i-carbon-information></div>
               }>
@@ -203,16 +200,17 @@ const Store: Component = () => {
           </div>
 
           {/* app list */}
-          <div class="mt-4 p-4">
+          <div class="px-4">
+            <div class="my-4 w-full flex flex-col items-center justify-center gap-2">
+              <div class="flex items-center justify-center gap-2">
+                <input class="border-2 rounded-2xl px-3 py-1" onInput={event => setSearch((event.target as HTMLInputElement).value)} />
+                <button class="rounded-1/2 p-2 btn">
+                  <div class="i-carbon-search text-blue-700" />
+                </button>
+              </div>
+            </div>
             <ul class="w-full flex flex-col gap-2">
-              <li class="w-full flex flex-col items-center justify-center gap-2">
-                <div class="flex items-center justify-center gap-2">
-                  <input class="border-2 rounded-2xl" onInput={event => setSearch((event.target as HTMLInputElement).value)} />
-                  <button class="rounded-1/2 p-2 btn">
-                    <div class="i-carbon-search" />
-                  </button>
-                </div>
-              </li>
+
               <Show when={!(lastSerial() === 0)} fallback={
                 <p class="text-center unimportant">Loading store..</p>
               }>

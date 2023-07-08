@@ -14,7 +14,8 @@
     @apply justify-center
 
 input, textarea
-  padding: 0.3rem !important
+  padding: 0.3rem
+  outline: none
   @apply border rounded p-2
 
 input:disabled,
@@ -43,5 +44,5 @@ label
 .stretch-item
   @apply flex items-center justify-between
 
-  :first-child
-    @apply font-bold
+  :nth-child(2)
+    @apply unimportant
