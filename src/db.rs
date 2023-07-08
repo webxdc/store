@@ -23,18 +23,21 @@ use std::path::PathBuf;
 
 pub static MIGRATOR: Migrator = sqlx::migrate!();
 
+/// Only a intermediate struct because Decode can not (yet) be derived for [AppInfo].
 #[derive(FromRow)]
 pub struct DBAppInfo {
     pub id: RecordId,
     pub app_id: String,
-    pub name: String,                    // manifest
-    pub submitter_uri: Option<String>,   // bot
-    pub source_code_url: Option<String>, // manifest
-    pub image: String,                   // webxdc
-    pub description: String,             // submit
-    pub xdc_blob_path: String,           // bot
-    pub version: i32,                    // manifest
-    pub originator: RecordId,            // bot
+    pub name: String,
+    pub date: u32,
+    pub submitter_uri: Option<String>,
+    pub source_code_url: Option<String>,
+    pub image: String,
+    pub description: String,
+    pub xdc_blob_path: String,
+    pub size: u32,
+    pub version: i32,
+    pub originator: RecordId,
 }
 
 impl From<DBAppInfo> for AppInfo {
@@ -43,11 +46,13 @@ impl From<DBAppInfo> for AppInfo {
             id: db_app.id,
             app_id: db_app.app_id,
             name: db_app.name,
+            date: db_app.date,
             submitter_uri: db_app.submitter_uri,
             source_code_url: db_app.source_code_url,
             image: db_app.image,
             description: db_app.description,
             xdc_blob_path: PathBuf::from(db_app.xdc_blob_path),
+            size: db_app.size,
             version: db_app.version,
             originator: db_app.originator,
         }
