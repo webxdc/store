@@ -14,9 +14,6 @@ dependencies:
   '@iconify-json/material-symbols':
     specifier: ^1.1.48
     version: 1.1.48
-  '@solidjs/router':
-    specifier: ^0.8.2
-    version: 0.8.2(solid-js@1.7.7)
   '@unocss/reset':
     specifier: ^0.53.0
     version: 0.53.0
@@ -903,14 +900,6 @@ packages:
 
   /@solidjs-use/solid-to-vue@2.1.0:
     resolution: {integrity: sha512-1/npocOR2tQnmonsdYDJobiI2LXkB8BfmqFNdBdauuNfz8VxmQ1aIkNhr7GjNVbmay0aM/BReyq5i+y0blPERA==}
-    dev: false
-
-  /@solidjs/router@0.8.2(solid-js@1.7.7):
-    resolution: {integrity: sha512-gUKW+LZqxtX6y/Aw6JKyy4gQ9E7dLqp513oB9pSYJR1HM5c56Pf7eijzyXX+b3WuXig18Cxqah4tMtF0YGu80w==}
-    peerDependencies:
-      solid-js: ^1.5.3
-    dependencies:
-      solid-js: 1.7.7
     dev: false
 
   /@testing-library/jest-dom@5.16.4:
