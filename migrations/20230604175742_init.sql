@@ -21,7 +21,7 @@ CREATE TABLE IF NOT EXISTS users (
 );
 
 CREATE TABLE IF NOT EXISTS app_infos (
-    id INTEGER PRIMARY KEY NOT NULL,
+    id INTEGER PRIMARY KEY autoincrement,
     app_id TEXT NOT NULL,
     name TEXT NOT NULL,
     submitter_uri TEXT,
@@ -30,7 +30,6 @@ CREATE TABLE IF NOT EXISTS app_infos (
     description TEXT NOT NULL,
     xdc_blob_path TEXT NOT NULL,
     version NUMBER NOT NULL,
-    originator INTEGER NOT NULL,
     serial INTEGER NOT NULL
 );
 

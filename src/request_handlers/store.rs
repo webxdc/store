@@ -27,7 +27,7 @@ enum StoreRequest {
         serial: u32,
         /// Listof apps selected for caching.
         #[serde(default)]
-        apps: Vec<(String, i32)>,
+        apps: Vec<(String, u32)>,
     },
     Download {
         /// ID of the requested application.

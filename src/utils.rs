@@ -148,7 +148,7 @@ pub async fn get_webxdc_manifest(reader: &ZipFileReader) -> anyhow::Result<Wexbd
     Ok(toml::from_str(&read_string(reader, manifest_index).await?)?)
 }
 
-pub async fn get_webxdc_version(file: impl AsRef<Path>) -> anyhow::Result<i32> {
+pub async fn get_webxdc_version(file: impl AsRef<Path>) -> anyhow::Result<u32> {
     let reader = ZipFileReader::new(file).await?;
     let manifest = get_webxdc_manifest(&reader).await?;
     Ok(manifest.version)
@@ -182,17 +182,17 @@ impl Webxdc {
 
 #[derive(Debug, PartialEq, Eq, Default)]
 pub struct WebxdcVersions {
-    pub store: i32,
+    pub store: u32,
 }
 
 impl WebxdcVersions {
-    pub fn set(&mut self, webxdc: Webxdc, version: i32) {
+    pub fn set(&mut self, webxdc: Webxdc, version: u32) {
         match webxdc {
             Webxdc::Store => self.store = version,
         }
     }
 
-    pub fn get(&self, webxdc: Webxdc) -> i32 {
+    pub fn get(&self, webxdc: Webxdc) -> u32 {
         match webxdc {
             Webxdc::Store => self.store,
         }
@@ -207,7 +207,7 @@ pub async fn read_webxdc_versions() -> anyhow::Result<WebxdcVersions> {
         }
     }
 
-    let mut futures: Vec<JoinHandle<anyhow::Result<(Webxdc, i32)>>> = vec![];
+    let mut futures: Vec<JoinHandle<anyhow::Result<(Webxdc, u32)>>> = vec![];
     for webxdc in Webxdc::iter() {
         futures.push(tokio::spawn(async move {
             let version = get_webxdc_version(&webxdc.get_str_path()?).await?;

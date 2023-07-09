@@ -20,7 +20,7 @@ pub struct WexbdcManifest {
     pub app_id: String,
 
     /// Version of the application.
-    pub version: i32,
+    pub version: u32,
 
     /// Webxdc name, used on icons or page titles.
     pub name: String,
@@ -41,56 +41,29 @@ pub struct WexbdcManifest {
 pub struct AppInfo {
     #[serde(skip)]
     pub id: RecordId,
-    pub app_id: String,                  // manifest
-    pub version: i32,                    // manifest
-    pub date: u32,                       // manifest
-    pub name: String,                    // manifest
-    pub submitter_uri: Option<String>,   // bot
+    pub app_id: String, // manifest
+    pub version: u32,   // manifest
+    pub date: i64,      // manifest
+    pub name: String,   // manifest
+    #[serde(skip)]
+    pub submitter_uri: Option<String>, // bot
     pub source_code_url: Option<String>, // manifest
-    pub image: String,                   // webxdc
-    pub description: String,             // submit
+    pub image: String,  // webxdc
+    pub description: String, // submit
     #[serde(skip)]
     pub xdc_blob_path: PathBuf, // bot
-    pub size: u32,                       //bot
-    #[serde(skip)]
-    pub originator: RecordId, // bot
+    pub size: i64,      //bot
 }
 
 impl AppInfo {
     /// Create appinfo from webxdc file.
     pub async fn from_xdc(file: &Path) -> anyhow::Result<Self> {
-        let size = u32::try_from(File::open(&file).await?.metadata().await?.len())?;
-
-        let mut app = AppInfo {
-            size,
-            ..Default::default()
-        };
-        app.update_from_xdc(file.to_path_buf()).await?;
-        Ok(app)
-    }
-
-    /// Reads a webxdc file and overwrites current fields.
-    /// Returns true if the version has changed.
-    pub async fn update_from_xdc(&mut self, file: PathBuf) -> anyhow::Result<bool> {
-        let mut upgraded = false;
+        let size = i64::try_from(File::open(&file).await?.metadata().await?.len())?;
         let reader = ZipFileReader::new(&file).await?;
         let entries = reader.file().entries();
         let manifest = get_webxdc_manifest(&reader).await?;
 
-        self.app_id = manifest.app_id;
-        if self.version != manifest.version {
-            upgraded = true
-        }
-        self.version = manifest.version;
-        self.name = manifest.name;
-        self.description = manifest.description;
-        self.source_code_url = manifest.source_code_url;
-        self.submitter_uri = manifest.submitter_uri;
-        // self.submission_date = manifest.submission_date;
-
-        self.xdc_blob_path = file;
-
-        let icon = entries
+        let image = entries
             .iter()
             .enumerate()
             .find(|(_, entry)| {
@@ -102,12 +75,26 @@ impl AppInfo {
                     .unwrap_or_default()
             })
             .map(|a| a.0);
-
-        if let Some(index) = icon {
+        let image = if let Some(index) = image {
             let res = read_vec(&reader, index).await?;
-            self.image = encode(&res)
-        }
-        Ok(upgraded)
+            Ok(encode(&res))
+        } else {
+            Err(anyhow::anyhow!("Could not find image"))
+        };
+
+        Ok(Self {
+            size,
+            date: 1688893410072,
+            app_id: manifest.app_id,
+            version: manifest.version,
+            name: manifest.name,
+            submitter_uri: manifest.submitter_uri,
+            source_code_url: manifest.source_code_url,
+            image: image?,
+            description: manifest.description,
+            xdc_blob_path: file.to_path_buf(),
+            id: 0, // This will be updated by the db on insert
+        })
     }
 }
 
@@ -130,7 +117,7 @@ pub struct WebxdcStatusUpdate<T> {
 #[serde(tag = "type")]
 
 pub enum GeneralFrontendResponse {
-    Outdated { critical: bool, version: i32 },
+    Outdated { critical: bool, version: u32 },
     UpdateSent,
 }
 
