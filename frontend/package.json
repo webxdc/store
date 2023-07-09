@@ -28,7 +28,6 @@
     "@iconify-json/carbon": "^1.1.17",
     "@iconify-json/eos-icons": "^1.1.6",
     "@iconify-json/material-symbols": "^1.1.48",
-    "@solidjs/router": "^0.8.2",
     "@unocss/reset": "^0.53.0",
     "date-fns": "^2.30.0",
     "fuse.js": "^6.6.2",
