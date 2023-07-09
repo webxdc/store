@@ -29,15 +29,14 @@ pub struct DBAppInfo {
     pub id: RecordId,
     pub app_id: String,
     pub name: String,
-    pub date: u32,
+    pub date: i64,
     pub submitter_uri: Option<String>,
     pub source_code_url: Option<String>,
     pub image: String,
     pub description: String,
     pub xdc_blob_path: String,
-    pub size: u32,
-    pub version: i32,
-    pub originator: RecordId,
+    pub size: i64,
+    pub version: u32,
 }
 
 impl From<DBAppInfo> for AppInfo {
@@ -54,7 +53,6 @@ impl From<DBAppInfo> for AppInfo {
             xdc_blob_path: PathBuf::from(db_app.xdc_blob_path),
             size: db_app.size,
             version: db_app.version,
-            originator: db_app.originator,
         }
     }
 }
@@ -169,7 +167,7 @@ pub async fn create_app_info(
 ) -> anyhow::Result<()> {
     let mut trans = c.begin().await?;
     let next_serial = increase_get_serial(&mut trans).await?;
-    let res = sqlx::query("INSERT INTO app_infos (app_id, name, description, version, image, submitter_uri, xdc_blob_path, originator, source_code_url, serial) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)")
+    let res = sqlx::query("INSERT INTO app_infos (app_id, name, description, version, image, submitter_uri, xdc_blob_path, source_code_url, serial, date, size) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)")
         .bind(app_info.app_id.as_str())
         .bind(app_info.name.as_str())
         .bind(&app_info.description)
@@ -177,10 +175,10 @@ pub async fn create_app_info(
         .bind(&app_info.image)
         .bind(&app_info.submitter_uri)
         .bind(app_info.xdc_blob_path.to_str())
-        .bind(app_info.originator)
         .bind(&app_info.source_code_url)
         .bind(next_serial)
-        .bind(app_info.id)
+        .bind(app_info.date)
+        .bind(app_info.size)
         .execute(&mut *trans)
         .await?;
     app_info.id = i32::try_from(res.last_insert_rowid())?;
@@ -206,7 +204,7 @@ pub async fn get_app_info_for_app_id(
 pub async fn maybe_get_greater_version(
     c: &mut SqliteConnection,
     app_id: &str,
-    version: i32,
+    version: u32,
 ) -> sqlx::Result<bool> {
     sqlx::query(
         "SELECT EXISTS(SELECT 1 FROM app_infos WHERE app_id = ? AND version > ? LIMIT 1) AS exists_greater_version",
@@ -258,7 +256,7 @@ pub async fn app_exists(c: &mut SqliteConnection, app_id: &str) -> sqlx::Result<
 pub async fn app_version_exists(
     c: &mut SqliteConnection,
     id: &str,
-    version: i32,
+    version: u32,
 ) -> sqlx::Result<bool> {
     sqlx::query("SELECT EXISTS(SELECT 1 FROM app_infos WHERE app_id = ? AND version = ?)")
         .bind(id)
@@ -279,7 +277,7 @@ pub async fn get_last_serial(c: &mut SqliteConnection) -> sqlx::Result<i32> {
 pub async fn set_webxdc_version(
     c: &mut SqliteConnection,
     msg: MsgId,
-    version: i32,
+    version: u32,
     webxdc: Webxdc,
 ) -> sqlx::Result<()> {
     sqlx::query(
@@ -297,7 +295,7 @@ pub async fn set_webxdc_version(
 pub async fn get_webxdc_version(
     c: &mut SqliteConnection,
     msg: MsgId,
-) -> sqlx::Result<(Webxdc, i32)> {
+) -> sqlx::Result<(Webxdc, u32)> {
     sqlx::query("SELECT * FROM webxdc_versions WHERE msg_id = ?")
         .bind(msg.to_u32())
         .fetch_one(c)
@@ -363,6 +361,35 @@ mod tests {
             .unwrap();
         let (_, loaded_version) = get_webxdc_version(&mut conn, msg).await.unwrap();
         assert_eq!(loaded_version, 1);
+    }
+
+    #[tokio::test]
+    async fn test_create_get_app_info() {
+        let mut conn = SqliteConnection::connect("sqlite::memory:").await.unwrap();
+        MIGRATOR.run(&mut conn).await.unwrap();
+        set_config(&mut conn, &BotConfig::default()).await.unwrap();
+
+        let mut app_info = AppInfo {
+            size: 998887,
+            date: 1688835984521,
+            app_id: "app_id".to_string(),
+            id: 12,
+            version: 9,
+            name: "Sebastians coole app".to_string(),
+            submitter_uri: Some("https://example.com".to_string()),
+            source_code_url: Some("https://git.example.com/sebastian/app".to_string()),
+            image: "aaaaaaaaaaaaaaaaaaaaaaaaa".to_string(),
+            description: "This is a cool app".to_string(),
+            xdc_blob_path: PathBuf::from("xdc_blob_path"),
+        };
+
+        create_app_info(&mut conn, &mut app_info).await.unwrap();
+
+        let loaded_app_info = get_app_info_for_app_id(&mut conn, &app_info.app_id)
+            .await
+            .unwrap();
+
+        assert_eq!(app_info, loaded_app_info);
     }
 
     #[tokio::test]
