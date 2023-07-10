@@ -8,7 +8,7 @@ import type { Component } from 'solid-js'
 import { useStorage } from 'solidjs-use'
 import Fuse from 'fuse.js'
 import Info from './components/Info'
-import OutdatedView from './components/OutdatedView'
+import OutdatedView from './components/Outdated'
 import type { StoreRequest } from '~/bindings/StoreRequest'
 
 import type { StoreResponse } from '~/bindings/StoreResponse'
