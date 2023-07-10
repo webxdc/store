@@ -1,19 +1,18 @@
-import { render } from 'solid-js/web'
-import { createContext, createEffect, onMount } from 'solid-js'
-import { createStore, unwrap } from 'solid-js/store'
+import { For, render } from 'solid-js/web'
+import { Match, Show, Switch, createEffect, createMemo, createSignal } from 'solid-js'
+import { createStore } from 'solid-js/store'
 import '~/index.sass'
 import 'virtual:uno.css'
 import '@unocss/reset/tailwind.css'
-import type { StoreRequest } from '~/bindings/StoreRequest'
-
 import type { Component } from 'solid-js'
-import { Match, Show, Switch, createMemo, createSignal, useContext } from 'solid-js'
-import { For } from 'solid-js/web'
 import { useStorage } from 'solidjs-use'
 import Fuse from 'fuse.js'
+import Info from './components/Info'
+import OutdatedView from './components/OutdatedView'
+import type { StoreRequest } from '~/bindings/StoreRequest'
+
 import type { StoreResponse } from '~/bindings/StoreResponse'
 import { AppInfoDB } from '~/db/store_db'
-import OutdatedView from '~/components/OutdatedView'
 import { to_app_infos_by_id, updateHandler } from '~/store-logic'
 import { AppState } from '~/types'
 import type { AppInfoWithState, AppInfosById } from '~/types'
@@ -135,17 +134,15 @@ const Store: Component = () => {
   const [updateReceived, setUpdateReceived] = useStorage('update-received', false)
   const [lastUpdateSerial, setlastUpdateSerial] = useStorage('last-update-serial', 0) // Last serial to initialize updateListener
   const [lastUpdate, setlastUpdate] = useStorage('last-update', new Date())
-  const [dateNow, setDateNow] = createSignal(new Date())
-  setInterval(() => setDateNow(new Date()), 2000)
   const [isUpdating, setIsUpdating] = createSignal(false)
   const [query, setSearch] = createSignal('')
-  const [showCommit, setShowCommit] = createSignal(false) // Show the commit hash when heading was clicked
+  const [showInfo, setShowInfo] = createSignal(false) // Show the commit hash when heading was clicked
   const cached = createMemo(() => Object.values(appInfo).filter(app_info => app_info.state !== AppState.Initial))
 
   // automatically update the app list
   const past_time = Math.abs(new Date().getTime() - lastUpdate().getTime()) / 1000
   if (appInfo === undefined || (past_time > 60 * 60)) {
-    setIsUpdating(true)
+    update()
   }
 
   const db = new AppInfoDB('webxdc')
@@ -166,9 +163,8 @@ const Store: Component = () => {
     setlastSerial(resp.serial)
   }, lastSerial())
 
-  async function handleUpdate() {
+  async function update() {
     setIsUpdating(true)
-
     const cached_apps = cached().map(app_info => ([app_info.app_id, app_info.version] as [string, number]))
     window.webxdc.sendUpdate({
       payload: { Update: { serial: lastUpdateSerial(), apps: cached_apps } } as StoreRequest,
@@ -196,8 +192,8 @@ const Store: Component = () => {
   }
 
   return (
-    <OutdatedView critical={updateNeeded()} updated_received={updateReceived()}>
-      <div class="c-grid p-3">
+    <>
+      <div class="c-grid p-3" classList={{ blur: showInfo() || updateNeeded() }}>
         <div class="min-width">
 
           {/* header */}
@@ -207,8 +203,8 @@ const Store: Component = () => {
                 Webxdc Store
               </h1>
             </div>
-            <button class="rounded-xl p-2 btn">
-              <Show when={isUpdating} fallback={
+            <button class="rounded-xl p-2 btn" onClick={() => setShowInfo(true)}>
+              <Show when={isUpdating()} fallback={
                 <div class="border border-blue-500 rounded" i-carbon-information></div>
               }>
                 <div class="loading-spinner border border-blue-500 rounded" i-material-symbols-sync></div>
@@ -241,7 +237,19 @@ const Store: Component = () => {
           </div>
         </div >
       </div>
-    </OutdatedView>
+        {/* modals */}
+        <Show when={showInfo() && !updateNeeded()}>
+          <Info
+            last_update={lastUpdate()}
+            onClose={() => setShowInfo(false)}
+            onUpdate={update}
+            updating={isUpdating()}
+            version={import.meta.env.VITE_COMMIT} />
+        </Show>
+        <Show when={updateNeeded()}>
+          <OutdatedView updated_received={updateReceived()} />
+        </Show>
+    </>
   )
 }
 
