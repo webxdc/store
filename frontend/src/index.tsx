@@ -76,9 +76,9 @@ function AppInfoModal(item: AppInfoWithState, onDownload: () => void, onForward:
           <div class="flex flex-col">
             <p class="my-4 text-gray-600">{item.description}</p>
             <div class="my-2">
-              <p class="text-sm text-gray-600"><span class="font-bold"> Submitter: </span>{item.submitter_uri}</p>
-              <p class="break-all text-sm text-gray-600"><span class="font-bold"> Source code: </span>{item.source_code_url}</p>
-              <p class="text-sm text-gray-600"><span class="font-bold"> Version: </span>{item.version}</p>
+              <p class="text-sm text-gray-600"><span class="font-bold"> Date: </span>{new Date(Number(item.date)).toLocaleDateString()}</p>
+              <p class="text-sm text-gray-600"><span class="font-bold"> Size: </span>{(Number(item.size) / 1000).toFixed(1).toString()} kb</p>
+              <p class="break-all text-sm text-gray-600"><span class="font-bold"> Source-code: </span>{item.source_code_url}</p>
             </div>
             {(item.state === AppState.Received || item.state === AppState.Updating) && <button class="self-center btn" onClick={onRemove}>Remove from cache</button>}
           </div>
@@ -228,7 +228,7 @@ const Store: Component = () => {
                 <p class="text-center unimportant">Loading store..</p>
               }>
                 <AppList
-                  items={Object.values(appInfo)} search_query={query()}
+                  items={Object.values(appInfo).sort((a, b) => Number(b.date - a.date))} search_query={query()}
                   onDownload={handleDownload}
                   onForward={handleForward}
                   onRemove={handleRemove} ></AppList>
@@ -237,18 +237,18 @@ const Store: Component = () => {
           </div>
         </div >
       </div>
-        {/* modals */}
-        <Show when={showInfo() && !updateNeeded()}>
-          <Info
-            last_update={lastUpdate()}
-            onClose={() => setShowInfo(false)}
-            onUpdate={update}
-            updating={isUpdating()}
-            version={import.meta.env.VITE_COMMIT} />
-        </Show>
-        <Show when={updateNeeded()}>
-          <OutdatedView updated_received={updateReceived()} />
-        </Show>
+      {/* modals */}
+      <Show when={showInfo() && !updateNeeded()}>
+        <Info
+          last_update={lastUpdate()}
+          onClose={() => setShowInfo(false)}
+          onUpdate={update}
+          updating={isUpdating()}
+          version={import.meta.env.VITE_COMMIT} />
+      </Show>
+      <Show when={updateNeeded()}>
+        <OutdatedView updated_received={updateReceived()} />
+      </Show>
     </>
   )
 }
