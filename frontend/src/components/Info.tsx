@@ -24,7 +24,7 @@ const Info: Component<Props> = (props) => {
         <div class="stretch-item">
           <p>Last update: </p>
           <Show when={props.updating} fallback={
-            <button class="flex items-center text-nowrap gap-2 px-2 unimportant btn" onclick={props.onUpdate}>
+            <button class="flex items-center gap-2 px-2 text-nowrap unimportant btn" onclick={props.onUpdate}>
               <span>{formatDistanceToNow(props.last_update)}</span>
               <div class="border border-blue-500 rounded" i-material-symbols-sync></div>
             </button>
