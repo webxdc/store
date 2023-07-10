@@ -8,6 +8,7 @@ use base64::encode;
 use serde::{Deserialize, Serialize};
 use sqlx::{Decode, FromRow, Type};
 use std::path::{Path, PathBuf};
+use time::{format_description::well_known::Rfc3339, OffsetDateTime};
 use tokio::fs::File;
 use ts_rs::TS;
 
@@ -33,6 +34,9 @@ pub struct WexbdcManifest {
 
     /// Uri of the submitter.
     pub submitter_uri: Option<String>,
+
+    /// Date displayed in the store.
+    pub date: String,
 }
 
 #[derive(TS, Deserialize, Serialize, Clone, Debug, Default, PartialEq, FromRow, Decode)]
@@ -84,7 +88,7 @@ impl AppInfo {
 
         Ok(Self {
             size,
-            date: 1688893410072,
+            date: OffsetDateTime::parse(&manifest.date, &Rfc3339)?.unix_timestamp(),
             app_id: manifest.app_id,
             version: manifest.version,
             name: manifest.name,
