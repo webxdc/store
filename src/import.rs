@@ -38,17 +38,23 @@ pub async fn import_many(
     let mut added = Vec::new();
     let mut updated = Vec::new();
     let mut ignored = Vec::new();
+    let mut failed = Vec::new();
+
     for file in &xdcs {
-        match import_one(file, &xdcs_path, conn).await? {
-            AddType::Added => added.push(file),
-            AddType::Updated => updated.push(file),
-            AddType::Ignored => ignored.push(file),
+        match import_one(file, &xdcs_path, conn).await {
+            Ok(AddType::Added) => added.push(file),
+            Ok(AddType::Updated) => updated.push(file),
+            Ok(AddType::Ignored) => ignored.push(file),
+            Err(e) => {
+                eprintln!("{e:#}");
+                failed.push(file)
+            }
         }
     }
 
-    for (list, name) in vec![added, updated, ignored]
+    for (list, name) in vec![added, updated, ignored, failed]
         .into_iter()
-        .zip(&["Added", "Updated", "Ignored"])
+        .zip(&["Added", "Updated", "Ignored", "Failed"])
     {
         if list.is_empty() {
             println!("{name}: None");
@@ -78,7 +84,9 @@ pub async fn import_one(
         bail!("File does not end with .xdc");
     }
 
-    let mut app_info = AppInfo::from_xdc(file).await?;
+    let mut app_info = AppInfo::from_xdc(file)
+        .await
+        .context(anyhow::anyhow!("Failed to load {}", file.display()))?;
     app_info.submitter_uri = Some("xdcstore".to_string());
 
     // copy the file to the `dest`
