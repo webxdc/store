@@ -76,7 +76,7 @@ function AppInfoModal(item: AppInfoWithState, onDownload: () => void, onForward:
           <div class="flex flex-col">
             <p class="my-4 text-gray-600">{item.description}</p>
             <div class="my-2">
-              <p class="text-sm text-gray-600"><span class="font-bold"> Date: </span>{new Date(Number(item.date)).toLocaleDateString()}</p>
+              <p class="text-sm text-gray-600"><span class="font-bold"> Date: </span>{new Date(Number(item.date) * 1000).toLocaleDateString()}</p>
               <p class="text-sm text-gray-600"><span class="font-bold"> Size: </span>{(Number(item.size) / 1000).toFixed(1).toString()} kb</p>
               <p class="break-all text-sm text-gray-600"><span class="font-bold"> Source-code: </span>{item.source_code_url}</p>
             </div>
