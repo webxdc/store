@@ -75,7 +75,7 @@ impl AppInfo {
                     .entry()
                     .filename()
                     .as_str()
-                    .map(|name| name == "icon.png")
+                    .map(|name| name == "icon.png" || name == "icon.jpg")
                     .unwrap_or_default()
             })
             .map(|a| a.0);
