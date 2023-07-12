@@ -21,7 +21,7 @@ env_logger = "0.10.0"
 itertools = "^0.10"
 ts-rs = "6.2.1"
 rand = "0.8.5"
-async_zip = {version="0.0.15", features=["tokio", "tokio-fs"]}
+async_zip = {version="0.0.15", features=["tokio", "tokio-fs", "deflate", "bzip2", "lzma", "zstd", "xz"]}
 base64-compat = "1.0.0"
 qrcode-generator = "4.1.8"
 qr2term = "0.3.1"
