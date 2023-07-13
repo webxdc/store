@@ -1,11 +1,11 @@
 import { type Component, Show, createSignal } from 'solid-js'
-import type { GeneralFrontendRequest } from '../bindings/GeneralFrontendRequest'
+import type { WebxdcStatusUpdatePayload } from '../bindings/WebxdcStatusUpdatePayload'
 
 interface OutdatedViewProps {
   updated_received: boolean
 }
 
-type UpdateRequest = Extract<GeneralFrontendRequest, { type: 'UpdateWebxdc' }>
+type UpdateRequest = Extract<WebxdcStatusUpdatePayload, { type: 'UpdateWebxdc' }>
 
 const AppInfoPreview: Component<OutdatedViewProps> = (props) => {
   const [buttonUsed, setButtonUsed] = createSignal(false)

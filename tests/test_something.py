@@ -140,7 +140,9 @@ def test_update(acfactory, storebot):
     }
 
     # Request updates.
-    assert msg_in.send_status_update({"payload": {"Update": {"serial": 0}}}, "update")
+    assert msg_in.send_status_update(
+        {"payload": {"type": "UpdateRequest", "serial": 0}}, "update"
+    )
     ac1._evtracker.get_matching("DC_EVENT_WEBXDC_STATUS_UPDATE")
 
     # Receive a response.
@@ -167,7 +169,9 @@ def test_update_advanced(acfactory, storebot_example):
     assert msg_in.send_status_update(
         {
             "payload": {
-                "Update": {"serial": 0, "apps": [("dc-calendar", 1), ("dc-hextris", 2)]}
+                "type": "UpdateRequest",
+                "serial": 0,
+                "apps": [("dc-calendar", 1), ("dc-hextris", 2)],
             }
         },
         "update",
@@ -243,7 +247,7 @@ def test_download(acfactory, storebot_example):
     xdc_2040 = [xdc for xdc in app_infos if xdc["name"] == "2048"][0]
 
     assert msg_in.send_status_update(
-        {"payload": {"Download": {"app_id": xdc_2040["app_id"]}}}, "update"
+        {"payload": {"type": "Download", "app_id": xdc_2040["app_id"]}}, "update"
     )
 
     ac1._evtracker.get_matching("DC_EVENT_WEBXDC_STATUS_UPDATE")
@@ -260,7 +264,7 @@ def test_download(acfactory, storebot_example):
 
     # Test download response for non-existing app.
     assert msg_in.send_status_update(
-        {"payload": {"Download": {"app_id": "xxx"}}}, "update"
+        {"payload": {"type": "Download", "app_id": "xxx"}}, "update"
     )
     ac1._evtracker.get_matching("DC_EVENT_WEBXDC_STATUS_UPDATE")
     ac1._evtracker.get_matching("DC_EVENT_WEBXDC_STATUS_UPDATE")
@@ -318,7 +322,7 @@ def test_frontend_update(acfactory, storebot):
     storebot.stop()
     storebot.start(XDCSTORE_KEEP_ASSETS="yes")
 
-    msg_in.send_status_update({"payload": {"Update": {"serial": 0}}}, "")
+    msg_in.send_status_update({"payload": {"type": "UpdateRequest", "serial": 0}}, "")
     ac1._evtracker.get_matching("DC_EVENT_WEBXDC_STATUS_UPDATE")  # Self-sent
     ac1._evtracker.get_matching(
         "DC_EVENT_WEBXDC_STATUS_UPDATE"
@@ -327,7 +331,7 @@ def test_frontend_update(acfactory, storebot):
     # Test that the bot sends an outdated response
     status_updates = msg_in.get_status_updates()
     payload = status_updates[2]["payload"]
-    assert payload == {"critical": True, "type": "Outdated", "version": 1000}
+    assert payload == {"type": "Outdated", "critical": True, "version": 1000}
 
     # In store.xdc the update button should send this message
     msg_in.send_status_update({"payload": {"type": "UpdateWebxdc"}}, "")

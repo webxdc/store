@@ -9,9 +9,8 @@ import { useStorage } from 'solidjs-use'
 import Fuse from 'fuse.js'
 import Info from './components/Info'
 import OutdatedView from './components/Outdated'
-import type { StoreRequest } from '~/bindings/StoreRequest'
+import type { WebxdcStatusUpdatePayload } from '~/bindings/WebxdcStatusUpdatePayload'
 
-import type { StoreResponse } from '~/bindings/StoreResponse'
 import { AppInfoDB } from '~/db/store_db'
 import { to_app_infos_by_id, updateHandler } from '~/store-logic'
 import { AppState } from '~/types'
@@ -28,8 +27,8 @@ const fuse_options = {
   threshold: 0.4,
 }
 
-type DownloadResponseOkay = Extract<StoreResponse, { type: 'DownloadOkay' }>
-type UpdateResponse = Extract<StoreResponse, { type: 'Update' }>
+type DownloadResponseOkay = Extract<WebxdcStatusUpdatePayload, { type: 'DownloadOkay' }>
+type UpdateResponse = Extract<WebxdcStatusUpdatePayload, { type: 'Update' }>
 
 function AppInfoModal(item: AppInfoWithState, onDownload: () => void, onForward: () => void, onRemove: () => void) {
   const [isExpanded, setIsExpanded] = createSignal(false)
@@ -167,14 +166,14 @@ const Store: Component = () => {
     setIsUpdating(true)
     const cached_apps = cached().map(app_info => ([app_info.app_id, app_info.version] as [string, number]))
     window.webxdc.sendUpdate({
-      payload: { Update: { serial: lastUpdateSerial(), apps: cached_apps } } as StoreRequest,
+      payload: { type: 'UpdateRequest', serial: lastUpdateSerial(), apps: cached_apps } as WebxdcStatusUpdatePayload,
     }, '')
   }
 
   async function handleDownload(app_id: string) {
     setAppInfo(app_id, 'state', AppState.Downloading)
     window.webxdc.sendUpdate({
-      payload: { Download: { app_id } } as StoreRequest,
+      payload: { type: 'Download', app_id } as WebxdcStatusUpdatePayload,
     }, '')
   }
 
