@@ -35,7 +35,7 @@ function AppInfoModal(item: AppInfoWithState, onDownload: () => void, onForward:
   const [isExpanded, setIsExpanded] = createSignal(false)
 
   return (
-    <li class="w-full border rounded-md p-3 shadow">
+    <li class="w-full p-3">
       <div class="flex cursor-pointer items-center justify-between gap-2" onClick={() => setIsExpanded(!isExpanded())}>
         <img src={`data:image/png;base64,${item.image!}`} alt={item.name} class="h-20 w-20 rounded-xl object-cover" />
         <div class="flex-grow-1 overflow-hidden">
@@ -116,8 +116,12 @@ const AppList: Component<AppListProps> = (props) => {
   return (
     <Show when={props.items.length !== 0} fallback={<p class="text-center unimportant">There are no apps</p>}>
       <For each={filtered_items() || props.items}>
-        {
-          item => AppInfoModal(item, () => props.onDownload(item.app_id), () => { props.onForward(item.app_id) }, () => props.onRemove(item.app_id))
+        {(item, index) => (
+          <>
+            {AppInfoModal(item, () => props.onDownload(item.app_id), () => { props.onForward(item.app_id) }, () => props.onRemove(item.app_id))}
+            {index() !== filtered_items().length - 1 && <hr class="mx-2" />}
+          </>
+        )
         }
       </For>
     </Show>
