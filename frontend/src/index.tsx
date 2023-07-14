@@ -7,6 +7,7 @@ import '@unocss/reset/tailwind.css'
 import type { Component } from 'solid-js'
 import { useStorage } from 'solidjs-use'
 import Fuse from 'fuse.js'
+import { formatDistanceToNow } from 'date-fns'
 import OutdatedView from './components/Outdated'
 import type { WebxdcStatusUpdatePayload } from '~/bindings/WebxdcStatusUpdatePayload'
 
@@ -16,7 +17,6 @@ import { AppState } from '~/types'
 import type { AppInfoWithState, AppInfosById } from '~/types'
 import mock from '~/mock'
 import type { ReceivedStatusUpdate } from '~/webxdc'
-import { formatDistanceToNow } from 'date-fns'
 
 const fuse_options = {
   keys: [
@@ -115,10 +115,10 @@ const AppList: Component<AppListProps> = (props) => {
   return (
     <Show when={props.items.length !== 0} fallback={<p class="text-center unimportant">There are no apps</p>}>
       <For each={filtered_items() || props.items}>
-        {(item, index) => (
+        {item => (
           <>
             {AppInfoModal(item, () => props.onDownload(item.app_id), () => { props.onForward(item.app_id) }, () => props.onRemove(item.app_id))}
-            {index() !== filtered_items().length - 1 && <hr class="mx-2" />}
+            <hr class="mr-5" />
           </>
         )
         }
@@ -196,16 +196,16 @@ const Store: Component = () => {
         <div class="min-width">
           {/* app list */}
           <div>
-            <div class="flex justify-center items-start gap-2 my-4">
-              <div class="flex flex-col gap-1 items-start">
+            <div class="my-3 mt-8 flex items-start justify-center gap-2">
+              <div class="flex flex-col items-start gap-1">
                 <input class="border-2 rounded-2xl px-3 py-1" placeholder='Search webxdc apps' onInput={event => setSearch((event.target as HTMLInputElement).value)} />
-                <button class="ml-3 unimportant font-light text-sm" onclick={update}> last update: {isUpdating() ? 'Updating..' : formatDistanceToNow(lastUpdate()) + ' ago'}</button>
               </div>
               <button class="rounded-1/2 p-2 btn">
                 <div class="i-carbon-search text-blue-700" />
               </button>
             </div>
-            <ul class="w-full flex flex-col gap-2">
+            <ul class="my-8 w-full flex flex-col gap-1">
+              <hr />
               <Show when={!(lastSerial() === 0)} fallback={
                 <p class="text-center unimportant">Loading store..</p>
               }>
@@ -216,6 +216,9 @@ const Store: Component = () => {
                   onRemove={handleRemove} ></AppList>
               </Show>
             </ul>
+            <div class="grid place-content-center">
+              <button class="self-center font-light btn" onclick={update}> last update: {isUpdating() ? 'Updating..' : `${formatDistanceToNow(lastUpdate())} ago`}</button>
+            </div>
           </div>
         </div >
       </div>
