@@ -17,6 +17,7 @@ import { AppState } from '~/types'
 import type { AppInfoWithState, AppInfosById } from '~/types'
 import mock from '~/mock'
 import type { ReceivedStatusUpdate } from '~/webxdc'
+import { formatDistanceToNow } from 'date-fns'
 
 const fuse_options = {
   keys: [
@@ -188,17 +189,18 @@ const Store: Component = () => {
 
   return (
     <>
-      <div class="c-grid p-3" classList={{ 'blur-xl': updateNeeded() }}>
+      <div class="c-grid p-2" classList={{ 'blur-xl': updateNeeded() }}>
         <div class="min-width">
           {/* app list */}
-          <div class="px-4">
-            <div class="my-4 w-full flex flex-col items-center justify-center gap-2">
-              <div class="flex items-center justify-center gap-2">
+          <div>
+            <div class="flex justify-center items-start gap-2 my-4">
+              <div class="flex flex-col gap-1 items-start">
                 <input class="border-2 rounded-2xl px-3 py-1" placeholder='Search webxdc apps' onInput={event => setSearch((event.target as HTMLInputElement).value)} />
-                <button class="rounded-1/2 p-2 btn">
-                  <div class="i-carbon-search text-blue-700" />
-                </button>
+                <button class="ml-3 unimportant font-light text-sm" onclick={update}> last update: {isUpdating() ? 'Updating..' : formatDistanceToNow(lastUpdate()) + ' ago'}</button>
               </div>
+              <button class="rounded-1/2 p-2 btn">
+                <div class="i-carbon-search text-blue-700" />
+              </button>
             </div>
             <ul class="w-full flex flex-col gap-2">
               <Show when={!(lastSerial() === 0)} fallback={
