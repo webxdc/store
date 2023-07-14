@@ -7,7 +7,6 @@ import '@unocss/reset/tailwind.css'
 import type { Component } from 'solid-js'
 import { useStorage } from 'solidjs-use'
 import Fuse from 'fuse.js'
-import Info from './components/Info'
 import OutdatedView from './components/Outdated'
 import type { WebxdcStatusUpdatePayload } from '~/bindings/WebxdcStatusUpdatePayload'
 
@@ -34,12 +33,15 @@ function AppInfoModal(item: AppInfoWithState, onDownload: () => void, onForward:
   const [isExpanded, setIsExpanded] = createSignal(false)
 
   return (
-    <li class="w-full border rounded p-4 shadow">
+    <li class="w-full border rounded-md p-3 shadow">
       <div class="flex cursor-pointer items-center justify-between gap-2" onClick={() => setIsExpanded(!isExpanded())}>
         <img src={`data:image/png;base64,${item.image!}`} alt={item.name} class="h-20 w-20 rounded-xl object-cover" />
         <div class="flex-grow-1 overflow-hidden">
           <h2 class="text-xl font-semibold">{item.name}</h2>
           <p class="max-width-text truncate text-gray-600">{item.description}</p>
+          <button class="text-blue-700">
+            {isExpanded() ? 'Less' : 'More'}
+          </button>
         </div>
         <Switch>
           <Match when={item.state === AppState.Initial}>
@@ -70,23 +72,17 @@ function AppInfoModal(item: AppInfoWithState, onDownload: () => void, onForward:
           </Match>
         </Switch>
       </div >
-      {
-        isExpanded() && (
-          <div class="flex flex-col">
-            <p class="my-4 text-gray-600">{item.description}</p>
-            <div class="my-2">
-              <p class="text-sm text-gray-600"><span class="font-bold"> Date: </span>{new Date(Number(item.date) * 1000).toLocaleDateString()}</p>
-              <p class="text-sm text-gray-600"><span class="font-bold"> Size: </span>{(Number(item.size) / 1000).toFixed(1).toString()} kb</p>
-              <p class="break-all text-sm text-gray-600"><span class="font-bold"> Source-code: </span>{item.source_code_url}</p>
-            </div>
-            {(item.state === AppState.Received || item.state === AppState.Updating) && <button class="self-center btn" onClick={onRemove}>Remove from cache</button>}
+      <Show when={isExpanded()}>
+        <div class="flex flex-col">
+          <p class="my-2 text-gray-600">{item.description}</p>
+          <div class="my-2">
+            <p class="text-sm text-gray-600"><span class="font-bold"> Date: </span>{new Date(Number(item.date) * 1000).toLocaleDateString()}</p>
+            <p class="text-sm text-gray-600"><span class="font-bold"> Size: </span>{(Number(item.size) / 1000).toFixed(1).toString()} kb</p>
+            <p class="break-all text-sm text-gray-600"><span class="font-bold"> Source-code: </span>{item.source_code_url}</p>
           </div>
-        )
-      }
-      <div class="mt-1 flex justify-center" onClick={() => setIsExpanded(!isExpanded())}>
-        <button class={`text-blue-800 ${isExpanded() ? 'i-carbon-up-to-top' : 'i-carbon-down-to-bottom'}`}>
-        </button>
-      </div>
+          {(item.state === AppState.Received || item.state === AppState.Updating) && <button class="self-center btn" onClick={onRemove}>Remove from cache</button>}
+        </div>
+      </Show>
     </li >
   )
 }
@@ -135,7 +131,6 @@ const Store: Component = () => {
   const [lastUpdate, setlastUpdate] = useStorage('last-update', new Date())
   const [isUpdating, setIsUpdating] = createSignal(false)
   const [query, setSearch] = createSignal('')
-  const [showInfo, setShowInfo] = createSignal(false) // Show the commit hash when heading was clicked
   const cached = createMemo(() => Object.values(appInfo).filter(app_info => app_info.state !== AppState.Initial))
 
   // automatically update the app list
@@ -192,37 +187,19 @@ const Store: Component = () => {
 
   return (
     <>
-      <div class="c-grid p-3" classList={{ blur: showInfo() || updateNeeded() }}>
+      <div class="c-grid p-3" classList={{ 'blur-xl': updateNeeded() }}>
         <div class="min-width">
-
-          {/* header */}
-          <div class="flex items-center gap-2">
-            <div>
-              <h1 class="flex-shrink text-2xl font-bold">
-                Webxdc Store
-              </h1>
-            </div>
-            <button class="rounded-xl p-2 btn" onClick={() => setShowInfo(true)}>
-              <Show when={isUpdating()} fallback={
-                <div class="border border-blue-500 rounded" i-carbon-information></div>
-              }>
-                <div class="loading-spinner border border-blue-500 rounded" i-material-symbols-sync></div>
-              </Show>
-            </button>
-          </div>
-
           {/* app list */}
           <div class="px-4">
             <div class="my-4 w-full flex flex-col items-center justify-center gap-2">
               <div class="flex items-center justify-center gap-2">
-                <input class="border-2 rounded-2xl px-3 py-1" onInput={event => setSearch((event.target as HTMLInputElement).value)} />
+                <input class="border-2 rounded-2xl px-3 py-1" placeholder='Search webxdc apps' onInput={event => setSearch((event.target as HTMLInputElement).value)} />
                 <button class="rounded-1/2 p-2 btn">
                   <div class="i-carbon-search text-blue-700" />
                 </button>
               </div>
             </div>
             <ul class="w-full flex flex-col gap-2">
-
               <Show when={!(lastSerial() === 0)} fallback={
                 <p class="text-center unimportant">Loading store..</p>
               }>
@@ -237,14 +214,6 @@ const Store: Component = () => {
         </div >
       </div>
       {/* modals */}
-      <Show when={showInfo() && !updateNeeded()}>
-        <Info
-          last_update={lastUpdate()}
-          onClose={() => setShowInfo(false)}
-          onUpdate={update}
-          updating={isUpdating()}
-          version={import.meta.env.VITE_COMMIT} />
-      </Show>
       <Show when={updateNeeded()}>
         <OutdatedView updated_received={updateReceived()} />
       </Show>
