@@ -114,12 +114,12 @@ const AppList: Component<AppListProps> = (props) => {
   })
 
   return (
-    <Show when={props.items.length !== 0} fallback={<p class="text-center unimportant">There are no apps</p>}>
+    <Show when={filtered_items().length !== 0} fallback={<p class="text-center unimportant">There are no apps</p>}>
       <For each={filtered_items() || props.items}>
-        {item => (
+        {(item, index) => (
           <>
             {AppInfoModal(item, () => props.onDownload(item.app_id), () => { props.onForward(item.app_id) }, () => props.onRemove(item.app_id))}
-            <hr class="mr-5" />
+            {index() !== filtered_items().length - 1 && <hr />}
           </>
         )
         }
@@ -137,6 +137,7 @@ const Store: Component = () => {
   const [lastUpdate, setlastUpdate] = useStorage('last-update', new Date())
   const [isUpdating, setIsUpdating] = createSignal(false)
   const [query, setSearch] = createSignal('')
+  const [showCommit, setShowCommit] = createSignal(false)
   const cached = createMemo(() => Object.values(appInfo).filter(app_info => app_info.state !== AppState.Initial))
 
   // automatically update the app list
@@ -192,12 +193,12 @@ const Store: Component = () => {
   }
 
   return (
-    <>
-      <div class="c-grid p-2" classList={{ 'blur-xl': updateNeeded() }}>
+    <div class="min-h-screen flex flex-col justify-between">
+      <div class="c-grid" classList={{ 'blur-xl': updateNeeded() }}>
         <div class="min-width">
           {/* app list */}
           <div>
-            <div class="my-3 mt-8 flex items-start justify-center gap-2">
+            <div class="my-4 flex items-start justify-center gap-2 p-2">
               <div class="flex flex-col items-start gap-1">
                 <input class="border-2 rounded-2xl px-3 py-1" placeholder='Search webxdc apps' onInput={event => setSearch((event.target as HTMLInputElement).value)} />
               </div>
@@ -205,8 +206,8 @@ const Store: Component = () => {
                 <div class="i-carbon-search text-blue-700" />
               </button>
             </div>
-            <ul class="my-8 w-full flex flex-col gap-1">
-              <hr />
+            <hr />
+            <ul class="w-full flex flex-col gap-1 p-2">
               <Show when={!(lastSerial() === 0)} fallback={
                 <p class="text-center unimportant">Loading store..</p>
               }>
@@ -217,8 +218,21 @@ const Store: Component = () => {
                   onRemove={handleRemove} ></AppList>
               </Show>
             </ul>
-            <div class="grid place-content-center">
-              <button class="self-center font-light btn" onclick={update}> last update: {isUpdating() ? 'Updating..' : `${formatDistanceToNow(lastUpdate())} ago`}</button>
+            <hr />
+            <div class="grid place-content-center py-4 pb-5">
+              <button class="font-thin unimportant" onClick={() => setShowCommit(!showCommit())}>
+                Last update: {formatDistanceToNow(lastUpdate())} ago
+              </button>
+              <Show when={isUpdating()} fallback={
+                <button class="self-center px-2 font-light text-blue-900 btn" onclick={update}>
+                  Update
+                </button>
+              }>
+                <button class="self-center px-2 font-light btn" onclick={update}>
+                  Updating
+                  <span class='tracking-widest'>...</span>
+                </button>
+              </Show>
             </div>
           </div>
         </div >
@@ -227,7 +241,8 @@ const Store: Component = () => {
       <Show when={updateNeeded()}>
         <OutdatedView updated_received={updateReceived()} />
       </Show>
-    </>
+      {showCommit() && <p class="text-small mr-1 text-right text-sm text-gray-300"> {import.meta.env.VITE_COMMIT} </p>}
+    </div>
   )
 }
 
