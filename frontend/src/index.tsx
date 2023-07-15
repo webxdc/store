@@ -114,7 +114,7 @@ const AppList: Component<AppListProps> = (props) => {
   })
 
   return (
-    <Show when={filtered_items().length !== 0} fallback={<p class="text-center unimportant">There are no apps</p>}>
+    <Show when={filtered_items().length !== 0} fallback={<p class="text-center unimportant">No results for "{props.search_query}"</p>}>
       <For each={filtered_items() || props.items}>
         {(item, index) => (
           <>
@@ -193,11 +193,11 @@ const Store: Component = () => {
   }
 
   return (
-    <div class="min-h-screen flex flex-col justify-between">
+    <div>
       <div class="c-grid" classList={{ 'blur-xl': updateNeeded() }}>
         <div class="min-width">
           {/* app list */}
-          <div>
+          <div class="flex flex-col min-h-screen">
             <div class="my-4 flex items-start justify-center gap-2 p-2">
               <div class="flex flex-col items-start gap-1">
                 <input class="border-2 rounded-2xl px-3 py-1" placeholder='Search webxdc apps' onInput={event => setSearch((event.target as HTMLInputElement).value)} />
@@ -207,7 +207,7 @@ const Store: Component = () => {
               </button>
             </div>
             <hr />
-            <ul class="w-full flex flex-col gap-1 p-2">
+            <ul class="w-full flex flex-col gap-1 p-2 flex-grow">
               <Show when={!(lastSerial() === 0)} fallback={
                 <p class="text-center unimportant">Loading store..</p>
               }>
