@@ -37,7 +37,7 @@ function AppInfoModal(item: AppInfoWithState, onDownload: () => void, onForward:
   return (
     <li class="w-full p-3">
       <div class="flex cursor-pointer items-center justify-between gap-2" onClick={() => setIsExpanded(!isExpanded())}>
-        <img src={`data:image/png;base64,${item.image!}`} alt={item.name} class="h-20 w-20 rounded-xl object-cover" />
+        <img src={`data:image/png;base64,${item.image!}`} alt={item.name} class="h-16 w-16 rounded-xl object-cover" />
         <div class="flex-grow-1 overflow-hidden">
           <h2 class="text-xl font-semibold">{item.name}</h2>
           <p class="max-width-text truncate text-gray-600">{item.description}</p>
