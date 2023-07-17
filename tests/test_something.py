@@ -171,7 +171,7 @@ def test_update_advanced(acfactory, storebot_example):
             "payload": {
                 "type": "UpdateRequest",
                 "serial": 0,
-                "apps": [("dc-calendar", 1), ("dc-hextris", 2)],
+                "apps": [("webxdc-calendar", 1), ("webxdc-hextris", 1)],
             }
         },
         "update",
@@ -183,13 +183,13 @@ def test_update_advanced(acfactory, storebot_example):
     status_updates = msg_in.get_status_updates()
     assert len(status_updates) == 3
     payload = status_updates[-1]["payload"]
-    assert payload["updating"] == ["dc-calendar"]
+    assert payload["updating"] == ["webxdc-calendar"]
 
     ac1._evtracker.get_matching("DC_EVENT_WEBXDC_STATUS_UPDATE")
     status_updates = msg_in.get_status_updates()
     assert len(status_updates) == 4
     payload = status_updates[-1]["payload"]
-    assert payload["app_id"] == "dc-calendar"
+    assert payload["app_id"] == "webxdc-calendar"
     assert payload["type"] == "DownloadOkay"
 
 
