@@ -415,9 +415,10 @@ mod tests {
             ..app_info.clone()
         };
 
-        let state = crate::utils::maybe_upgrade_xdc(&mut new_app_info, &mut conn)
-            .await
-            .unwrap();
+        let state =
+            crate::utils::maybe_upgrade_xdc(&mut new_app_info, &mut conn, &PathBuf::from(""))
+                .await
+                .unwrap();
 
         assert_eq!(state, AddType::Updated);
         assert_eq!(
@@ -427,9 +428,10 @@ mod tests {
             vec![new_app_info.clone()]
         );
 
-        let state = crate::utils::maybe_upgrade_xdc(&mut new_app_info, &mut conn)
-            .await
-            .unwrap();
+        let state =
+            crate::utils::maybe_upgrade_xdc(&mut new_app_info, &mut conn, &PathBuf::from(""))
+                .await
+                .unwrap();
 
         assert_eq!(state, AddType::Ignored);
     }
@@ -464,7 +466,7 @@ mod tests {
             ..Default::default()
         };
 
-        crate::utils::maybe_upgrade_xdc(&mut app_info, &mut conn)
+        crate::utils::maybe_upgrade_xdc(&mut app_info, &mut conn, &PathBuf::from(""))
             .await
             .unwrap();
 
@@ -481,6 +483,7 @@ mod tests {
                 ..app_info.clone()
             },
             &mut conn,
+            &PathBuf::from(""),
         )
         .await
         .unwrap();
