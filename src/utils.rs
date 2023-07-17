@@ -68,7 +68,7 @@ pub async fn send_webxdc(
 ) -> anyhow::Result<MsgId> {
     let mut webxdc_msg = Message::new(Viewtype::Webxdc);
     if let Some(text) = text {
-        webxdc_msg.set_text(Some(text.to_string()));
+        webxdc_msg.set_text(text.to_string());
     }
     webxdc_msg.set_file(webxdc.get_str_path()?, None);
     let msg_id = chat::send_msg(context, chat_id, &mut webxdc_msg).await?;

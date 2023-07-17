@@ -7,6 +7,7 @@ use deltachat::{
     message::{Message, MsgId},
     securejoin,
     stock_str::StockStrings,
+    webxdc::send_webxdc_replacement,
     EventType, Events,
 };
 use log::{debug, error, info, trace, warn};
@@ -255,11 +256,9 @@ impl Bot {
         msg_id: MsgId,
     ) -> Result<()> {
         let msg = Message::load_from_db(context, msg_id).await?;
-        if let Some(text) = msg.get_text() {
-            if text == "/version" {
-                chat::send_text_msg(context, chat_id, VERSION.to_string()).await?;
-                return Ok(());
-            }
+        if msg.get_text() == "/version" {
+            chat::send_text_msg(context, chat_id, VERSION.to_string()).await?;
+            return Ok(());
         }
 
         match db::get_chat_type(&mut *state.db.acquire().await?, chat_id).await {
@@ -309,10 +308,18 @@ impl Bot {
         };
 
         if let WebxdcStatusUpdatePayload::UpdateWebxdc = request.payload {
-            let msg = send_webxdc(context, &state, chat_id, webxdc, Some(store_message())).await?;
-            send_newest_updates(context, msg, &mut *state.db.acquire().await?, 0, vec![]).await?;
-            send_update_payload_only(context, msg_id, WebxdcStatusUpdatePayload::UpdateSent)
+            info!("Sending WebXDC replacement for {msg_id}.");
+            send_webxdc_replacement(context, msg_id, &Webxdc::Store.get_str_path()?).await?;
+            send_newest_updates(context, msg_id, &mut *state.db.acquire().await?, 0, vec![])
                 .await?;
+            send_update_payload_only(
+                context,
+                msg_id,
+                WebxdcStatusUpdatePayload::UpdateSent {
+                    version: state.webxdc_versions.get(webxdc),
+                },
+            )
+            .await?;
             return Ok(());
         }
 

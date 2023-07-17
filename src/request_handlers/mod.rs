@@ -129,7 +129,9 @@ pub enum WebxdcStatusUpdatePayload {
         critical: bool,
         version: u32,
     },
-    UpdateSent,
+    UpdateSent {
+        version: u32,
+    },
 
     // Store WebXDC requests.
     UpdateRequest {

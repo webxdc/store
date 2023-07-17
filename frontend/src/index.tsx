@@ -12,7 +12,7 @@ import OutdatedView from './components/Outdated'
 import type { WebxdcStatusUpdatePayload } from '~/bindings/WebxdcStatusUpdatePayload'
 
 import { AppInfoDB } from '~/db/store_db'
-import { to_app_infos_by_id, updateHandler } from '~/store-logic'
+import { StoreState, to_app_infos_by_id, updateHandler } from '~/store-logic'
 import { AppState } from '~/types'
 import type { AppInfoWithState, AppInfosById } from '~/types'
 import mock from '~/mock'
@@ -142,11 +142,10 @@ const AppList: Component<AppListProps> = (props) => {
 const Store: Component = () => {
   const [appInfo, setAppInfo] = createStore({} as AppInfosById)
   const [lastSerial, setlastSerial] = useStorage('last-serial', 0) // Last store-serial
-  const [updateNeeded, setUpdateNeeded] = useStorage('update-needed', false) // Flag if the frontend is outdated
-  const [updateReceived, setUpdateReceived] = useStorage('update-received', false)
-  const [lastUpdateSerial, setlastUpdateSerial] = useStorage('last-update-serial', 0) // Last serial to initialize updateListener
+  const [lastUpdateSerial, setlastUpdateSerial] = useStorage('last-update-serial', 0) // Last updateListerenr serial
   const [lastUpdate, setlastUpdate] = useStorage('last-update', new Date())
   const [isUpdating, setIsUpdating] = createSignal(false)
+  const [storeState, setStoreState] = useStorage('update-state', StoreState.UpToDate) // State of the store xdc
   const [query, setSearch] = createSignal('')
   const [showCommit, setShowCommit] = createSignal(false)
   const cached = createMemo(() => Object.values(appInfo).filter(app_info => app_info.state !== AppState.Initial))
@@ -171,7 +170,7 @@ const Store: Component = () => {
   })
 
   window.webxdc.setUpdateListener(async (resp: ReceivedStatusUpdate<UpdateResponse | DownloadResponseOkay>) => {
-    updateHandler(resp.payload, db, appInfo, setAppInfo, setlastUpdateSerial, setIsUpdating, setlastUpdate, setUpdateNeeded, setUpdateReceived)
+    updateHandler(resp.payload, db, appInfo, setAppInfo, setlastUpdateSerial, setIsUpdating, setlastUpdate, setStoreState)
     setlastSerial(resp.serial)
   }, lastSerial())
 
@@ -221,7 +220,7 @@ const Store: Component = () => {
 
   return (
     <div>
-      <div class="c-grid" classList={{ 'blur-xl': updateNeeded() }}>
+      <div class="c-grid" classList={{ 'blur-xl': storeState() !== StoreState.UpToDate }}>
         <div class="min-width">
           {/* app list */}
           <div class="min-h-screen flex flex-col">
@@ -262,8 +261,8 @@ const Store: Component = () => {
         </div >
       </div>
       {/* modals */}
-      <Show when={updateNeeded()}>
-        <OutdatedView updated_received={updateReceived()} />
+      <Show when={storeState() !== StoreState.UpToDate}>
+        <OutdatedView waiting_for_restart={storeState() === StoreState.WaitingForRestart} />
       </Show>
       {showCommit() && <p class="text-small mr-1 text-right text-sm text-gray-300"> {import.meta.env.VITE_COMMIT} </p>}
     </div>

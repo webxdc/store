@@ -31,6 +31,13 @@ function isEmpty(obj: any) {
   return true
 }
 
+export enum StoreState {
+  UpToDate,
+  Outdated,
+  RequestSent,
+  WaitingForRestart,
+}
+
 export function to_app_infos_by_id<T extends { app_id: string }>(app_infos: T[]): Record<string, T> {
   return app_infos.reduce((acc, appinfo) => {
     acc[appinfo.app_id] = appinfo
@@ -46,8 +53,7 @@ export async function updateHandler(
   setlastUpdateSerial: Setter<number>,
   setIsUpdating: Setter<boolean>,
   setlastUpdate: Setter<Date>,
-  setUpdateNeeded: Setter<boolean>,
-  setUpdateReceived: Setter<boolean>,
+  setStoreState: Setter<StoreState>,
 ) {
   if (isUpdateResponse(payload)) {
     if (isEmpty(appInfo)) {
@@ -101,10 +107,27 @@ export async function updateHandler(
   }
   else if (isOutdatedResponse(payload)) {
     console.log('Current version is outdated')
-    setUpdateNeeded(true)
+    setStoreState(StoreState.Outdated)
   }
   else if (isUpdateSentResponse(payload)) {
     console.log('Update received')
-    setUpdateReceived(true)
+    const manifest_req = await fetch('manifest.toml')
+    const text = await manifest_req.text()
+    const version = text.match(/version = ([0-9]+)/)?.[1]
+    console.log('New version:', version)
+    if (version !== undefined) {
+      if (parseInt(version) === payload.version) {
+        setStoreState(StoreState.UpToDate)
+      }
+      else if (parseInt(version) < payload.version) {
+        setStoreState(StoreState.WaitingForRestart)
+      }
+      else {
+        throw new Error('Version in manifest is newer than version in update')
+      }
+    }
+    else {
+      throw new Error('Could not parse version from manifest.toml')
+    }
   }
 }

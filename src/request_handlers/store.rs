@@ -23,6 +23,7 @@ pub async fn handle_message(
 ) -> anyhow::Result<()> {
     let chat = chat::Chat::load_from_db(context, chat_id).await?;
     if let constants::Chattype::Single = chat.typ {
+        info!("Received message in 1:1 chat, sending back store.xdc.");
         let msg = send_webxdc(
             context,
             &state,
