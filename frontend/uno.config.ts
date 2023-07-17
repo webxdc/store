@@ -5,7 +5,6 @@ import {
   presetIcons,
   presetTypography,
   presetUno,
-  presetWebFonts,
   transformerDirectives,
   transformerVariantGroup,
 } from 'unocss'
@@ -25,13 +24,6 @@ export default defineConfig({
       warn: true,
     }),
     presetTypography(),
-    presetWebFonts({
-      fonts: {
-        sans: 'DM Sans',
-        serif: 'DM Serif Display',
-        mono: 'DM Mono',
-      },
-    }),
   ],
   extractors: [
     extractorSplit,
