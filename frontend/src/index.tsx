@@ -219,18 +219,14 @@ const Store: Component = () => {
               </Show>
             </ul>
             <hr />
-            <div class="grid place-content-center py-4 pb-5">
+            <div class="flex xs:flex-row flex-col flex-wrap justify-center gap-2 py-4 pb-5">
               <button class="font-thin unimportant" onClick={() => setShowCommit(!showCommit())}>
-                Last update: {formatDistanceToNow(lastUpdate())} ago
+                Last update: {isUpdating() ? 'Updating..' : `${formatDistanceToNow(lastUpdate())} ago`}
               </button>
-              <Show when={isUpdating()} fallback={
-                <button class="self-center px-2 font-light text-blue-900 btn" onclick={update}>
+              <Show when={!isUpdating()}>
+                <span class="unimportant hidden xs:block">-</span>
+                <button class="text-blue-500" onclick={update}>
                   Update
-                </button>
-              }>
-                <button class="self-center px-2 font-light btn" onclick={update}>
-                  Updating
-                  <span class='tracking-widest'>...</span>
                 </button>
               </Show>
             </div>

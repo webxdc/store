@@ -15,6 +15,12 @@ export default defineConfig({
       button: '#e5eaff',
       buttonLight: '#d2d9f5',
     },
+    breakpoints: {
+      xs: '380px',
+      sm: '640px',
+      md: '768px',
+      lg: '1024px',
+    },
   },
   presets: [
     presetUno(),
