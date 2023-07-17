@@ -196,7 +196,7 @@ const Store: Component = () => {
       <div class="c-grid" classList={{ 'blur-xl': updateNeeded() }}>
         <div class="min-width">
           {/* app list */}
-          <div class="flex flex-col min-h-screen">
+          <div class="min-h-screen flex flex-col">
             <div class="my-4 flex items-start justify-center gap-2 p-2">
               <div class="flex flex-col items-start gap-1">
                 <input class="border-2 rounded-2xl px-3 py-1" placeholder='Search webxdc apps' onInput={event => setSearch((event.target as HTMLInputElement).value)} />
@@ -206,7 +206,7 @@ const Store: Component = () => {
               </button>
             </div>
             <hr />
-            <ul class="w-full flex flex-col gap-1 p-2 flex-grow">
+            <ul class="w-full flex flex-grow flex-col gap-1 p-2">
               <Show when={!(lastSerial() === 0)} fallback={
                 <p class="text-center unimportant">Loading store..</p>
               }>
@@ -218,18 +218,14 @@ const Store: Component = () => {
               </Show>
             </ul>
             <hr />
-            <div class="grid place-content-center py-4 pb-5">
+            <div class="flex xs:flex-row flex-col flex-wrap justify-center gap-2 py-4 pb-5">
               <button class="font-thin unimportant" onClick={() => setShowCommit(!showCommit())}>
-                Last update: {formatDistanceToNow(lastUpdate())} ago
+                Last update: {isUpdating() ? 'Updating..' : `${formatDistanceToNow(lastUpdate())} ago`}
               </button>
-              <Show when={isUpdating()} fallback={
-                <button class="self-center px-2 font-light text-blue-900 btn" onclick={update}>
+              <Show when={!isUpdating()}>
+                <span class="unimportant hidden xs:block">-</span>
+                <button class="text-blue-500" onclick={update}>
                   Update
-                </button>
-              }>
-                <button class="self-center px-2 font-light btn" onclick={update}>
-                  Updating
-                  <span class='tracking-widest'>...</span>
                 </button>
               </Show>
             </div>
