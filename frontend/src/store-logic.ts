@@ -28,6 +28,13 @@ function isInit(p: any): p is InitResponse {
   return p.type === 'Init'
 }
 
+export enum StoreState {
+  UpToDate,
+  Outdated,
+  RequestSent,
+  WaitingForRestart,
+}
+
 export function to_app_infos_by_id<T extends { app_id: string }>(app_infos: T[]): Record<string, T> {
   return app_infos.reduce((acc, appinfo) => {
     acc[appinfo.app_id] = appinfo
@@ -44,8 +51,7 @@ export async function updateHandler(
   setlastUpdateSerial: Setter<number>,
   setIsUpdating: Setter<boolean>,
   setlastUpdate: Setter<Date>,
-  setUpdateNeeded: Setter<boolean>,
-  setUpdateReceived: Setter<boolean>,
+  setStoreState: Setter<StoreState>,
 ) {
   if (isInit(payload)) {
     console.log('Initialising apps')
@@ -109,10 +115,24 @@ export async function updateHandler(
   }
   else if (isOutdatedResponse(payload)) {
     console.log('Current tag_name is outdated')
-    setUpdateNeeded(true)
+    setStoreState(StoreState.Outdated)
   }
   else if (isUpdateSentResponse(payload)) {
     console.log('Update received')
-    setUpdateReceived(true)
+    const manifest_req = await fetch('manifest.toml')
+    const text = await manifest_req.text()
+    const version = text.match(/version = ([0-9]+)/)?.[1]
+    console.log('New version:', version)
+    if (version !== undefined) {
+      if (version === payload.version) {
+        setStoreState(StoreState.UpToDate)
+      }
+      else {
+        setStoreState(StoreState.WaitingForRestart)
+      }
+    }
+    else {
+      throw new Error('Could not parse version from manifest.toml')
+    }
   }
 }

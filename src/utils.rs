@@ -10,6 +10,7 @@ use deltachat::{
     config::Config,
     context::Context,
     message::{Message, MsgId, Viewtype},
+    webxdc::send_webxdc_replacement,
 };
 use directories::ProjectDirs;
 use itertools::Itertools;
@@ -86,25 +87,38 @@ pub async fn init_store(context: &Context, state: &State, chat_id: ChatId) -> an
 }
 
 /// Send newest store webxdc to a chat together with newest updates.
+///
+/// If `msg_id` is specified, sends a replacement WebXDC,
+/// otherwise sends a new store XDC.
 pub async fn update_store(
     context: &Context,
     state: &State,
     chat_id: ChatId,
     serial: u32,
+    msg_id: Option<MsgId>,
 ) -> anyhow::Result<()> {
-    let mut webxdc_msg = Message::new(Viewtype::Webxdc);
-    webxdc_msg.set_text(store_message().to_string());
-    webxdc_msg.set_file(get_store_xdc_path()?.display(), None);
-    chat_id.set_draft(context, Some(&mut webxdc_msg)).await?;
-    send_newest_updates(
-        context,
-        webxdc_msg.get_id(),
-        &mut *state.db.acquire().await?,
-        serial,
-        vec![],
-    )
-    .await?;
-    chat::send_msg(context, chat_id, &mut webxdc_msg).await?;
+    if let Some(msg_id) = msg_id {
+        send_webxdc_replacement(
+            context,
+            msg_id,
+            &get_store_xdc_path()?.display().to_string(),
+        )
+        .await?;
+    } else {
+        let mut webxdc_msg = Message::new(Viewtype::Webxdc);
+        webxdc_msg.set_text(store_message().to_string());
+        webxdc_msg.set_file(get_store_xdc_path()?.display(), None);
+        chat_id.set_draft(context, Some(&mut webxdc_msg)).await?;
+        send_newest_updates(
+            context,
+            webxdc_msg.get_id(),
+            &mut *state.db.acquire().await?,
+            serial,
+            vec![],
+        )
+        .await?;
+        chat::send_msg(context, chat_id, &mut webxdc_msg).await?;
+    }
     Ok(())
 }
 

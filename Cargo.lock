@@ -1028,7 +1028,7 @@ dependencies = [
 [[package]]
 name = "deltachat"
 version = "1.119.0"
-source = "git+https://github.com/deltachat/deltachat-core-rust.git?tag=v1.119.0#e43f9066d8830b57209c6e205e2f1e3af6959b97"
+source = "git+https://github.com/deltachat/deltachat-core-rust.git?branch=link2xt/replace-webxdc#410e16c71d1840eecaf1fd33bcfd80a66f958a3c"
 dependencies = [
  "anyhow",
  "async-channel",
@@ -1097,7 +1097,7 @@ dependencies = [
 [[package]]
 name = "deltachat_derive"
 version = "2.0.0"
-source = "git+https://github.com/deltachat/deltachat-core-rust.git?tag=v1.119.0#e43f9066d8830b57209c6e205e2f1e3af6959b97"
+source = "git+https://github.com/deltachat/deltachat-core-rust.git?branch=link2xt/replace-webxdc#410e16c71d1840eecaf1fd33bcfd80a66f958a3c"
 dependencies = [
  "quote",
  "syn 2.0.16",
@@ -1782,7 +1782,7 @@ dependencies = [
 [[package]]
 name = "format-flowed"
 version = "1.0.0"
-source = "git+https://github.com/deltachat/deltachat-core-rust.git?tag=v1.119.0#e43f9066d8830b57209c6e205e2f1e3af6959b97"
+source = "git+https://github.com/deltachat/deltachat-core-rust.git?branch=link2xt/replace-webxdc#410e16c71d1840eecaf1fd33bcfd80a66f958a3c"
 
 [[package]]
 name = "futures"
@@ -3478,7 +3478,7 @@ dependencies = [
 [[package]]
 name = "ratelimit"
 version = "1.0.0"
-source = "git+https://github.com/deltachat/deltachat-core-rust.git?tag=v1.119.0#e43f9066d8830b57209c6e205e2f1e3af6959b97"
+source = "git+https://github.com/deltachat/deltachat-core-rust.git?branch=link2xt/replace-webxdc#410e16c71d1840eecaf1fd33bcfd80a66f958a3c"
 
 [[package]]
 name = "rcgen"
@@ -4657,11 +4657,12 @@ checksum = "1f3ccbac311fea05f86f61904b462b55fb3df8837a366dfc601a0161d0532f20"
 
 [[package]]
 name = "tokio"
-version = "1.28.1"
+version = "1.29.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "0aa32867d44e6f2ce3385e89dceb990188b8bb0fb25b0cf576647a6f98ac5105"
+checksum = "532826ff75199d5833b9d2c5fe410f29235e25704ee5f0ef599fb51c21f4a4da"
 dependencies = [
  "autocfg",
+ "backtrace",
  "bytes",
  "libc",
  "mio",
@@ -5526,7 +5527,6 @@ dependencies = [
  "log",
  "qr2term",
  "qrcode-generator",
- "rand 0.8.5",
  "serde",
  "serde_json",
  "sqlx",

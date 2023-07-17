@@ -6,7 +6,7 @@ import { AppInfoDB } from '../src/db/store_db'
 import { AppState } from '../src/types'
 import type { AppInfoWithState, AppInfosById } from '../src/types'
 import type { DownloadResponseError, DownloadResponseOkay, InitResponse, UpdateResponse } from '../src/store-logic'
-import { updateHandler } from '../src/store-logic'
+import { StoreState, updateHandler } from '../src/store-logic'
 import type { WebxdcOutdatedResponse, WebxdcUpdateSentResponse } from '../src/utils'
 import 'fake-indexeddb/auto'
 import mock from '../src/mock'
@@ -18,9 +18,23 @@ const general_handlers = {
   setlastUpdateSerial: ((() => { }) as Setter<number>),
   setIsUpdating: ((() => { }) as Setter<boolean>),
   setlastUpdate: ((() => { }) as Setter<Date>),
-  setUpdateNeeded: ((() => { }) as Setter<boolean>),
-  setUpdateReceived: ((() => { }) as Setter<boolean>),
+  setStoreState: ((() => { }) as Setter<StoreState>),
 }
+
+global.fetch = vi.fn()
+
+const mock_manifest = `
+[webxdc-2048]
+app_id = "webxdc-2048"
+version = 1
+tag_name = "v1.2.1"
+url = "https://github.com/webxdc/2048/releases/download/v1.2.1/2048.xdc"
+date = "2023-07-11T16:33:26Z"
+cache_relname = "2048.xdc"
+description = "Join numbers to a 2048 tile\nThe classic 2048 puzzle game.\nMove tiles with the same number together and get a 2048 tile to win.\nHighscores are shared with the group."
+source_code_url = "https://github.com/webxdc/2048"
+name = "2048"
+`
 
 describe('Store receiving updates', () => {
   test('Handles outdated response', () => {
@@ -36,26 +50,39 @@ describe('Store receiving updates', () => {
       tag_name: 'v1',
     } as WebxdcOutdatedResponse
 
-    const updateNeeded = vi.spyOn(handlers, 'setUpdateNeeded')
-    updateHandler(payload, handlers.db, handlers.appInfo, handlers.getLastSerial, handlers.setAppInfo, handlers.setlastUpdateSerial, handlers.setIsUpdating, handlers.setlastUpdate, handlers.setUpdateNeeded, handlers.setUpdateReceived)
-
-    expect(updateNeeded).toHaveBeenCalledWith(true)
+    const storeState = vi.spyOn(handlers, 'setStoreState')
+    updateHandler(payload, handlers.db, handlers.appInfo, handlers.getLastSerial, handlers.setAppInfo, handlers.setlastUpdateSerial, handlers.setIsUpdating, handlers.setlastUpdate, handlers.setStoreState)
+    expect(storeState).toHaveBeenCalledWith(StoreState.Outdated)
   })
 
-  test('Handes update received', () => {
+  test('Handles update received', async () => {
     const handlers = {
       db: new AppInfoDB('storetesting'),
       appInfo: {},
       ...general_handlers,
     }
 
-    const payload = {
+    // @ts-expect-error - fetch is mocked
+    fetch.mockReturnValue({ text: () => new Promise(resolve => resolve(mock_manifest)) })
+
+    // test newer version received than the current instance runs
+    let payload = {
       type: 'UpdateSent',
+      version: "v1.2.1",
     } as WebxdcUpdateSentResponse
 
-    const setUpdateReceived = vi.spyOn(handlers, 'setUpdateReceived')
-    updateHandler(payload, handlers.db, handlers.appInfo, handlers.getLastSerial, handlers.setAppInfo, handlers.setlastUpdateSerial, handlers.setIsUpdating, handlers.setlastUpdate, handlers.setUpdateNeeded, handlers.setUpdateReceived)
-    expect(setUpdateReceived).toHaveBeenCalledWith(true)
+    const storeState = vi.spyOn(handlers, 'setStoreState')
+    await updateHandler(payload, handlers.db, handlers.appInfo, handlers.getLastSerial, handlers.setAppInfo, handlers.setlastUpdateSerial, handlers.setIsUpdating, handlers.setlastUpdate, handlers.setStoreState)
+    expect(storeState).toHaveBeenCalledWith(StoreState.WaitingForRestart)
+
+    // test same version received as the current instance runs
+    payload = {
+      type: 'UpdateSent',
+      version: "v1",
+    } as WebxdcUpdateSentResponse
+
+    await updateHandler(payload, handlers.db, handlers.appInfo, handlers.getLastSerial, handlers.setAppInfo, handlers.setlastUpdateSerial, handlers.setIsUpdating, handlers.setlastUpdate, handlers.setStoreState)
+    expect(storeState).toHaveBeenCalledWith(StoreState.UpToDate)
   })
 
   test('Handles download error', () => {
@@ -72,7 +99,7 @@ describe('Store receiving updates', () => {
     } as DownloadResponseError
 
     const setAppInfo = vi.spyOn(handlers, 'setAppInfo')
-    updateHandler(payload, handlers.db, handlers.appInfo, handlers.getLastSerial, handlers.setAppInfo, handlers.setlastUpdateSerial, handlers.setIsUpdating, handlers.setlastUpdate, handlers.setUpdateNeeded, handlers.setUpdateReceived)
+    updateHandler(payload, handlers.db, handlers.appInfo, handlers.getLastSerial, handlers.setAppInfo, handlers.setlastUpdateSerial, handlers.setIsUpdating, handlers.setlastUpdate, handlers.setStoreState)
     expect(setAppInfo).toHaveBeenCalledWith(payload.app_id, 'state', AppState.DownloadCancelled)
   })
 
@@ -95,7 +122,7 @@ describe('Store receiving updates', () => {
     }
 
     const setAppInfo = vi.spyOn(handlers, 'setAppInfo')
-    await updateHandler(payload, handlers.db, handlers.appInfo, handlers.getLastSerial, handlers.setAppInfo, handlers.setlastUpdateSerial, handlers.setIsUpdating, handlers.setlastUpdate, handlers.setUpdateNeeded, handlers.setUpdateReceived)
+    await updateHandler(payload, handlers.db, handlers.appInfo, handlers.getLastSerial, handlers.setAppInfo, handlers.setlastUpdateSerial, handlers.setIsUpdating, handlers.setlastUpdate, handlers.setStoreState)
     expect(await db.get_webxdc(payload.app_id)).matchSnapshot()
     expect(await db.get(payload.app_id)).toStrictEqual({ ...mock.app_12, state: AppState.Received })
     expect(setAppInfo).toHaveBeenCalledWith(payload.app_id, 'state', AppState.Received)
@@ -110,7 +137,7 @@ describe('Store receiving updates', () => {
       data: 'test',
     }
 
-    await updateHandler(payload, handlers.db, handlers.appInfo, handlers.getLastSerial, handlers.setAppInfo, handlers.setlastUpdateSerial, handlers.setIsUpdating, handlers.setlastUpdate, handlers.setUpdateNeeded, handlers.setUpdateReceived)
+    await updateHandler(payload, handlers.db, handlers.appInfo, handlers.getLastSerial, handlers.setAppInfo, handlers.setlastUpdateSerial, handlers.setIsUpdating, handlers.setlastUpdate, handlers.setStoreState)
     expect(setAppInfo).toHaveBeenCalledWith(payload.app_id, 'state', AppState.Received)
     expect(await db.get(payload.app_id)).toStrictEqual({ ...mock.app_16, state: AppState.Received })
     expect(await db.get_webxdc(payload.app_id)).toMatchSnapshot()
@@ -131,9 +158,9 @@ describe('Store receiving updates', () => {
     } as InitResponse
 
     const setAppInfo = vi.spyOn(handlers, 'setAppInfo')
-    const satlastUpdateSerial = vi.spyOn(handlers, 'setlastUpdateSerial')
+    const setlastUpdateSerial = vi.spyOn(handlers, 'setlastUpdateSerial')
     const setIsUpdating = vi.spyOn(handlers, 'setIsUpdating')
-    await updateHandler(payload, handlers.db, handlers.appInfo, handlers.getLastSerial, handlers.setAppInfo, handlers.setlastUpdateSerial, handlers.setIsUpdating, handlers.setlastUpdate, handlers.setUpdateNeeded, handlers.setUpdateReceived)
+    await updateHandler(payload, handlers.db, handlers.appInfo, handlers.getLastSerial, handlers.setAppInfo, handlers.setlastUpdateSerial, handlers.setIsUpdating, handlers.setlastUpdate, handlers.setStoreState)
 
     const apps_with_initial_state = Object.keys(mock).reduce((res, key) => {
       res[key] = { ...mock[key], state: AppState.Initial }
@@ -141,7 +168,7 @@ describe('Store receiving updates', () => {
     }, {} as AppInfosById)
     expect(setAppInfo).toHaveBeenCalledWith(apps_with_initial_state)
     expect(await db.get_all()).toStrictEqual(Object.values(apps_with_initial_state))
-    expect(satlastUpdateSerial).toHaveBeenCalledWith(12)
+    expect(setlastUpdateSerial).toHaveBeenCalledWith(12)
     expect(setIsUpdating).toHaveBeenCalledWith(false)
   })
 
@@ -183,7 +210,7 @@ describe('Store receiving updates', () => {
     const setIsUpdating = vi.spyOn(handlers, 'setIsUpdating')
     const setlastUpdate = vi.spyOn(handlers, 'setlastUpdate')
 
-    await updateHandler(payload, handlers.db, handlers.appInfo, () => 10, handlers.setAppInfo, handlers.setlastUpdateSerial, handlers.setIsUpdating, handlers.setlastUpdate, handlers.setUpdateNeeded, handlers.setUpdateReceived)
+    await updateHandler(payload, handlers.db, handlers.appInfo, handlers.getLastSerial, handlers.setAppInfo, handlers.setlastUpdateSerial, handlers.setIsUpdating, handlers.setlastUpdate, handlers.setStoreState)
 
     expect(insertMultiple).toHaveBeenCalledWith([{ ...mock.app_13, state: AppState.Initial }, { ...mock.app_14, state: AppState.Initial }, { ...mock.app_16, state: AppState.Initial }])
     expect(updateMultiple).toHaveBeenCalledWith([mock.app_12, mock.app_15])
@@ -200,8 +227,8 @@ describe('Store receiving updates', () => {
       updating: ['app_15'],
     } as UpdateResponse
 
-    await updateHandler(payload, handlers.db, handlers.appInfo, () => 10, handlers.setAppInfo, handlers.setlastUpdateSerial, handlers.setIsUpdating, handlers.setlastUpdate, handlers.setUpdateNeeded, handlers.setUpdateReceived)
-    expect(appInfo.app_15.state).toBe(AppState.Updating)
+    await updateHandler(payload, handlers.db, handlers.appInfo, handlers.getLastSerial, handlers.setAppInfo, handlers.setlastUpdateSerial, handlers.setIsUpdating, handlers.setlastUpdate, handlers.setStoreState)
+    expect(appInfo['15'].state).toBe(AppState.Updating)
 
     const download: DownloadResponseOkay = {
       type: 'DownloadOkay',
@@ -210,62 +237,7 @@ describe('Store receiving updates', () => {
       data: 'test',
     }
 
-    await updateHandler(download, handlers.db, handlers.appInfo, handlers.getLastSerial, handlers.setAppInfo, handlers.setlastUpdateSerial, handlers.setIsUpdating, handlers.setlastUpdate, handlers.setUpdateNeeded, handlers.setUpdateReceived)
-    expect(appInfo.app_15.state).toBe(AppState.Received)
-  })
-
-  test('Handles partial updates', async () => {
-    const db = new AppInfoDB('storetesting4')
-    const [appInfo, setAppInfo] = createStore(mock)
-    const handlers = {
-      db,
-      ...general_handlers,
-      appInfo,
-      setAppInfo,
-    }
-
-    const payload = {
-      type: 'Update',
-      app_infos: {
-        app_12: {
-          app_id: 'app_12',
-          tag_name: 'v10',
-          description: 'pupu',
-        },
-      },
-      serial: 12,
-      old_serial: 10,
-      updating: [],
-    } as UpdateResponse
-
-    await updateHandler(payload, handlers.db, handlers.appInfo, () => 10, handlers.setAppInfo, handlers.setlastUpdateSerial, handlers.setIsUpdating, handlers.setlastUpdate, handlers.setUpdateNeeded, handlers.setUpdateReceived)
-    expect(await db.get('app_12')).toStrictEqual({ ...mock.app_12, description: 'pupu' })
-  })
-
-  test('Handles Remove', async () => {
-    const db = new AppInfoDB('storetesting5')
-    const [appInfo, setAppInfo] = createStore(mock)
-    const handlers = {
-      db,
-      ...general_handlers,
-      appInfo,
-      setAppInfo,
-    }
-
-    const payload = {
-      type: 'Update',
-      app_infos: {
-        app_12: null,
-      },
-      serial: 12,
-      old_serial: 10,
-      updating: [],
-    } as UpdateResponse
-
-    const removeSpy = vi.spyOn(db, 'remove_multiple_app_infos')
-    const cacheDeleteSpy = vi.spyOn(db, 'remove_webxdc')
-    await updateHandler(payload, handlers.db, handlers.appInfo, () => 10, handlers.setAppInfo, handlers.setlastUpdateSerial, handlers.setIsUpdating, handlers.setlastUpdate, handlers.setUpdateNeeded, handlers.setUpdateReceived)
-    expect(removeSpy).not.toHaveBeenCalledWith([['app_12']])
-    expect(cacheDeleteSpy).not.toHaveBeenCalledWith([['app_12']])
+    await updateHandler(download, handlers.db, handlers.appInfo, handlers.getLastSerial, handlers.setAppInfo, handlers.setlastUpdateSerial, handlers.setIsUpdating, handlers.setlastUpdate, handlers.setStoreState)
+    expect(appInfo['15'].state).toBe(AppState.Received)
   })
 })

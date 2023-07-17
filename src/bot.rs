@@ -300,9 +300,17 @@ impl Bot {
         };
 
         if let WebxdcStatusUpdatePayload::UpdateWebxdc { serial } = request.payload {
-            send_update_payload_only(context, msg_id, WebxdcStatusUpdatePayload::UpdateSent)
-                .await?;
-            update_store(context, &state, chat_id, serial).await?;
+            info!("Sending WebXDC replacement for {msg_id}.");
+            //update_store(context, &state, chat_id, serial, None).await?;
+            update_store(context, &state, chat_id, serial, Some(msg_id)).await?;
+            send_update_payload_only(
+                context,
+                msg_id,
+                WebxdcStatusUpdatePayload::UpdateSent {
+                    version: state.store_tag_name.clone(),
+                },
+            )
+            .await?;
             return Ok(());
         }
 

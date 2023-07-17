@@ -22,6 +22,7 @@ pub async fn handle_message(
 ) -> anyhow::Result<()> {
     let chat = chat::Chat::load_from_db(context, chat_id).await?;
     if let constants::Chattype::Single = chat.typ {
+        info!("Received message in 1:1 chat, sending back store.xdc.");
         init_store(context, &state, chat_id).await?;
     }
     Ok(())

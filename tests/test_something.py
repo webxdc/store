@@ -441,8 +441,8 @@ def test_frontend_update(acfactory, storebot):
 
     # Test that the bot sends an a download confirmation
     status_updates = msg_in.get_status_updates()
-    payload = status_updates[4]["payload"]
-    assert payload == {"type": "UpdateSent"}
+    payload = status_updates[5]["payload"]
+    assert payload == {"type": "UpdateSent", "version": 1000}
 
     # Test that the bots sends a new version of the store
     msg_in = ac1.wait_next_incoming_message()

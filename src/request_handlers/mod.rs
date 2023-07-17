@@ -129,7 +129,9 @@ pub enum WebxdcStatusUpdatePayload {
         critical: bool,
         tag_name: String,
     },
-    UpdateSent,
+    UpdateSent {
+        version: String,
+    },
 
     // Store WebXDC requests.
     UpdateRequest {
