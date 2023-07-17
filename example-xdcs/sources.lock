@@ -7,6 +7,7 @@ date = "2023-07-11T16:33:26Z"
 cache_relname = "2048.xdc"
 description = "Join numbers to a 2048 tile\nThe classic 2048 puzzle game.\nMove tiles with the same number together and get a 2048 tile to win.\nHighscores are shared with the group."
 source_code_url = "https://github.com/webxdc/2048"
+name = "2048"
 
 [webxdc-calendar]
 app_id = "webxdc-calendar"
@@ -17,6 +18,7 @@ date = "2023-07-05T20:27:45Z"
 cache_relname = "calendar.xdc"
 description = "Mobile-friendly calendar app\nManage events collaboratively with other chat members.\nYou can import/export events or invites."
 source_code_url = "https://codeberg.org/webxdc/calendar"
+name = "calendar"
 
 [webxdc-hextris]
 app_id = "webxdc-hextris"
@@ -27,6 +29,7 @@ date = "2023-07-05T20:49:26Z"
 cache_relname = "hextris.xdc"
 description = "Tetris with a twist\nFast paced puzzle game inspired by Tetris."
 source_code_url = "https://github.com/webxdc/hextris"
+name = "hextris"
 
 [webxdc-tower-builder]
 app_id = "webxdc-tower-builder"
@@ -37,3 +40,4 @@ date = "2023-07-05T20:35:49Z"
 cache_relname = "tower-builder.xdc"
 description = "Tower building game\nA little tower building game, you can compete with friends 💒🏢🏬🏦🏯🏰"
 source_code_url = "https://github.com/webxdc/tower-builder"
+name = "webxdc-tower-builder"
