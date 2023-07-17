@@ -26,7 +26,7 @@ pub struct WexbdcManifest {
     pub version: u32,
 
     /// Webxdc name, used on icons or page titles.
-    // pub name: String,
+    pub name: String,
 
     /// Description of the application.
     pub description: String,
@@ -92,7 +92,7 @@ pub async fn import_many(
                 app_id: xdc.app_id,
                 version: xdc.version,
                 date: OffsetDateTime::parse(&xdc.date, &Rfc3339)?.unix_timestamp(),
-                name: "todo".to_string(), // xdc.name,
+                name: xdc.name, // xdc.name,
                 submitter_uri: None,
                 source_code_url: xdc.source_code_url,
                 image,
