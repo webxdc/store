@@ -5,7 +5,7 @@ export default [
   {
     app_id: '12',
     name: 'Poll',
-    description: 'Poll app where you can create crazy cool polls. This is a very long description for the pepe.',
+    description: 'Simple poll app\nOne question, up to 5 pre-defined answers for people to vote on.\nThis little app is done in less than 10 KBs of Javascript.',
     date: BigInt(1689152046004),
     size: BigInt(9500),
     source_code_url: 'https://example.com?t=xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx',
@@ -17,7 +17,7 @@ export default [
   {
     app_id: '13',
     name: '2048',
-    description: 'The popular 2048 game comes to dc!',
+    description: 'Join numbers to a 2048 tile\nThe classic 2048 puzzle game.\nMove tiles with the same number together and get a 2048 tile to win.\nHighscores are shared with the group.',
     date: BigInt(1689152046004),
     size: BigInt(500000),
     source_code_url: 'https://mycompany.com/the/code',
@@ -28,7 +28,7 @@ export default [
   {
     app_id: '14',
     name: 'Calendar',
-    description: 'A simple calendar app for Delta Chat.',
+    description: 'Mobile-friendly calendar app\nManage events collaboratively with other chat members.\nYou can import/export events or invites.',
     date: BigInt(1688152046004),
     size: BigInt(11556),
     source_code_url: 'https://foo.org/',
@@ -39,7 +39,7 @@ export default [
   {
     app_id: '15',
     name: 'Chess Board',
-    description: 'A webxdc chess game for two players and many observers :)',
+    description: 'Mobile-friendly calendar app\nManage events collaboratively with other chat members.\nYou can import/export events or invites.',
     date: BigInt(1689112046004),
     size: BigInt(3012),
     source_code_url: 'https://corp.com/',
@@ -50,7 +50,7 @@ export default [
   {
     app_id: '16',
     name: 'Draw',
-    description: 'A webxdc tool that allows to share draws.',
+    description: 'Simple drawing board\nA little drawing board to create draws that you can then share with friends.',
     date: BigInt(1629152046004),
     size: BigInt(9111),
     source_code_url: 'https://artc.com/',

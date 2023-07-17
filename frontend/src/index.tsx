@@ -32,14 +32,15 @@ type UpdateResponse = Extract<WebxdcStatusUpdatePayload, { type: 'Update' }>
 
 function AppInfoModal(item: AppInfoWithState, onDownload: () => void, onForward: () => void, onRemove: () => void) {
   const [isExpanded, setIsExpanded] = createSignal(false)
-
+  const summary = item.description.split('\n')[0]
+  const description = item.description.slice(summary.length + 1)
   return (
     <li class="w-full p-3">
       <div class="flex cursor-pointer items-center justify-between gap-2" onClick={() => setIsExpanded(!isExpanded())}>
         <img src={`data:image/png;base64,${item.image!}`} alt={item.name} class="h-16 w-16 rounded-xl object-cover" />
         <div class="flex-grow-1 overflow-hidden">
           <h2 class="text-xl font-semibold">{item.name}</h2>
-          <p class="max-width-text truncate text-gray-600">{item.description}</p>
+          <p class="max-width-text truncate text-gray-600">{summary}</p>
           <button class="text-blue-700">
             {isExpanded() ? 'Less' : 'More'}
           </button>
@@ -75,7 +76,7 @@ function AppInfoModal(item: AppInfoWithState, onDownload: () => void, onForward:
       </div >
       <Show when={isExpanded()}>
         <div class="flex flex-col">
-          <p class="my-2 text-gray-600">{item.description}</p>
+          <p class="my-2 text-gray-600">{description}</p>
           <div class="my-2">
             <p class="text-sm text-gray-600"><span class="font-bold"> Date: </span>{new Date(Number(item.date) * 1000).toLocaleDateString()}</p>
             <p class="text-sm text-gray-600"><span class="font-bold"> Size: </span>{(Number(item.size) / 1000).toFixed(1).toString()} kb</p>
