@@ -19,7 +19,10 @@ use std::{
     env,
     path::{Path, PathBuf},
 };
-use tokio::{fs, task::JoinHandle};
+use tokio::task::JoinHandle;
+
+#[cfg(not(test))]
+use tokio::fs;
 
 use crate::{
     bot::State,
@@ -237,7 +240,7 @@ pub enum AddType {
 pub async fn maybe_upgrade_xdc(
     app_info: &mut AppInfo,
     conn: &mut SqliteConnection,
-    dest: &Path,
+    _dest: &Path,
 ) -> anyhow::Result<AddType> {
     let add_type = if db::app_version_exists(conn, &app_info.app_id, app_info.version).await? {
         AddType::Ignored
@@ -253,7 +256,7 @@ pub async fn maybe_upgrade_xdc(
             {
                 fs::copy(
                     &app_info.xdc_blob_path,
-                    &dest.join(
+                    &_dest.join(
                         app_info
                             .xdc_blob_path
                             .file_name()
@@ -265,10 +268,10 @@ pub async fn maybe_upgrade_xdc(
                     format!(
                         "Failed to copy {} to {}",
                         app_info.xdc_blob_path.display(),
-                        dest.display()
+                        _dest.display()
                     )
                 })?;
-                app_info.xdc_blob_path = dest.join(
+                app_info.xdc_blob_path = _dest.join(
                     app_info
                         .xdc_blob_path
                         .file_name()
