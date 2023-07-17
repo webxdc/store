@@ -40,6 +40,7 @@ pub struct WexbdcManifest {
     /// Date displayed in the store.
     pub date: String,
 
+    /// Relative path to the cached xdc.
     pub cache_relname: PathBuf,
 }
 
