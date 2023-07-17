@@ -196,7 +196,7 @@ const Store: Component = () => {
       <div class="c-grid" classList={{ 'blur-xl': updateNeeded() }}>
         <div class="min-width">
           {/* app list */}
-          <div class="flex flex-col min-h-screen">
+          <div class="min-h-screen flex flex-col">
             <div class="my-4 flex items-start justify-center gap-2 p-2">
               <div class="flex flex-col items-start gap-1">
                 <input class="border-2 rounded-2xl px-3 py-1" placeholder='Search webxdc apps' onInput={event => setSearch((event.target as HTMLInputElement).value)} />
@@ -206,7 +206,7 @@ const Store: Component = () => {
               </button>
             </div>
             <hr />
-            <ul class="w-full flex flex-col gap-1 p-2 flex-grow">
+            <ul class="w-full flex flex-grow flex-col gap-1 p-2">
               <Show when={!(lastSerial() === 0)} fallback={
                 <p class="text-center unimportant">Loading store..</p>
               }>
