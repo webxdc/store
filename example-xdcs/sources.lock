@@ -1,0 +1,39 @@
+[webxdc-2048]
+app_id = "webxdc-2048"
+version = 2
+tag_name = "v1.2.1"
+url = "https://github.com/webxdc/2048/releases/download/v1.2.1/2048.xdc"
+date = "2023-07-11T16:33:26Z"
+cache_relname = "2048.xdc"
+description = "Join numbers to a 2048 tile\nThe classic 2048 puzzle game.\nMove tiles with the same number together and get a 2048 tile to win.\nHighscores are shared with the group."
+source_code_url = "https://github.com/webxdc/2048"
+
+[webxdc-calendar]
+app_id = "webxdc-calendar"
+version = 1
+tag_name = "v1.0.1"
+url = "https://codeberg.org/attachments/7b3afeec-a9ba-4b91-a5ad-bbb4dc17d2b7"
+date = "2023-07-05T20:27:45Z"
+cache_relname = "calendar.xdc"
+description = "Mobile-friendly calendar app\nManage events collaboratively with other chat members.\nYou can import/export events or invites."
+source_code_url = "https://codeberg.org/webxdc/calendar"
+
+[webxdc-hextris]
+app_id = "webxdc-hextris"
+version = 1
+tag_name = "1.3.0"
+url = "https://github.com/webxdc/hextris/releases/download/1.3.0/hextris.xdc"
+date = "2023-07-05T20:49:26Z"
+cache_relname = "hextris.xdc"
+description = "Tetris with a twist\nFast paced puzzle game inspired by Tetris."
+source_code_url = "https://github.com/webxdc/hextris"
+
+[webxdc-tower-builder]
+app_id = "webxdc-tower-builder"
+version = 1
+tag_name = "1.1.0"
+url = "https://github.com/webxdc/tower-builder/releases/download/1.1.0/tower-builder.xdc"
+date = "2023-07-05T20:35:49Z"
+cache_relname = "tower-builder.xdc"
+description = "Tower building game\nA little tower building game, you can compete with friends 💒🏢🏬🏦🏯🏰"
+source_code_url = "https://github.com/webxdc/tower-builder"
