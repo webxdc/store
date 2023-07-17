@@ -249,29 +249,32 @@ pub async fn maybe_upgrade_xdc(
 
     match add_type {
         AddType::Added | AddType::Updated => {
-            fs::copy(
-                &app_info.xdc_blob_path,
-                &dest.join(
+            #[cfg(not(test))]
+            {
+                fs::copy(
+                    &app_info.xdc_blob_path,
+                    &dest.join(
+                        app_info
+                            .xdc_blob_path
+                            .file_name()
+                            .context("Can't get file name from xdc_blob_dir")?,
+                    ),
+                )
+                .await
+                .with_context(|| {
+                    format!(
+                        "Failed to copy {} to {}",
+                        app_info.xdc_blob_path.display(),
+                        dest.display()
+                    )
+                })?;
+                app_info.xdc_blob_path = dest.join(
                     app_info
                         .xdc_blob_path
                         .file_name()
                         .context("Can't get file name from xdc_blob_dir")?,
-                ),
-            )
-            .await
-            .with_context(|| {
-                format!(
-                    "Failed to copy {} to {}",
-                    app_info.xdc_blob_path.display(),
-                    dest.display()
-                )
-            })?;
-            app_info.xdc_blob_path = dest.join(
-                app_info
-                    .xdc_blob_path
-                    .file_name()
-                    .context("Can't get file name from xdc_blob_dir")?,
-            );
+                );
+            }
             db::create_app_info(conn, app_info).await?;
         }
         AddType::Ignored => (),

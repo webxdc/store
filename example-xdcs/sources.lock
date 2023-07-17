@@ -11,7 +11,7 @@ name = "2048"
 
 [webxdc-calendar]
 app_id = "webxdc-calendar"
-version = 1
+version = 2
 tag_name = "v1.0.1"
 url = "https://codeberg.org/attachments/7b3afeec-a9ba-4b91-a5ad-bbb4dc17d2b7"
 date = "2023-07-05T20:27:45Z"

@@ -50,7 +50,7 @@ pub async fn import_many(
 ) -> anyhow::Result<()> {
     let sources_lock =
         fs::read_to_string(path.join("sources.lock")).context("Failed to read sources.lock")?;
-    let xdc_metas: HashMap<String, WexbdcManifest> = toml::from_str(&sources_lock).unwrap();
+    let xdc_metas: HashMap<String, WexbdcManifest> = toml::from_str(&sources_lock)?;
 
     let mut xdcs = vec![];
     for xdc in xdc_metas.into_values() {
