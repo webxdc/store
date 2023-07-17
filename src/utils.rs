@@ -19,7 +19,7 @@ use std::{
     env,
     path::{Path, PathBuf},
 };
-use tokio::task::JoinHandle;
+use tokio::{fs, task::JoinHandle};
 
 use crate::{
     bot::State,
@@ -233,19 +233,43 @@ pub enum AddType {
     Ignored,
 }
 
+/// If added or updated, moves the file to the `dest`.
 pub async fn maybe_upgrade_xdc(
     app_info: &mut AppInfo,
     conn: &mut SqliteConnection,
+    dest: &Path,
 ) -> anyhow::Result<AddType> {
-    Ok(
-        if db::app_version_exists(conn, &app_info.app_id, app_info.version).await? {
-            AddType::Ignored
-        } else if db::app_exists(conn, &app_info.app_id).await? {
-            db::create_app_info(conn, app_info).await?;
-            AddType::Updated
-        } else {
-            db::create_app_info(conn, app_info).await?;
-            AddType::Added
-        },
-    )
+    let add_type = if db::app_version_exists(conn, &app_info.app_id, app_info.version).await? {
+        AddType::Ignored
+    } else if db::app_exists(conn, &app_info.app_id).await? {
+        db::create_app_info(conn, app_info).await?;
+        AddType::Updated
+    } else {
+        db::create_app_info(conn, app_info).await?;
+        AddType::Added
+    };
+
+    match add_type {
+        AddType::Added | AddType::Updated => {
+            fs::copy(
+                &app_info.xdc_blob_path,
+                &dest.join(
+                    app_info
+                        .xdc_blob_path
+                        .file_name()
+                        .context("Can't get file name from xdc_blob_dir")?,
+                ),
+            )
+            .await
+            .with_context(|| {
+                format!(
+                    "Failed to copy {} to {}",
+                    app_info.xdc_blob_path.display(),
+                    dest.display()
+                )
+            })?;
+        }
+        AddType::Ignored => (),
+    }
+    Ok(add_type)
 }
