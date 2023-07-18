@@ -200,7 +200,7 @@ const Store: Component = () => {
           <div class="min-h-screen flex flex-col">
             <div class="my-4 flex items-start justify-center gap-2 p-2">
               <div class="flex flex-col items-start gap-1">
-                <input class="border-2 rounded-2xl px-3 py-1" placeholder='Search webxdc apps' onInput={event => setSearch((event.target as HTMLInputElement).value)} />
+                <input class="border-2 rounded-2xl px-3 py-1" placeholder={`Search ${Object.keys(appInfo).length} webxdc apps`} onInput={event => setSearch((event.target as HTMLInputElement).value)} />
               </div>
               <button class="rounded-1/2 p-2 btn">
                 <div class="i-carbon-search text-blue-700" />
