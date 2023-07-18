@@ -6,6 +6,7 @@ import { AppState } from './types'
 import type { WebxdcStatusUpdatePayload } from './bindings/WebxdcStatusUpdatePayload'
 import type { AppInfoDB } from './db/store_db'
 import { isOutdatedResponse, isUpdateSendResponse as isUpdateSentResponse } from './utils'
+import type { AppInfo } from './bindings/AppInfo'
 
 export type DownloadResponseOkay = Extract<WebxdcStatusUpdatePayload, { type: 'DownloadOkay' }>
 export type DownloadResponseError = Extract<WebxdcStatusUpdatePayload, { type: 'DownloadError' }>
@@ -52,7 +53,8 @@ export async function updateHandler(
   if (isUpdateResponse(payload)) {
     if (isEmpty(appInfo)) {
       // initially write the newest update to state
-      const app_infos = to_app_infos_by_id(payload.app_infos.map(app_info => ({ ...app_info, state: AppState.Initial } as AppInfoWithState)))
+      // we can assert the partial updates to be complete here because we got an initial message
+      const app_infos = to_app_infos_by_id((payload.app_infos as AppInfo[]).map(app_info => ({ ...app_info, state: AppState.Initial } as AppInfoWithState)))
       setAppInfo(app_infos)
       await db.insertMultiple(Object.values(app_infos))
     }
@@ -67,7 +69,8 @@ export async function updateHandler(
       setAppInfo(produce((s) => {
         for (const key in app_infos) {
           if (s[key] === undefined) {
-            s[key] = { ...app_infos[key] }
+            // As we don't know that app we can  assert the partial updates to be complete here
+            s[key] = { ...(app_infos[key] as AppInfoWithState) }
             added.push(key)
           }
           else {
@@ -80,8 +83,8 @@ export async function updateHandler(
         }
       }))
 
-      await db.insertMultiple(added.map(key => ({ ...app_infos[key], state: AppState.Initial })))
-      await db.updateMultiple(updated.map(key => ({ ...app_infos[key], state: appInfo[key].state !== AppState.Initial ? AppState.Updating : AppState.Initial })))
+      await db.insertMultiple(added.map(key => ({ ...app_infos[key], state: AppState.Initial })) as AppInfoWithState[])
+      await db.updateMultiple(updated.map(key => ({ ...appInfo[key], ...app_infos[key], state: appInfo[key].state !== AppState.Initial ? AppState.Updating : AppState.Initial })))
     }
 
     setlastUpdateSerial(payload.serial)

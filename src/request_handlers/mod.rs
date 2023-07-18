@@ -153,11 +153,16 @@ pub enum WebxdcStatusUpdatePayload {
     },
     Update {
         /// List of new / updated app infos.
-        #[ts(skip)]
+        #[ts(type = "(Partial<AppInfo> & {app_id: string})[]")]
         app_infos: Value,
         serial: u32,
         /// `app_id`s of apps that will receive an update.
         /// The frontend can use these to set the state to updating.
         updating: Vec<String>,
+    },
+
+    /// This type is only needed so [AppInfo] gets importend in the generated typesript.
+    _Mock {
+        app_info: AppInfo,
     },
 }

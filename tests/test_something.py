@@ -193,6 +193,64 @@ def test_update_advanced(acfactory, storebot_example):
     assert payload["type"] == "DownloadOkay"
 
 
+def test_partial_update(acfactory, storebot_example):
+    """Test that the bot sends initial update and responds to update requests."""
+    (ac1,) = acfactory.get_online_accounts(1)
+
+    bot_contact = ac1.create_contact(storebot_example.addr)
+    bot_chat = bot_contact.create_chat()
+    bot_chat.send_text("hi!")
+
+    msg_in = ac1.wait_next_incoming_message()
+    ac1._evtracker.get_matching("DC_EVENT_WEBXDC_STATUS_UPDATE")
+    serial = msg_in.get_status_updates()[-1]["payload"]["serial"]
+
+    # replace description of file `sources.lock` with a new one
+    new_lines = []
+    old_lines = []
+    with open(str(Path.cwd()) + "/example-xdcs/sources.lock", "r+") as f:
+        old_lines = f.readlines()
+        new_lines = map(
+            lambda line: 'description = "pupu"\n'
+            if line.startswith("description")
+            else "version = 10000\n"
+            if line.startswith("version")
+            else line,
+            old_lines,
+        )
+
+
+    with open(str(Path.cwd()) + "/example-xdcs/sources.lock", "w") as f:
+        f.writelines(new_lines)
+
+    storebot_example.install_examples()
+
+    # restore old lock file
+    with open(str(Path.cwd()) + "/example-xdcs/sources.lock", "w") as f:
+        f.writelines(old_lines)
+
+    # Request updates.
+    # dc-calendar is outdated by 1 version, dc-hextris not
+    assert msg_in.send_status_update(
+        {
+            "payload": {
+                "type": "UpdateRequest",
+                "serial": serial,
+                "apps": [],
+            }
+        },
+        "update",
+    )
+    ac1._evtracker.get_matching("DC_EVENT_WEBXDC_STATUS_UPDATE")
+
+    # Receive a response.
+    ac1._evtracker.get_matching("DC_EVENT_WEBXDC_STATUS_UPDATE")
+    status_updates = msg_in.get_status_updates()
+    assert len(status_updates) == 3
+    payload = status_updates[-1]["payload"]
+    assert payload["app_infos"][0] == {'app_id': 'webxdc-2048', 'description': 'pupu', 'version': 10000}
+
+
 def test_import(acfactory, storebot_example):
     """Test that import works."""
     (ac1,) = acfactory.get_online_accounts(1)

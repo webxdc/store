@@ -81,8 +81,10 @@ pub async fn send_store_xdc(
     Ok(msg_id)
 }
 
-pub fn to_hashmap<T: Serialize + for<'a> Deserialize<'a>>(a: T) -> HashMap<String, Value> {
-    serde_json::from_value(serde_json::to_value(a).unwrap()).unwrap()
+pub fn to_hashmap<T: Serialize + for<'a> Deserialize<'a>>(
+    a: T,
+) -> serde_json::Result<HashMap<String, Value>> {
+    serde_json::from_value(serde_json::to_value(a)?)
 }
 
 /// Sends a [deltachat::webxdc::StatusUpdateItem] with all [AppInfo]s greater than the given serial.
@@ -115,8 +117,8 @@ pub async fn send_newest_updates(
             let Some(old_info) = old_app_infos.get(app_info.app_id.as_str()) else {
             return to_hashmap(app_info)
         };
-            let old_fields = to_hashmap(old_info.clone());
-            let new_fields = to_hashmap(app_info.clone());
+            let old_fields = to_hashmap(old_info.clone())?;
+            let new_fields = to_hashmap(app_info.clone())?;
 
             let removed_fields = old_fields
                 .iter()
@@ -127,6 +129,9 @@ pub async fn send_newest_updates(
             let mut changed_fields = new_fields
                 .into_iter()
                 .filter(|(key, val)| {
+                    if key == "version" || key == "app_id" {
+                        return true;
+                    }
                     if let Some(old_val) = old_fields.get(key) {
                         old_val != val
                     } else {
@@ -136,13 +141,18 @@ pub async fn send_newest_updates(
                 .collect::<HashMap<_, _>>();
 
             changed_fields.extend(removed_fields);
-            changed_fields
+            Ok(changed_fields)
         })
         .collect_vec();
 
+    let mut all_changes = vec![];
+    for chang in changes {
+        all_changes.push(chang?)
+    }
+
     let serial = db::get_last_serial(db).await?;
     let resp = WebxdcStatusUpdatePayload::Update {
-        app_infos: json!(changes),
+        app_infos: json!(all_changes),
         serial,
         updating,
     };
