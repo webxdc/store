@@ -17,6 +17,7 @@ use crate::{
     request_handlers::{AppInfo, ChatType},
 };
 use deltachat::{chat::ChatId, contact::ContactId, message::MsgId};
+use itertools::Itertools;
 use sqlx::{migrate::Migrator, Connection, FromRow, Row, SqliteConnection};
 use std::path::PathBuf;
 
@@ -244,6 +245,40 @@ JOIN (
 ) b ON a.app_id = b.app_id AND a.tag_name = b.latest_tag_name
 WHERE a.serial > ?"#,
     )
+    .bind(serial)
+    .fetch_all(c)
+    .await
+    .map(|app| app.into_iter().map(|a| a.into()).collect())
+}
+
+/// Get all app_info with given serial
+pub async fn get_app_infos_for(
+    c: &mut SqliteConnection,
+    apps: &[&str],
+    serial: u32,
+) -> sqlx::Result<Vec<AppInfo>> {
+    let list = apps
+        .iter()
+        .map(|app| format!("'{}'", app))
+        .intersperse(",".to_string())
+        .collect::<String>();
+    println!("{list}");
+
+    sqlx::query_as::<_, DBAppInfo>(&format!(
+        r#"
+    SELECT a.*
+    FROM app_infos a
+    WHERE app_id IN ({list}) 
+        AND serial <= ?
+        AND version = (
+            SELECT MAX(version)
+            FROM app_infos
+            WHERE app_id = a.app_id
+              AND serial <= ?
+        );    
+    "#
+    ))
+    .bind(serial)
     .bind(serial)
     .fetch_all(c)
     .await
@@ -494,5 +529,31 @@ mod tests {
                 .await
                 .unwrap()
         );
+    }
+
+    #[tokio::test]
+    async fn test_get_app_infos_for() {
+        let mut conn = SqliteConnection::connect("sqlite::memory:").await.unwrap();
+        MIGRATOR.run(&mut conn).await.unwrap();
+        set_config(&mut conn, &BotConfig::default()).await.unwrap();
+
+        #[rustfmt::skip]
+        create_app_info(&mut conn, &mut AppInfo { version: 11, app_id: "webxdc-calendar".to_string(), ..Default::default() }).await.unwrap();
+        #[rustfmt::skip]
+        create_app_info(&mut conn, &mut AppInfo { version: 12, app_id: "webxdc-calendar".to_string(), ..Default::default() }).await.unwrap();
+        #[rustfmt::skip]
+        create_app_info(&mut conn, &mut AppInfo { version: 12, app_id: "webxdc-hextris".to_string(), ..Default::default() }).await.unwrap();
+        #[rustfmt::skip]
+        create_app_info(&mut conn, &mut AppInfo { version: 12, app_id: "webxdc-2048".to_string(), ..Default::default() }).await.unwrap();
+        let serial = get_last_serial(&mut conn).await.unwrap();
+        #[rustfmt::skip]
+        create_app_info(&mut conn, &mut AppInfo { version: 13, app_id: "webxdc-calendar".to_string(), ..Default::default() }).await.unwrap();
+
+        let app_infos = get_app_infos_for(&mut conn, &["webxdc-calendar", "webxdc-2048"], serial)
+            .await
+            .unwrap();
+
+        assert_eq!(app_infos.len(), 2);
+        assert!(app_infos.iter().all(|a| a.version == 12));
     }
 }
