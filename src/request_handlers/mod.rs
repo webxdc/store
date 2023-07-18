@@ -7,6 +7,7 @@ use anyhow::Context;
 use async_zip::tokio::read::fs::ZipFileReader;
 use base64::encode;
 use serde::{Deserialize, Serialize};
+use serde_json::Value;
 use sqlx::{Decode, FromRow, Type};
 use std::path::{Path, PathBuf};
 use time::{format_description::well_known::Rfc3339, OffsetDateTime};
@@ -152,8 +153,9 @@ pub enum WebxdcStatusUpdatePayload {
     },
     Update {
         /// List of new / updated app infos.
-        app_infos: Vec<AppInfo>,
-        serial: i32,
+        #[ts(skip)]
+        app_infos: Value,
+        serial: u32,
         /// `app_id`s of apps that will receive an update.
         /// The frontend can use these to set the state to updating.
         updating: Vec<String>,

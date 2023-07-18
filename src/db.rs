@@ -231,7 +231,8 @@ pub async fn get_app_infos(c: &mut SqliteConnection) -> sqlx::Result<Vec<AppInfo
 }
 
 /// Get the newest [AppInfo]s with a serial greater than serial.
-pub async fn get_active_app_infos_since(
+/// Gets the latest versions of all changed apps.
+pub async fn get_changed_app_infos_since(
     c: &mut SqliteConnection,
     serial: u32,
 ) -> sqlx::Result<Vec<AppInfo>> {
@@ -257,13 +258,12 @@ pub async fn get_app_infos_for(
     apps: &[&str],
     serial: u32,
 ) -> sqlx::Result<Vec<AppInfo>> {
+    #[allow(unstable_name_collisions)]
     let list = apps
         .iter()
         .map(|app| format!("'{}'", app))
         .intersperse(",".to_string())
         .collect::<String>();
-    println!("{list}");
-
     sqlx::query_as::<_, DBAppInfo>(&format!(
         r#"
     SELECT a.*
@@ -448,7 +448,7 @@ mod tests {
 
         assert_eq!(state, AddType::Updated);
         assert_eq!(
-            super::get_active_app_infos_since(&mut conn, 1)
+            super::get_changed_app_infos_since(&mut conn, 1)
                 .await
                 .unwrap(),
             vec![new_app_info.clone()]
