@@ -37,10 +37,10 @@ pub struct WexbdcManifest {
     /// Uri of the submitter.
     pub submitter_uri: Option<String>,
 
-    /// Date displayed in the store.
+    /// Date displayed in the store as a Rfc3339 timestamp.
     pub date: String,
 
-    /// Relative path to the cached xdc.
+    /// Relative path from the sources.ini file to the cached xdc.
     pub cache_relname: PathBuf,
 }
 
@@ -85,7 +85,7 @@ pub async fn import_many(
                 let res = read_vec(&reader, index).await?;
                 encode(&res)
             } else {
-                bail!("Could not find image")
+                bail!("Could not find image for {}", path.display())
             };
 
             Ok(AppInfo {
@@ -93,7 +93,7 @@ pub async fn import_many(
                 app_id: xdc.app_id,
                 version: xdc.version,
                 date: OffsetDateTime::parse(&xdc.date, &Rfc3339)?.unix_timestamp(),
-                name: xdc.name, // xdc.name,
+                name: xdc.name,
                 submitter_uri: None,
                 source_code_url: xdc.source_code_url,
                 image,

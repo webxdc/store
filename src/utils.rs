@@ -19,10 +19,8 @@ use std::{
     env,
     path::{Path, PathBuf},
 };
-use tokio::task::JoinHandle;
-
-#[cfg(not(test))]
 use tokio::fs;
+use tokio::task::JoinHandle;
 
 use crate::{
     bot::State,
@@ -240,7 +238,7 @@ pub enum AddType {
 pub async fn maybe_upgrade_xdc(
     app_info: &mut AppInfo,
     conn: &mut SqliteConnection,
-    _dest: &Path,
+    dest: &Path,
 ) -> anyhow::Result<AddType> {
     let add_type = if db::app_version_exists(conn, &app_info.app_id, app_info.version).await? {
         AddType::Ignored
@@ -252,32 +250,29 @@ pub async fn maybe_upgrade_xdc(
 
     match add_type {
         AddType::Added | AddType::Updated => {
-            #[cfg(not(test))]
-            {
-                fs::copy(
-                    &app_info.xdc_blob_path,
-                    &_dest.join(
-                        app_info
-                            .xdc_blob_path
-                            .file_name()
-                            .context("Can't get file name from xdc_blob_dir")?,
-                    ),
-                )
-                .await
-                .with_context(|| {
-                    format!(
-                        "Failed to copy {} to {}",
-                        app_info.xdc_blob_path.display(),
-                        _dest.display()
-                    )
-                })?;
-                app_info.xdc_blob_path = _dest.join(
+            fs::copy(
+                &app_info.xdc_blob_path,
+                &dest.join(
                     app_info
                         .xdc_blob_path
                         .file_name()
                         .context("Can't get file name from xdc_blob_dir")?,
-                );
-            }
+                ),
+            )
+            .await
+            .with_context(|| {
+                format!(
+                    "Failed to copy {} to {}",
+                    app_info.xdc_blob_path.display(),
+                    dest.display()
+                )
+            })?;
+            app_info.xdc_blob_path = dest.join(
+                app_info
+                    .xdc_blob_path
+                    .file_name()
+                    .context("Can't get file name from xdc_blob_dir")?,
+            );
             db::create_app_info(conn, app_info).await?;
         }
         AddType::Ignored => (),
