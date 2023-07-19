@@ -309,7 +309,7 @@ mod tests {
     use super::*;
     use crate::utils::AddType;
     use sqlx::{Connection, SqliteConnection};
-    use std::vec;
+    use std::{env, fs::create_dir, vec};
 
     #[tokio::test]
     async fn test_create_load_config() {
@@ -397,9 +397,12 @@ mod tests {
         let mut conn = SqliteConnection::connect("sqlite::memory:").await.unwrap();
         MIGRATOR.run(&mut conn).await.unwrap();
         set_config(&mut conn, &BotConfig::default()).await.unwrap();
+        let dest = env::temp_dir().join("example-xdcs");
+        create_dir(&dest).ok();
 
         let mut app_info = AppInfo {
             app_id: "testxdc".to_string(),
+            xdc_blob_path: PathBuf::from("example-xdcs/2048.xdc"),
             version: 1,
             ..Default::default()
         };
@@ -415,7 +418,7 @@ mod tests {
             ..app_info.clone()
         };
 
-        let state = crate::utils::maybe_upgrade_xdc(&mut new_app_info, &mut conn, &PathBuf::new())
+        let state = crate::utils::maybe_upgrade_xdc(&mut new_app_info, &mut conn, &dest)
             .await
             .unwrap();
 
@@ -427,7 +430,7 @@ mod tests {
             vec![new_app_info.clone()]
         );
 
-        let state = crate::utils::maybe_upgrade_xdc(&mut new_app_info, &mut conn, &PathBuf::new())
+        let state = crate::utils::maybe_upgrade_xdc(&mut new_app_info, &mut conn, &dest)
             .await
             .unwrap();
 
@@ -459,14 +462,25 @@ mod tests {
         MIGRATOR.run(&mut conn).await.unwrap();
         set_config(&mut conn, &BotConfig::default()).await.unwrap();
 
+        let dest = env::temp_dir().join("example-xdcs");
+        create_dir(&dest).ok();
+
         let mut app_info = AppInfo {
             app_id: "testxdc".to_string(),
+            xdc_blob_path: PathBuf::from("example-xdcs/2048.xdc"),
             ..Default::default()
         };
 
-        crate::utils::maybe_upgrade_xdc(&mut app_info, &mut conn, &PathBuf::new())
-            .await
-            .unwrap();
+        crate::utils::maybe_upgrade_xdc(
+            &mut app_info,
+            &mut conn,
+            &env::temp_dir().join("example-xdcs"),
+        )
+        .await
+        .unwrap();
+
+        // test that file has been moved
+        assert!(dest.join("2048.xdc").exists());
 
         assert!(
             !maybe_get_greater_version(&mut conn, &app_info.app_id, app_info.version)
@@ -481,7 +495,7 @@ mod tests {
                 ..app_info.clone()
             },
             &mut conn,
-            &PathBuf::from(""),
+            &dest,
         )
         .await
         .unwrap();
