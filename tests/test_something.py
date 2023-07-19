@@ -205,10 +205,10 @@ def test_partial_update(acfactory, storebot_example):
     ac1._evtracker.get_matching("DC_EVENT_WEBXDC_STATUS_UPDATE")
     serial = msg_in.get_status_updates()[-1]["payload"]["serial"]
 
-    # replace description of file `sources.lock` with a new one
+    sources_path = Path.cwd() / "example-xdcs" / "xdcget.lock"
     new_lines = []
     old_lines = []
-    with open(str(Path.cwd()) + "/example-xdcs/sources.lock", "r+") as f:
+    with open(sources_path, "r+") as f:
         old_lines = f.readlines()
         new_lines = map(
             lambda line: 'description = "pupu"\n'
@@ -219,14 +219,13 @@ def test_partial_update(acfactory, storebot_example):
             old_lines,
         )
 
-
-    with open(str(Path.cwd()) + "/example-xdcs/sources.lock", "w") as f:
+    with open(sources_path, "w") as f:
         f.writelines(new_lines)
 
     storebot_example.install_examples()
 
     # restore old lock file
-    with open(str(Path.cwd()) + "/example-xdcs/sources.lock", "w") as f:
+    with open(sources_path, "w") as f:
         f.writelines(old_lines)
 
     # Request updates.
@@ -248,7 +247,11 @@ def test_partial_update(acfactory, storebot_example):
     status_updates = msg_in.get_status_updates()
     assert len(status_updates) == 3
     payload = status_updates[-1]["payload"]
-    assert payload["app_infos"][0] == {'app_id': 'webxdc-2048', 'description': 'pupu', 'version': 10000}
+    assert payload["app_infos"][0] == {
+        "app_id": "webxdc-2048",
+        "description": "pupu",
+        "version": 10000,
+    }
 
 
 def test_import(acfactory, storebot_example):

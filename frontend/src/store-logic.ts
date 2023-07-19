@@ -54,6 +54,7 @@ export async function updateHandler(
     if (isEmpty(appInfo)) {
       // initially write the newest update to state
       // we can assert the partial updates to be complete here because we got an initial message
+      console.log('Initialising apps')
       const app_infos = to_app_infos_by_id((payload.app_infos as AppInfo[]).map(app_info => ({ ...app_info, state: AppState.Initial } as AppInfoWithState)))
       setAppInfo(app_infos)
       await db.insertMultiple(Object.values(app_infos))

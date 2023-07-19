@@ -200,4 +200,29 @@ describe('Store receiving updates', () => {
     await updateHandler(download, handlers.db, handlers.appInfo, handlers.setAppInfo, handlers.setlastUpdateSerial, handlers.setIsUpdating, handlers.setlastUpdate, handlers.setUpdateNeeded, handlers.setUpdateReceived)
     expect(appInfo['15'].state).toBe(AppState.Received)
   })
+
+  test('Handles partial updates', async () => {
+    const db = new AppInfoDB('storetesting4')
+    const [appInfo, setAppInfo] = createStore(to_app_infos_by_id(mock))
+    const handlers = {
+      db,
+      ...general_handlers,
+      appInfo,
+      setAppInfo,
+    }
+
+    const payload = {
+      type: 'Update',
+      app_infos: [{
+        app_id: '12',
+        version: 2,
+        description: 'pupu',
+      }],
+      serial: 12,
+      updating: ['15'],
+    } as UpdateResponse
+
+    await updateHandler(payload, handlers.db, handlers.appInfo, handlers.setAppInfo, handlers.setlastUpdateSerial, handlers.setIsUpdating, handlers.setlastUpdate, handlers.setUpdateNeeded, handlers.setUpdateReceived)
+    expect(await db.get('12')).toStrictEqual({ ...mock[0], description: 'pupu' })
+  })
 })
