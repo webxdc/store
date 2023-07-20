@@ -92,6 +92,7 @@ function AppInfoModal(item: AppInfoWithState, onDownload: () => void, onForward:
               </Show>
             </div>
             <p class="break-all text-sm text-gray-600"><span class="font-bold"> Source-code: </span>{item.source_code_url}</p>
+            <p class="break-all text-sm text-gray-600"><span class="font-bold"> Tag: </span>{item.tag_name}</p>
           </div>
         </div>
       </Show>
@@ -177,7 +178,7 @@ const Store: Component = () => {
 
   async function update() {
     setIsUpdating(true)
-    const cached_apps = cached().map(app_info => ([app_info.app_id, app_info.version] as [string, number]))
+    const cached_apps = cached().map(app_info => ([app_info.app_id, app_info.tag_name] as [string, string]))
     window.webxdc.sendUpdate({
       payload: { type: 'UpdateRequest', serial: lastUpdateSerial(), apps: cached_apps } as WebxdcStatusUpdatePayload,
     }, '')

@@ -31,7 +31,7 @@ describe('Store receiving updates', () => {
     const payload = {
       type: 'Outdated',
       critical: true,
-      version: 1,
+      version: 'v1',
     } as WebxdcOutdatedResponse
 
     const updateNeeded = vi.spyOn(handlers, 'setUpdateNeeded')
@@ -153,7 +153,7 @@ describe('Store receiving updates', () => {
     }
 
     const crazy_update = mock.slice()
-    crazy_update[0].version = 2
+    crazy_update[0].tag_name = 'v2'
     let payload = {
       type: 'Update',
       app_infos: mock,
