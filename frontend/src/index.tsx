@@ -79,10 +79,15 @@ function AppInfoModal(item: AppInfoWithState, onDownload: () => void, onForward:
           <p class="my-2 text-gray-600">{description}</p>
           <div class="my-2">
             <p class="text-sm text-gray-600"><span class="font-bold"> Date: </span>{new Date(Number(item.date) * 1000).toLocaleDateString()}</p>
-            <p class="text-sm text-gray-600"><span class="font-bold"> Size: </span>{(Number(item.size) / 1000).toFixed(1).toString()} kb</p>
+            <div class="flex gap-1 items-center">
+              <p class="text-sm text-gray-600"><span class="font-bold"> Size: </span>{(Number(item.size) / 1000).toFixed(1).toString()} kb</p>
+              <Show when={(item.state === AppState.Received || item.state === AppState.Updating)}>
+                -
+                <button class="text-sm text-blue-500" onClick={onRemove}>Remove</button>
+              </Show>
+            </div>
             <p class="break-all text-sm text-gray-600"><span class="font-bold"> Source-code: </span>{item.source_code_url}</p>
           </div>
-          {(item.state === AppState.Received || item.state === AppState.Updating) && <button class="self-center btn" onClick={onRemove}>Remove from cache</button>}
         </div>
       </Show>
     </li >
