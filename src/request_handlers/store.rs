@@ -2,8 +2,7 @@ use super::WebxdcStatusUpdatePayload;
 use crate::{
     bot::State,
     db,
-    messages::store_message,
-    utils::{send_newest_updates, send_update_payload_only, send_webxdc, Webxdc},
+    utils::{send_newest_updates, send_store_xdc, send_update_payload_only},
 };
 use anyhow::Context as _;
 use base64::encode;
@@ -23,15 +22,7 @@ pub async fn handle_message(
 ) -> anyhow::Result<()> {
     let chat = chat::Chat::load_from_db(context, chat_id).await?;
     if let constants::Chattype::Single = chat.typ {
-        let msg = send_webxdc(
-            context,
-            &state,
-            chat_id,
-            Webxdc::Store,
-            Some(store_message()),
-        )
-        .await?;
-        send_newest_updates(context, msg, &mut *state.db.acquire().await?, 0, vec![]).await?;
+        send_store_xdc(context, &state, chat_id, true).await?;
     }
     Ok(())
 }
@@ -49,8 +40,8 @@ pub async fn handle_status_update(
             // Get all updating xdcs
             let mut updating = vec![];
             let conn = &mut *state.db.acquire().await?;
-            for (app_id, version) in apps {
-                if db::maybe_get_greater_version(conn, &app_id, version).await? {
+            for (app_id, ref tag_name) in apps {
+                if db::maybe_get_greater_tag_name(conn, &app_id, tag_name).await? {
                     updating.push(app_id);
                 }
             }

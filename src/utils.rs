@@ -3,7 +3,7 @@
 use std::fs::File;
 use std::io::Write;
 
-use anyhow::{bail, Context as _, Result};
+use anyhow::{Context as _, Result};
 use async_zip::tokio::read::fs::ZipFileReader;
 use deltachat::{
     chat::{self, ChatId},
@@ -12,19 +12,18 @@ use deltachat::{
     message::{Message, MsgId, Viewtype},
 };
 use directories::ProjectDirs;
-use futures::future::join_all;
 use serde::Serialize;
-use sqlx::{SqliteConnection, Type};
+use sqlx::SqliteConnection;
 use std::{
     env,
     path::{Path, PathBuf},
 };
 use tokio::fs;
-use tokio::task::JoinHandle;
 
 use crate::{
     bot::State,
     db,
+    messages::store_message,
     request_handlers::{AppInfo, WebxdcStatusUpdatePayload, WexbdcManifest},
     STORE_XDC,
 };
@@ -51,7 +50,7 @@ pub(crate) fn unpack_assets() -> Result<()> {
 
     std::fs::create_dir_all(project_dirs()?.config_dir())?;
 
-    let store_path = Webxdc::Store.get_path().context("cannot get webxdc path")?;
+    let store_path = get_store_xdc_path()?;
     let mut file = File::create(&store_path)
         .with_context(|| format!("failed to create {}", store_path.display()))?;
     file.write_all(store_bytes)?;
@@ -59,21 +58,21 @@ pub(crate) fn unpack_assets() -> Result<()> {
 }
 
 /// Send a webxdc to a chat.
-pub async fn send_webxdc(
+pub async fn send_store_xdc(
     context: &Context,
     state: &State,
     chat_id: ChatId,
-    webxdc: Webxdc,
-    text: Option<&str>,
+    hydrate: bool,
 ) -> anyhow::Result<MsgId> {
     let mut webxdc_msg = Message::new(Viewtype::Webxdc);
-    if let Some(text) = text {
-        webxdc_msg.set_text(Some(text.to_string()));
-    }
-    webxdc_msg.set_file(webxdc.get_str_path()?, None);
+    webxdc_msg.set_text(Some(store_message().to_string()));
+    webxdc_msg.set_file(get_store_xdc_path()?.display(), None);
     let msg_id = chat::send_msg(context, chat_id, &mut webxdc_msg).await?;
+    if hydrate {
+        send_newest_updates(context, msg_id, &mut *state.db.acquire().await?, 0, vec![]).await?;
+    }
     let conn = &mut *state.db.acquire().await?;
-    db::set_webxdc_version(conn, msg_id, state.webxdc_versions.get(webxdc), webxdc).await?;
+    db::set_store_tag_name(conn, msg_id, &state.store_tag_name).await?;
     Ok(msg_id)
 }
 
@@ -149,79 +148,10 @@ pub async fn get_webxdc_manifest(reader: &ZipFileReader) -> anyhow::Result<Wexbd
     Ok(toml::from_str(&read_string(reader, manifest_index).await?)?)
 }
 
-pub async fn get_webxdc_version(file: impl AsRef<Path>) -> anyhow::Result<u32> {
+pub async fn get_webxdc_tag_name(file: impl AsRef<Path>) -> anyhow::Result<String> {
     let reader = ZipFileReader::new(file).await?;
     let manifest = get_webxdc_manifest(&reader).await?;
-    Ok(manifest.version)
-}
-
-#[derive(Clone, Copy, Type)]
-pub enum Webxdc {
-    Store,
-}
-
-impl Webxdc {
-    pub fn get_path(&self) -> Result<PathBuf> {
-        let filename = match self {
-            Webxdc::Store => STORE_XDC,
-        };
-        let path = project_dirs()?.config_dir().to_path_buf().join(filename);
-        Ok(path)
-    }
-
-    pub fn get_str_path(&self) -> Result<String> {
-        self.get_path()?
-            .to_str()
-            .with_context(|| format!("cannot convert path {:?} to string", self.get_path()))
-            .map(|str| str.to_string())
-    }
-
-    pub fn iter() -> impl Iterator<Item = Webxdc> {
-        [Webxdc::Store].iter().copied()
-    }
-}
-
-#[derive(Debug, PartialEq, Eq, Default)]
-pub struct WebxdcVersions {
-    pub store: u32,
-}
-
-impl WebxdcVersions {
-    pub fn set(&mut self, webxdc: Webxdc, version: u32) {
-        match webxdc {
-            Webxdc::Store => self.store = version,
-        }
-    }
-
-    pub fn get(&self, webxdc: Webxdc) -> u32 {
-        match webxdc {
-            Webxdc::Store => self.store,
-        }
-    }
-}
-
-pub async fn read_webxdc_versions() -> anyhow::Result<WebxdcVersions> {
-    for webxdc in Webxdc::iter() {
-        let webxdc_path = webxdc.get_path().context("cannot get webxdc path")?;
-        if !webxdc_path.try_exists()? {
-            bail!("Required webxdc {} is not found.", webxdc_path.display());
-        }
-    }
-
-    let mut futures: Vec<JoinHandle<anyhow::Result<(Webxdc, u32)>>> = vec![];
-    for webxdc in Webxdc::iter() {
-        futures.push(tokio::spawn(async move {
-            let version = get_webxdc_version(&webxdc.get_str_path()?).await?;
-            Ok((webxdc, version))
-        }))
-    }
-
-    let mut versions = WebxdcVersions::default();
-    for result in join_all(futures).await {
-        let (webxdc, version) = result??;
-        versions.set(webxdc, version);
-    }
-    Ok(versions)
+    Ok(manifest.tag_name)
 }
 
 #[derive(Debug, PartialEq)]
@@ -240,7 +170,7 @@ pub async fn maybe_upgrade_xdc(
     conn: &mut SqliteConnection,
     dest: &Path,
 ) -> anyhow::Result<AddType> {
-    let add_type = if db::app_version_exists(conn, &app_info.app_id, app_info.version).await? {
+    let add_type = if db::app_tag_name_exists(conn, &app_info.app_id, &app_info.tag_name).await? {
         AddType::Ignored
     } else if db::app_exists(conn, &app_info.app_id).await? {
         AddType::Updated
@@ -278,4 +208,8 @@ pub async fn maybe_upgrade_xdc(
         AddType::Ignored => (),
     }
     Ok(add_type)
+}
+
+pub fn get_store_xdc_path() -> anyhow::Result<PathBuf> {
+    Ok(project_dirs()?.config_dir().to_path_buf().join(STORE_XDC))
 }

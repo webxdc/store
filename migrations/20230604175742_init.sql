@@ -4,8 +4,7 @@ CREATE TABLE IF NOT EXISTS config (
     invite_qr TEXT NOT NULL,
     genesis_qr TEXT NOT NULL,
     genesis_group INTEGER NOT NULL,
-    serial INTEGER NOT NULL,
-    store_xdc_version TEXT NOT NULL
+    serial INTEGER NOT NULL
 );
 
 CREATE TABLE IF NOT EXISTS chat_to_chat_type (
@@ -13,30 +12,23 @@ CREATE TABLE IF NOT EXISTS chat_to_chat_type (
     chat_type INTEGER NOT NULL
 );
 
-CREATE TABLE IF NOT EXISTS users (
-    contact_id INTEGER PRIMARY KEY NOT NULL,
-    tester BOOLEAN NOT NULL,
-    publisher BOOLEAN NOT NULL,
-    genesis BOOLEAN NOT NULL
-);
-
 CREATE TABLE IF NOT EXISTS app_infos (
     id INTEGER PRIMARY KEY autoincrement,
     app_id TEXT NOT NULL,
+    date NUMBER NOT NULL,
+    size NUMBER NOT NULL,
     name TEXT NOT NULL,
-    submitter_uri TEXT,
-    source_code_url TEXT,
+    source_code_url TEXT NOT NULL,
     image TEXT NOT NULL,
     description TEXT NOT NULL,
     xdc_blob_path TEXT NOT NULL,
-    version NUMBER NOT NULL,
+    tag_name TEXT NOT NULL,
     serial INTEGER NOT NULL
 );
 
 CREATE INDEX IF NOT EXISTS app_id ON app_infos (app_id);
 
-CREATE TABLE IF NOT EXISTS webxdc_versions (
+CREATE TABLE IF NOT EXISTS webxdc_tag_names (
     msg_id INTEGER PRIMARY KEY NOT NULL,
-    webxdc INTEGER NOT NULL,
-    version INTEGER NOT NULL
+    tag_name TEXT NOT NULL
 );
