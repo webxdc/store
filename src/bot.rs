@@ -154,7 +154,6 @@ impl Bot {
             invite_qr,
             genesis_group,
             serial: 0,
-            ..Default::default()
         })
     }
 
