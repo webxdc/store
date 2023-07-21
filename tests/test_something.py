@@ -210,14 +210,15 @@ def test_partial_update(acfactory, storebot_example):
     old_lines = []
     with open(sources_path, "r+") as f:
         old_lines = f.readlines()
-        new_lines = map(
-            lambda line: 'description = "pupu"\n'
+        # Replace description and make sure old version is outdated
+        new_lines = [
+            'description = "pupu"\n'
             if line.startswith("description")
             else "version = 10000\n"
             if line.startswith("version")
-            else line,
-            old_lines,
-        )
+            else line
+            for line in old_lines
+        ]
 
     with open(sources_path, "w") as f:
         f.writelines(new_lines)

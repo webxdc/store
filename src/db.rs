@@ -252,7 +252,7 @@ WHERE a.serial > ?"#,
     .map(|app| app.into_iter().map(|a| a.into()).collect())
 }
 
-/// Get all app_info with given serial
+/// This function takes a list of app_ids's and returns the latest version of each app where serial <= serial.
 pub async fn get_app_infos_for(
     c: &mut SqliteConnection,
     apps: &[&str],
@@ -261,6 +261,7 @@ pub async fn get_app_infos_for(
     #[allow(unstable_name_collisions)]
     let list = apps
         .iter()
+        .map(|app| app.replace('\'', "''"))
         .map(|app| format!("'{}'", app))
         .intersperse(",".to_string())
         .collect::<String>();

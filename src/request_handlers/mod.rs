@@ -161,7 +161,7 @@ pub enum WebxdcStatusUpdatePayload {
         updating: Vec<String>,
     },
 
-    /// This type is only needed so [AppInfo] gets importend in the generated typesript.
+    /// This type is only needed so [AppInfo] is importend in the generated typesript.
     _Mock {
         app_info: AppInfo,
     },

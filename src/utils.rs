@@ -115,8 +115,8 @@ pub async fn send_newest_updates(
         .into_iter()
         .map(|app_info| {
             let Some(old_info) = old_app_infos.get(app_info.app_id.as_str()) else {
-            return to_hashmap(app_info)
-        };
+                return to_hashmap(app_info)
+            };
             let old_fields = to_hashmap(old_info.clone())?;
             let new_fields = to_hashmap(app_info.clone())?;
 
