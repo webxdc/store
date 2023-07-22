@@ -179,8 +179,7 @@ To package the frontend with developer tools inside for debugging:
 ERUDA=yes pnpm build
 ```
 
-This step creates an `assets` directory in the root of the repository
-with files `store.xdc`, `review-helper.xdc` and `submit-helper.xdc`.
+This step creates an `assets` directory in the root of the repository with file `store.xdc`
 
 ### Building the bot
 
