@@ -37,7 +37,7 @@ function AppInfoModal(item: AppInfoWithState, onDownload: () => void, onForward:
   return (
     <li class="w-full p-3">
       <div class="flex cursor-pointer items-center justify-between gap-2" onClick={() => setIsExpanded(!isExpanded())}>
-        <img 
+        <img
           src={`data:image/png;base64,${item.image!}`}
           alt={item.name}
           class="h-16 w-16 rounded-xl object-cover"
@@ -84,7 +84,7 @@ function AppInfoModal(item: AppInfoWithState, onDownload: () => void, onForward:
           <p class="my-2 text-gray-600">{description}</p>
           <div class="my-2">
             <p class="text-sm text-gray-600"><span class="font-bold"> Date: </span>{new Date(Number(item.date) * 1000).toLocaleDateString()}</p>
-            <div class="flex gap-1 items-center">
+            <div class="flex items-center gap-1">
               <p class="text-sm text-gray-600"><span class="font-bold"> Size: </span>{(Number(item.size) / 1000).toFixed(1).toString()} kb</p>
               <Show when={(item.state === AppState.Received || item.state === AppState.Updating)}>
                 -
@@ -129,7 +129,7 @@ const AppList: Component<AppListProps> = (props) => {
       <For each={filtered_items() || props.items}>
         {(item, index) => (
           <>
-            {AppInfoModal(item, () => props.onDownload(item.app_id), () => { props.onForward(item.app_id) }, () => props.onRemove(item.app_id), (event) => props.onDragStart(event, item))}
+            {AppInfoModal(item, () => props.onDownload(item.app_id), () => { props.onForward(item.app_id) }, () => props.onRemove(item.app_id), event => props.onDragStart(event, item))}
             {index() !== filtered_items().length - 1 && <hr />}
           </>
         )
@@ -204,15 +204,15 @@ const Store: Component = () => {
   }
 
   const supportsDraggingOut = !!(window as any).webxdc_custom?.desktopDragFileOut
-  const onDragStart = async (ev: DragEvent, item: AppInfoWithState)=>{
+  const onDragStart = async (ev: DragEvent, item: AppInfoWithState) => {
     ev.preventDefault()
     if (supportsDraggingOut) {
       const file = await db.get_webxdc(item.app_id)
       if (file === undefined) {
         throw new Error('No cached file found')
       }
-      if (!Object.keys(file).includes("base64")) {
-        console.error("non base64 file is not supported for dragging webxdc out")
+      if (!Object.keys(file).includes('base64')) {
+        console.error('non base64 file is not supported for dragging webxdc out')
         return
       }
       (window as any).webxdc_custom?.desktopDragFileOut?.(file.name, (file as any).base64, `data:image/png;base64,${item.image!}`)
@@ -247,12 +247,12 @@ const Store: Component = () => {
               </Show>
             </ul>
             <hr />
-            <div class="flex xs:flex-row flex-col flex-wrap justify-center gap-2 py-4 pb-5">
+            <div class="flex flex-col flex-wrap justify-center gap-2 py-4 pb-5 xs:flex-row">
               <button class="font-thin unimportant" onClick={() => setShowCommit(!showCommit())}>
                 Last update: {isUpdating() ? 'Updating..' : `${formatDistanceToNow(lastUpdate())} ago`}
               </button>
               <Show when={!isUpdating()}>
-                <span class="unimportant hidden xs:block">-</span>
+                <span class="hidden unimportant xs:block">-</span>
                 <button class="text-blue-500" onclick={update}>
                   Update
                 </button>
