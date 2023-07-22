@@ -42,7 +42,7 @@ function AppInfoModal(item: AppInfoWithState, onDownload: () => void, onForward:
           alt={item.name}
           class="h-16 w-16 rounded-xl object-cover"
           ondragstart={onDragStart}
-          draggable={onDragStart && item.state === AppState.Received} />
+          draggable={onDragStart && (item.state === AppState.Received || item.state === AppState.Updating)} />
         <div class="flex-grow-1 overflow-hidden">
           <h2 class="text-xl font-semibold">{item.name}</h2>
           <p class="max-width-text truncate text-gray-600">{summary}</p>
@@ -205,14 +205,14 @@ const Store: Component = () => {
 
   const supportsDraggingOut = !!(window as any).webxdc_custom?.desktopDragFileOut
   const onDragStart = async (ev: DragEvent, item: AppInfoWithState) => {
-    ev.preventDefault()
     if (supportsDraggingOut) {
+      ev.preventDefault()
       const file = await db.get_webxdc(item.app_id)
       if (file === undefined) {
         throw new Error('No cached file found')
       }
       if (!Object.keys(file).includes('base64')) {
-        console.error('non base64 file is not supported for dragging webxdc out')
+        console.error('Only base64 files are supported for drag-sending')
         return
       }
       (window as any).webxdc_custom?.desktopDragFileOut?.(file.name, (file as any).base64, `data:image/png;base64,${item.image!}`)
