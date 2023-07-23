@@ -30,14 +30,19 @@ const fuse_options = {
 type DownloadResponseOkay = Extract<WebxdcStatusUpdatePayload, { type: 'DownloadOkay' }>
 type UpdateResponse = Extract<WebxdcStatusUpdatePayload, { type: 'Update' }>
 
-function AppInfoModal(item: AppInfoWithState, onDownload: () => void, onForward: () => void, onRemove: () => void) {
+function AppInfoModal(item: AppInfoWithState, onDownload: () => void, onForward: () => void, onRemove: () => void, onDragStart?: (ev: DragEvent) => void) {
   const [isExpanded, setIsExpanded] = createSignal(false)
   const summary = item.description.split('\n')[0]
   const description = item.description.slice(summary.length + 1)
   return (
     <li class="w-full p-3">
       <div class="flex cursor-pointer items-center justify-between gap-2" onClick={() => setIsExpanded(!isExpanded())}>
-        <img src={`data:image/png;base64,${item.image!}`} alt={item.name} class="h-16 w-16 rounded-xl object-cover" />
+        <img
+          src={`data:image/png;base64,${item.image!}`}
+          alt={item.name}
+          class="h-16 w-16 rounded-xl object-cover"
+          ondragstart={onDragStart}
+          draggable={onDragStart && (item.state === AppState.Received || item.state === AppState.Updating)} />
         <div class="flex-grow-1 overflow-hidden">
           <h2 class="text-xl font-semibold">{item.name}</h2>
           <p class="max-width-text truncate text-gray-600">{summary}</p>
@@ -79,7 +84,7 @@ function AppInfoModal(item: AppInfoWithState, onDownload: () => void, onForward:
           <p class="my-2 text-gray-600">{description}</p>
           <div class="my-2">
             <p class="text-sm text-gray-600"><span class="font-bold"> Date: </span>{new Date(Number(item.date) * 1000).toLocaleDateString()}</p>
-            <div class="flex gap-1 items-center">
+            <div class="flex items-center gap-1">
               <p class="text-sm text-gray-600"><span class="font-bold"> Size: </span>{(Number(item.size) / 1000).toFixed(1).toString()} kb</p>
               <Show when={(item.state === AppState.Received || item.state === AppState.Updating)}>
                 -
@@ -100,6 +105,7 @@ interface AppListProps {
   onDownload: (id: string) => void
   onForward: (id: string) => void
   onRemove: (id: string) => void
+  onDragStart: (ev: DragEvent, item: AppInfoWithState) => void
 }
 
 const AppList: Component<AppListProps> = (props) => {
@@ -123,7 +129,7 @@ const AppList: Component<AppListProps> = (props) => {
       <For each={filtered_items() || props.items}>
         {(item, index) => (
           <>
-            {AppInfoModal(item, () => props.onDownload(item.app_id), () => { props.onForward(item.app_id) }, () => props.onRemove(item.app_id))}
+            {AppInfoModal(item, () => props.onDownload(item.app_id), () => { props.onForward(item.app_id) }, () => props.onRemove(item.app_id), event => props.onDragStart(event, item))}
             {index() !== filtered_items().length - 1 && <hr />}
           </>
         )
@@ -197,6 +203,22 @@ const Store: Component = () => {
     db.remove_webxdc(app_id)
   }
 
+  const supportsDraggingOut = !!(window as any).webxdc_custom?.desktopDragFileOut
+  async function onDragStart(ev: DragEvent, item: AppInfoWithState) {
+    if (supportsDraggingOut) {
+      ev.preventDefault()
+      const file = await db.get_webxdc(item.app_id)
+      if (file === undefined) {
+        throw new Error('No cached file found')
+      }
+      if (!Object.keys(file).includes('base64')) {
+        console.error('Only base64 files are supported for drag-sending')
+        return
+      }
+      (window as any).webxdc_custom?.desktopDragFileOut?.(file.name, (file as any).base64, `data:image/png;base64,${item.image!}`)
+    }
+  }
+
   return (
     <div>
       <div class="c-grid" classList={{ 'blur-xl': updateNeeded() }}>
@@ -220,16 +242,17 @@ const Store: Component = () => {
                   items={Object.values(appInfo).sort((a, b) => Number(b.date - a.date))} search_query={query()}
                   onDownload={handleDownload}
                   onForward={handleForward}
-                  onRemove={handleRemove} ></AppList>
+                  onRemove={handleRemove}
+                  onDragStart={onDragStart} ></AppList>
               </Show>
             </ul>
             <hr />
-            <div class="flex xs:flex-row flex-col flex-wrap justify-center gap-2 py-4 pb-5">
+            <div class="flex flex-col flex-wrap justify-center gap-2 py-4 pb-5 xs:flex-row">
               <button class="font-thin unimportant" onClick={() => setShowCommit(!showCommit())}>
                 Last update: {isUpdating() ? 'Updating..' : `${formatDistanceToNow(lastUpdate())} ago`}
               </button>
               <Show when={!isUpdating()}>
-                <span class="unimportant hidden xs:block">-</span>
+                <span class="hidden unimportant xs:block">-</span>
                 <button class="text-blue-500" onclick={update}>
                   Update
                 </button>
