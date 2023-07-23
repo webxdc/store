@@ -165,7 +165,7 @@ def test_update_advanced(acfactory, storebot_example):
     ac1._evtracker.get_matching("DC_EVENT_WEBXDC_STATUS_UPDATE")
 
     # Request updates.
-    # dc-calendar is outdated by 1 version, dc-hextris not
+    # calendar is outdated, hextris not
     assert msg_in.send_status_update(
         {
             "payload": {
@@ -331,7 +331,7 @@ def test_frontend_update(acfactory, storebot):
     # Test that the bot sends an outdated response
     status_updates = msg_in.get_status_updates()
     payload = status_updates[2]["payload"]
-    assert payload == {"type": "Outdated", "critical": True, "version": "v1000"}
+    assert payload == {"type": "Outdated", "critical": True, "tag_name": "v1000"}
 
     # In store.xdc the update button should send this message
     msg_in.send_status_update({"payload": {"type": "UpdateWebxdc"}}, "")
