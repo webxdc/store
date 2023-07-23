@@ -1,4 +1,4 @@
-import type { Setter } from 'solid-js'
+import type { Accessor, Setter } from 'solid-js'
 import type { SetStoreFunction } from 'solid-js/store'
 import { produce } from 'solid-js/store'
 import type { AppInfoWithState, AppInfosById } from './types'
@@ -24,14 +24,6 @@ function isUpdateResponse(p: any): p is UpdateResponse {
   return p.type === 'Update'
 }
 
-function isEmpty(obj: any) {
-  for (const prop in obj) {
-    if (Object.prototype.hasOwnProperty.call(obj, prop))
-      return false
-  }
-  return true
-}
-
 export function to_app_infos_by_id<T extends { app_id: string }>(app_infos: T[]): Record<string, T> {
   return app_infos.reduce((acc, appinfo) => {
     acc[appinfo.app_id] = appinfo
@@ -43,6 +35,7 @@ export async function updateHandler(
   payload: object,
   db: AppInfoDB,
   appInfo: AppInfosById,
+  lastSerial: Accessor<number>,
   setAppInfo: SetStoreFunction<AppInfosById>,
   setlastUpdateSerial: Setter<number>,
   setIsUpdating: Setter<boolean>,
@@ -51,20 +44,20 @@ export async function updateHandler(
   setUpdateReceived: Setter<boolean>,
 ) {
   if (isUpdateResponse(payload)) {
-    if (isEmpty(appInfo)) {
+    if (payload.old_serial === 0) {
+      console.log('Initialising apps')
       // initially write the newest update to state
       // we can assert the partial updates to be complete here because we got an initial message
-      console.log('Initialising apps')
       const app_infos = to_app_infos_by_id((payload.app_infos as AppInfo[]).map(app_info => ({ ...app_info, state: AppState.Initial } as AppInfoWithState)))
       setAppInfo(app_infos)
       await db.insertMultiple(Object.values(app_infos))
     }
-    else {
+    else if (payload.old_serial === lastSerial()) {
+      console.log('Reconceiling updates')
       // all but the first update only overwrite existing properties
       const app_infos = to_app_infos_by_id(payload.app_infos.map((app_info) => {
         return { ...app_info, state: AppState.Initial }
       }))
-      console.log('Reconceiling updates')
       const added: string[] = []
       const updated: string[] = []
       setAppInfo(produce((s) => {
@@ -86,6 +79,11 @@ export async function updateHandler(
 
       await db.insertMultiple(added.map(key => ({ ...app_infos[key], state: AppState.Initial })) as AppInfoWithState[])
       await db.updateMultiple(updated.map(key => ({ ...appInfo[key], ...app_infos[key], state: appInfo[key].state !== AppState.Initial ? AppState.Updating : AppState.Initial })))
+    }
+    else {
+      console.log('Ignoring outdated update')
+      setIsUpdating(false)
+      return
     }
 
     setlastUpdateSerial(payload.serial)

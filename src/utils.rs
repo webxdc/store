@@ -12,13 +12,11 @@ use deltachat::{
     message::{Message, MsgId, Viewtype},
 };
 use directories::ProjectDirs;
-use serde::Serialize;
-use sqlx::SqliteConnection;
-use futures::future::join_all;
 use itertools::Itertools;
-use serde::{Deserialize, Serialize};
+use serde::Deserialize;
+use serde::Serialize;
 use serde_json::{json, Value};
-use sqlx::{SqliteConnection, Type};
+use sqlx::SqliteConnection;
 use std::{
     env,
     path::{Path, PathBuf},
@@ -150,10 +148,11 @@ pub async fn send_newest_updates(
         all_changes.push(chang?)
     }
 
-    let serial = db::get_last_serial(db).await?;
+    let new_serial = db::get_last_serial(db).await?;
     let resp = WebxdcStatusUpdatePayload::Update {
         app_infos: json!(all_changes),
-        serial,
+        serial: new_serial,
+        old_serial: serial,
         updating,
     };
     send_update_payload_only(context, msg_id, resp).await?;

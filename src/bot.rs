@@ -302,7 +302,6 @@ impl Bot {
             send_store_xdc(context, &state, chat_id, true).await?;
             send_update_payload_only(context, msg_id, WebxdcStatusUpdatePayload::UpdateSent)
                 .await?;
-            send_newest_updates(context, msg, &mut *state.db.acquire().await?, 0, vec![]).await?;
             return Ok(());
         }
 
