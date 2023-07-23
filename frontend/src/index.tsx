@@ -86,7 +86,7 @@ function AppInfoModal(item: AppInfoWithState, onDownload: () => void, onForward:
                 <button class="text-sm text-blue-500" onClick={onRemove}>Remove</button>
               </Show>
             </div>
-            <p class="break-all text-sm text-gray-600"><span class="font-bold"> Source-code: </span>{item.source_code_url}</p>
+            <p class="break-all text-sm text-gray-600"><span class="font-bold"> Source: </span>{item.source_code_url}</p>
           </div>
         </div>
       </Show>
