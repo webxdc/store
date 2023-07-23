@@ -204,7 +204,7 @@ const Store: Component = () => {
   }
 
   const supportsDraggingOut = !!(window as any).webxdc_custom?.desktopDragFileOut
-  const onDragStart = async (ev: DragEvent, item: AppInfoWithState) => {
+  async function onDragStart (ev: DragEvent, item: AppInfoWithState) {
     if (supportsDraggingOut) {
       ev.preventDefault()
       const file = await db.get_webxdc(item.app_id)
