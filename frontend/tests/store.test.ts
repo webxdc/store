@@ -219,7 +219,7 @@ describe('Store receiving updates', () => {
       type: 'Update',
       app_infos: [{
         app_id: '12',
-        version: 2,
+        tag_name: 'v10',
         description: 'pupu',
       }],
       serial: 12,
