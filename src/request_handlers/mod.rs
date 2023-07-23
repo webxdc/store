@@ -20,8 +20,8 @@ pub struct WexbdcManifest {
     /// Webxdc application identifier.
     pub app_id: String,
 
-    /// Version of the application.
-    pub version: u32,
+    /// Tag Name of the application.
+    pub tag_name: String,
 
     /// Webxdc name, used on icons or page titles.
     pub name: String,
@@ -30,10 +30,7 @@ pub struct WexbdcManifest {
     pub description: String,
 
     /// URL of webxdc source code.
-    pub source_code_url: Option<String>,
-
-    /// Uri of the submitter.
-    pub submitter_uri: Option<String>,
+    pub source_code_url: String,
 
     /// Date displayed in the store.
     pub date: String,
@@ -45,18 +42,16 @@ pub struct WexbdcManifest {
 pub struct AppInfo {
     #[serde(skip)]
     pub id: RecordId,
-    pub app_id: String, // manifest
-    pub version: u32,   // manifest
-    pub date: i64,      // manifest
-    pub name: String,   // manifest
+    pub app_id: String,
+    pub tag_name: String,
+    pub date: i64,
+    pub name: String,
+    pub source_code_url: String,
+    pub image: String,
+    pub description: String,
+    pub size: i64,
     #[serde(skip)]
-    pub submitter_uri: Option<String>, // bot
-    pub source_code_url: Option<String>, // manifest
-    pub image: String,  // webxdc
-    pub description: String, // submit
-    #[serde(skip)]
-    pub xdc_blob_path: PathBuf, // bot
-    pub size: i64,      //bot
+    pub xdc_blob_path: PathBuf,
 }
 
 impl AppInfo {
@@ -90,9 +85,8 @@ impl AppInfo {
             size,
             date: OffsetDateTime::parse(&manifest.date, &Rfc3339)?.unix_timestamp(),
             app_id: manifest.app_id,
-            version: manifest.version,
+            tag_name: manifest.tag_name,
             name: manifest.name,
-            submitter_uri: manifest.submitter_uri,
             source_code_url: manifest.source_code_url,
             image: image?,
             description: manifest.description,
@@ -127,7 +121,7 @@ pub enum WebxdcStatusUpdatePayload {
     // General update response.
     Outdated {
         critical: bool,
-        version: u32,
+        tag_name: String,
     },
     UpdateSent,
 
@@ -137,7 +131,7 @@ pub enum WebxdcStatusUpdatePayload {
         serial: u32,
         /// List of apps selected for caching.
         #[serde(default)]
-        apps: Vec<(String, u32)>,
+        apps: Vec<(String, String)>,
     },
     Download {
         /// ID of the requested application.

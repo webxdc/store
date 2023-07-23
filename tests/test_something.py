@@ -165,13 +165,13 @@ def test_update_advanced(acfactory, storebot_example):
     ac1._evtracker.get_matching("DC_EVENT_WEBXDC_STATUS_UPDATE")
 
     # Request updates.
-    # dc-calendar is outdated by 1 version, dc-hextris not
+    # calendar is outdated, hextris not
     assert msg_in.send_status_update(
         {
             "payload": {
                 "type": "UpdateRequest",
                 "serial": 0,
-                "apps": [("webxdc-calendar", 1), ("webxdc-hextris", 1)],
+                "apps": [("webxdc-calendar", "v1.0.1"), ("webxdc-hextris", "v1.0.2")],
             }
         },
         "update",
@@ -247,7 +247,7 @@ def test_download(acfactory, storebot_example):
     xdc_2040 = [xdc for xdc in app_infos if xdc["name"] == "2048"][0]
 
     assert msg_in.send_status_update(
-        {"payload": {"type": "Download", "app_id": xdc_2040["app_id"]}}, "update"
+        {"payload": {"type": "Download", "app_id": xdc_2040["app_id"]}}, ""
     )
 
     ac1._evtracker.get_matching("DC_EVENT_WEBXDC_STATUS_UPDATE")
@@ -259,7 +259,7 @@ def test_download(acfactory, storebot_example):
     assert payload["type"] == "DownloadOkay"
     assert payload["app_id"] == xdc_2040["app_id"]
     assert payload["name"] == "2048"
-    with open(str(Path.cwd()) + "/example-xdcs/2048.xdc", "rb") as f:
+    with open(str(Path.cwd()) + "/example-xdcs/webxdc-2048-v1.2.1.xdc", "rb") as f:
         assert payload["data"] == base64.b64encode(f.read()).decode("ascii")
 
     # Test download response for non-existing app.
@@ -289,8 +289,8 @@ def update_manifest_version(bot_path, new_version):
 
         updated_content = ""
         for line in manifest_content.split("\n"):
-            if line.startswith("version ="):
-                updated_content += f"version = {new_version}\n"
+            if line.startswith("tag_name ="):
+                updated_content += f"tag_name = {new_version}\n"
             else:
                 updated_content += line + "\n"
 
@@ -316,7 +316,7 @@ def test_frontend_update(acfactory, storebot):
     )  # Inital store hydration
     assert msg_in.is_webxdc()
 
-    update_manifest_version(storebot.home_path / ".config" / "xdcstore", 1000)
+    update_manifest_version(storebot.home_path / ".config" / "xdcstore", '"v1000"')
 
     # Start the bot again to load the newer store.xdc version
     storebot.stop()
@@ -331,7 +331,7 @@ def test_frontend_update(acfactory, storebot):
     # Test that the bot sends an outdated response
     status_updates = msg_in.get_status_updates()
     payload = status_updates[2]["payload"]
-    assert payload == {"type": "Outdated", "critical": True, "version": 1000}
+    assert payload == {"type": "Outdated", "critical": True, "tag_name": "v1000"}
 
     # In store.xdc the update button should send this message
     msg_in.send_status_update({"payload": {"type": "UpdateWebxdc"}}, "")

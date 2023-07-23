@@ -83,7 +83,7 @@ function AppInfoModal(item: AppInfoWithState, onDownload: () => void, onForward:
         <div class="flex flex-col">
           <p class="my-2 text-gray-600">{description}</p>
           <div class="my-2">
-            <p class="text-sm text-gray-600"><span class="font-bold"> Date: </span>{new Date(Number(item.date) * 1000).toLocaleDateString()}</p>
+            <p class="text-sm text-gray-600"><span class="font-bold"> Date: </span>{new Date(Number(item.date) * 1000).toLocaleDateString()} ({item.tag_name})</p>
             <div class="flex items-center gap-1">
               <p class="text-sm text-gray-600"><span class="font-bold"> Size: </span>{(Number(item.size) / 1000).toFixed(1).toString()} kb</p>
               <Show when={(item.state === AppState.Received || item.state === AppState.Updating)}>
@@ -177,7 +177,7 @@ const Store: Component = () => {
 
   async function update() {
     setIsUpdating(true)
-    const cached_apps = cached().map(app_info => ([app_info.app_id, app_info.version] as [string, number]))
+    const cached_apps = cached().map(app_info => ([app_info.app_id, app_info.tag_name] as [string, string]))
     window.webxdc.sendUpdate({
       payload: { type: 'UpdateRequest', serial: lastUpdateSerial(), apps: cached_apps } as WebxdcStatusUpdatePayload,
     }, '')

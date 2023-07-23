@@ -17,12 +17,11 @@ use std::{fs, sync::Arc};
 
 use crate::{
     db::{self, MIGRATOR},
-    messages::store_message,
     project_dirs,
     request_handlers::{genesis, store, ChatType, WebxdcStatusUpdate, WebxdcStatusUpdatePayload},
     utils::{
-        configure_from_env, read_webxdc_versions, send_newest_updates, send_update_payload_only,
-        send_webxdc, unpack_assets, Webxdc, WebxdcVersions,
+        configure_from_env, get_store_xdc_path, get_webxdc_tag_name, send_newest_updates,
+        send_store_xdc, send_update_payload_only, unpack_assets,
     },
     GENESIS_QR, INVITE_QR, VERSION,
 };
@@ -33,14 +32,13 @@ pub struct BotConfig {
     pub invite_qr: String,
     pub genesis_group: ChatId,
     pub serial: i32,
-    pub store_xdc_version: String,
 }
 
 /// Github Bot state
 pub struct State {
     pub db: SqlitePool,
     pub config: BotConfig,
-    pub webxdc_versions: WebxdcVersions,
+    pub store_tag_name: String,
 }
 
 /// Github Bot
@@ -127,17 +125,17 @@ impl Bot {
             }
         };
 
-        let webxdc_versions = read_webxdc_versions().await.map_err(|e| {
-            anyhow::anyhow!("Problem while parsing one of the store `manifests.toml`s: \n {e}")
-        })?;
-        info!("Loaded webxdc versions: {:?}", webxdc_versions);
+        let store_xdc_path = get_store_xdc_path()?;
+        let store_tag_name = get_webxdc_tag_name(&store_xdc_path).await?;
+        info!("Store tag_name: {store_tag_name}");
+        info!("Store frontend location: {}", store_xdc_path.display());
 
         Ok(Self {
             dc_ctx: context,
             state: Arc::new(State {
                 db,
                 config,
-                webxdc_versions,
+                store_tag_name,
             }),
         })
     }
@@ -157,7 +155,6 @@ impl Bot {
             invite_qr,
             genesis_group,
             serial: 0,
-            ..Default::default()
         })
     }
 
@@ -221,14 +218,7 @@ impl Bot {
                         "Chat {chat_id} is not in the database, adding it as chat with type store"
                     );
                         db::set_chat_type(conn, chat_id, ChatType::Store).await?;
-                        let msg = send_webxdc(
-                            context,
-                            &state,
-                            chat_id,
-                            Webxdc::Store,
-                            Some(store_message()),
-                        )
-                        .await?;
+                        let msg = send_store_xdc(context, &state, chat_id, true).await?;
                         send_newest_updates(
                             context,
                             msg,
@@ -298,7 +288,7 @@ impl Bot {
         let chat_id = msg.get_chat_id();
         let conn = &mut *state.db.acquire().await?;
         let chat_type = db::get_chat_type(conn, chat_id).await?;
-        let (webxdc, version) = db::get_webxdc_version(conn, msg.get_id()).await?;
+        let store_tag_name = db::get_store_tag_name(conn, msg.get_id()).await?;
 
         let Ok(request) = serde_json::from_str::<WebxdcStatusUpdate>(&update) else {
             info!(
@@ -309,15 +299,17 @@ impl Bot {
         };
 
         if let WebxdcStatusUpdatePayload::UpdateWebxdc = request.payload {
-            let msg = send_webxdc(context, &state, chat_id, webxdc, Some(store_message())).await?;
-            send_newest_updates(context, msg, &mut *state.db.acquire().await?, 0, vec![]).await?;
+            send_store_xdc(context, &state, chat_id, true).await?;
             send_update_payload_only(context, msg_id, WebxdcStatusUpdatePayload::UpdateSent)
                 .await?;
             return Ok(());
         }
 
-        if version < state.webxdc_versions.get(webxdc) {
-            info!("Webxdc version mismatch, updating");
+        if store_tag_name != state.store_tag_name {
+            info!(
+                "Store xdc frontend's tag_name changed from {} to {}, triggering update",
+                state.store_tag_name, store_tag_name
+            );
 
             // Only try to upgrade version, if the webxdc event is _not_ an update response already
             if !matches!(request.payload, WebxdcStatusUpdatePayload::Outdated { .. }) {
@@ -325,7 +317,7 @@ impl Bot {
                     context,
                     msg_id,
                     WebxdcStatusUpdatePayload::Outdated {
-                        version: state.webxdc_versions.get(webxdc),
+                        tag_name: state.store_tag_name.clone(),
                         critical: true,
                     },
                 )

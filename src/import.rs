@@ -22,8 +22,8 @@ pub struct WexbdcManifest {
     /// Webxdc application identifier.
     pub app_id: String,
 
-    /// Version of the application.
-    pub version: u32,
+    /// Tag name of the application.
+    pub tag_name: String,
 
     /// Webxdc name, used on icons or page titles.
     pub name: String,
@@ -32,10 +32,7 @@ pub struct WexbdcManifest {
     pub description: String,
 
     /// URL of webxdc source code.
-    pub source_code_url: Option<String>,
-
-    /// Uri of the submitter.
-    pub submitter_uri: Option<String>,
+    pub source_code_url: String,
 
     /// Date displayed in the store as a Rfc3339 timestamp.
     pub date: String,
@@ -91,10 +88,9 @@ pub async fn import_many(
             Ok(AppInfo {
                 id: 0,
                 app_id: xdc.app_id,
-                version: xdc.version,
+                tag_name: xdc.tag_name,
                 date: OffsetDateTime::parse(&xdc.date, &Rfc3339)?.unix_timestamp(),
                 name: xdc.name,
-                submitter_uri: None,
                 source_code_url: xdc.source_code_url,
                 image,
                 description: xdc.description,
@@ -172,7 +168,6 @@ pub async fn import_one(
     let mut app_info = AppInfo::from_xdc(file)
         .await
         .context(anyhow::anyhow!("Failed to load {}", file.display()))?;
-    app_info.submitter_uri = Some("xdcstore".to_string());
 
     // Add it to the db
     maybe_upgrade_xdc(&mut app_info, conn, dest).await

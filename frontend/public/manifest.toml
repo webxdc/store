@@ -2,5 +2,5 @@ name = "Webxdc Store"
 app_id = "store-xdc"
 description = "store xdc"
 source_code_url = "https://github.com/webxdc/store"
-version = 5
+tag_name = "v-1"
 date = "2023-12-01T00:00:00.000Z"

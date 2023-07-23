@@ -100,7 +100,7 @@ export async function updateHandler(
     setAppInfo(payload.app_id, 'state', AppState.DownloadCancelled)
   }
   else if (isOutdatedResponse(payload)) {
-    console.log('Current version is outdated')
+    console.log('Current tag_name is outdated')
     setUpdateNeeded(true)
   }
   else if (isUpdateSentResponse(payload)) {
