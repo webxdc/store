@@ -305,7 +305,7 @@ impl Bot {
         }
 
         if store_tag_name != state.store_tag_name {
-            info!("Webxdc tag_name mismatch, updating");
+            info!("Store xdc frontend's tag_name changed from {} to {}, triggering update", state.store_tag_name, store_tag_name);
 
             // Only try to upgrade version, if the webxdc event is _not_ an update response already
             if !matches!(request.payload, WebxdcStatusUpdatePayload::Outdated { .. }) {
