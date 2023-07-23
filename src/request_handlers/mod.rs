@@ -121,7 +121,7 @@ pub enum WebxdcStatusUpdatePayload {
     // General update response.
     Outdated {
         critical: bool,
-        version: String,
+        tag_name: String,
     },
     UpdateSent,
 

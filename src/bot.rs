@@ -128,6 +128,7 @@ impl Bot {
         let store_xdc_path = get_store_xdc_path()?;
         let store_tag_name = get_webxdc_tag_name(&store_xdc_path).await?;
         info!("Store tag_name: {store_tag_name}");
+        info!("Store frontend location: {}", store_xdc_path.display());
 
         Ok(Self {
             dc_ctx: context,
@@ -305,7 +306,10 @@ impl Bot {
         }
 
         if store_tag_name != state.store_tag_name {
-            info!("Store xdc frontend's tag_name changed from {} to {}, triggering update", state.store_tag_name, store_tag_name);
+            info!(
+                "Store xdc frontend's tag_name changed from {} to {}, triggering update",
+                state.store_tag_name, store_tag_name
+            );
 
             // Only try to upgrade version, if the webxdc event is _not_ an update response already
             if !matches!(request.payload, WebxdcStatusUpdatePayload::Outdated { .. }) {
@@ -313,7 +317,7 @@ impl Bot {
                     context,
                     msg_id,
                     WebxdcStatusUpdatePayload::Outdated {
-                        version: state.store_tag_name.clone(),
+                        tag_name: state.store_tag_name.clone(),
                         critical: true,
                     },
                 )

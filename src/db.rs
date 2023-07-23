@@ -342,11 +342,9 @@ mod tests {
         MIGRATOR.run(&mut conn).await.unwrap();
 
         let msg = MsgId::new(1);
-        set_store_tag_name(&mut conn, msg, "webxdc-2040-v1.2.1")
-            .await
-            .unwrap();
+        set_store_tag_name(&mut conn, msg, "v1.2.1").await.unwrap();
         let loaded_tag_name = get_store_tag_name(&mut conn, msg).await.unwrap();
-        assert_eq!(loaded_tag_name, "webxdc-2040-v1.2.1".to_string());
+        assert_eq!(loaded_tag_name, "v1.2.1".to_string());
     }
 
     #[tokio::test]
@@ -360,7 +358,7 @@ mod tests {
             date: 1688835984521,
             app_id: "app_id".to_string(),
             id: 12,
-            tag_name: "webxdc-2040-v1.2.1".to_string(),
+            tag_name: "v1.2.1".to_string(),
             name: "Sebastians coole app".to_string(),
             source_code_url: "https://git.example.com/sebastian/app".to_string(),
             image: "aaaaaaaaaaaaaaaaaaaaaaaaa".to_string(),
@@ -388,7 +386,7 @@ mod tests {
         let mut app_info = AppInfo {
             app_id: "testxdc".to_string(),
             xdc_blob_path: PathBuf::from("example-xdcs/webxdc-2048-v1.2.1.xdc"),
-            tag_name: "webxdc-2040-v1.2.1".to_string(),
+            tag_name: "v1.2.1".to_string(),
             ..Default::default()
         };
 
@@ -399,7 +397,7 @@ mod tests {
         assert_eq!(super::get_app_infos(&mut conn).await.unwrap().len(), 1);
 
         let mut new_app_info = AppInfo {
-            tag_name: "webxdc-2040-v1.2.2".to_string(),
+            tag_name: "v1.2.2".to_string(),
             ..app_info.clone()
         };
 
@@ -475,7 +473,7 @@ mod tests {
 
         crate::utils::maybe_upgrade_xdc(
             &mut AppInfo {
-                tag_name: "webxdc-2040-v1.2.1".to_string(),
+                tag_name: "v1.2.1".to_string(),
                 app_id: "testxdc".to_string(),
                 ..app_info.clone()
             },
