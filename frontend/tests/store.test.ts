@@ -31,7 +31,7 @@ describe('Store receiving updates', () => {
     const payload = {
       type: 'Outdated',
       critical: true,
-      version: 'v1',
+      tag_name: 'v1',
     } as WebxdcOutdatedResponse
 
     const updateNeeded = vi.spyOn(handlers, 'setUpdateNeeded')
