@@ -138,6 +138,15 @@ pub async fn set_genesis_members(
     Ok(())
 }
 
+/// Returns the latest store serial.
+pub async fn get_last_serial(c: &mut SqliteConnection) -> sqlx::Result<i32> {
+    sqlx::query("SELECT serial FROM config")
+        .fetch_one(c)
+        .await
+        .map(|a| a.get("serial"))
+}
+
+/// Increase serial by one and return the new serial.
 pub async fn increase_get_serial(c: &mut SqliteConnection) -> sqlx::Result<u32> {
     let serial: u32 = c
         .transaction(|txn| {
@@ -156,6 +165,7 @@ pub async fn increase_get_serial(c: &mut SqliteConnection) -> sqlx::Result<u32> 
     Ok(serial)
 }
 
+/// Create [AppInfo].
 pub async fn create_app_info(
     c: &mut SqliteConnection,
     app_info: &mut AppInfo,
@@ -180,7 +190,7 @@ pub async fn create_app_info(
     Ok(())
 }
 
-/// Get app_info by app_id.
+/// Get [AppInfo] by app_id.
 pub async fn get_app_info_for_app_id(
     c: &mut SqliteConnection,
     app_id: &str,
@@ -194,7 +204,7 @@ pub async fn get_app_info_for_app_id(
     .map(|app| app.into())
 }
 
-/// Returns wheter an app_info with greater tag_name exists.
+/// Returns wheter an [AppInfo] with greater tag_name exists.
 pub async fn maybe_get_greater_tag_name(
     c: &mut SqliteConnection,
     app_id: &str,
@@ -211,6 +221,7 @@ pub async fn maybe_get_greater_tag_name(
 }
 
 #[cfg(test)]
+/// Return all [AppInfo]s.
 pub async fn get_app_infos(c: &mut SqliteConnection) -> sqlx::Result<Vec<AppInfo>> {
     sqlx::query_as::<_, DBAppInfo>("SELECT * FROM app_infos")
         .fetch_all(c)
@@ -218,6 +229,7 @@ pub async fn get_app_infos(c: &mut SqliteConnection) -> sqlx::Result<Vec<AppInfo
         .map(|app| app.into_iter().map(|a| a.into()).collect())
 }
 
+/// Get the newest [AppInfo]s with a serial greater than serial.
 pub async fn get_active_app_infos_since(
     c: &mut SqliteConnection,
     serial: u32,
@@ -238,6 +250,7 @@ WHERE a.serial > ?"#,
     .map(|app| app.into_iter().map(|a| a.into()).collect())
 }
 
+/// Returns wheter an [AppInfo] for given app_id existst.
 pub async fn app_exists(c: &mut SqliteConnection, app_id: &str) -> sqlx::Result<bool> {
     sqlx::query("SELECT EXISTS(SELECT 1 FROM app_infos WHERE app_id = ?)")
         .bind(app_id)
@@ -246,25 +259,18 @@ pub async fn app_exists(c: &mut SqliteConnection, app_id: &str) -> sqlx::Result<
         .map(|row| row.get(0))
 }
 
-/// Returns wheter an [AppInfo] with given tag_name exists for the app.
+/// Returns wheter an [AppInfo] with given tag_name exists for the given app_id.
 pub async fn app_tag_name_exists(
     c: &mut SqliteConnection,
-    id: &str,
+    app_id: &str,
     tag_name: &str,
 ) -> sqlx::Result<bool> {
     sqlx::query("SELECT EXISTS(SELECT 1 FROM app_infos WHERE app_id = ? AND tag_name = ?)")
-        .bind(id)
+        .bind(app_id)
         .bind(tag_name)
         .fetch_one(c)
         .await
         .map(|row| row.get(0))
-}
-
-pub async fn get_last_serial(c: &mut SqliteConnection) -> sqlx::Result<i32> {
-    sqlx::query("SELECT serial FROM config")
-        .fetch_one(c)
-        .await
-        .map(|a| a.get("serial"))
 }
 
 /// Sets the webxdc tag_name for some sent webxdc.
