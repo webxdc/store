@@ -78,7 +78,7 @@ pub async fn import_many(
                 let mut extension = name
                     .split('.')
                     .nth(1)
-                    .context(format!("Can't extract file ending from {name}"))?;
+                    .context(format!("Can't extract file extension from {name}"))?;
                 if extension == "jpg" {
                     extension = "jpeg"
                 }
