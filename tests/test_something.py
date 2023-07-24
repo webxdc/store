@@ -136,6 +136,7 @@ def test_update(acfactory, storebot):
         "type": "Update",
         "app_infos": [],
         "serial": 0,
+        "old_serial": 0,
         "updating": [],
     }
 
@@ -150,7 +151,7 @@ def test_update(acfactory, storebot):
     status_updates = msg_in.get_status_updates()
     assert len(status_updates) == 3
     payload = status_updates[-1]["payload"]
-    assert payload == {"type": "Update", "app_infos": [], "serial": 0, "updating": []}
+    assert payload == {"type": "Update", "app_infos": [], "serial": 0, "old_serial": 0, "updating": []}
 
 
 def test_update_advanced(acfactory, storebot_example):
@@ -210,12 +211,12 @@ def test_partial_update(acfactory, storebot_example):
     old_lines = []
     with open(sources_path, "r+") as f:
         old_lines = f.readlines()
-        # Replace description and make sure old version is outdated
+        # Replace description and change the tag
         new_lines = [
             'description = "pupu"\n'
             if line.startswith("description")
-            else "version = 10000\n"
-            if line.startswith("version")
+            else 'tag_name = "v100"\n'
+            if line.startswith("tag_name")
             else line
             for line in old_lines
         ]
@@ -251,7 +252,7 @@ def test_partial_update(acfactory, storebot_example):
     assert payload["app_infos"][0] == {
         "app_id": "webxdc-2048",
         "description": "pupu",
-        "version": 10000,
+        "tag_name": "v100",
     }
 
 
@@ -336,7 +337,7 @@ def test_download(acfactory, storebot_example):
     assert payload["app_id"] == "xxx"
 
 
-def update_manifest_version(bot_path, new_version):
+def update_manifest_tag_name(bot_path, new_tag_name):
     temp_zip_file = bot_path / "temp.xdc"
     zip_file_path = bot_path / "store.xdc"
     with zipfile.ZipFile(zip_file_path, "r") as zip_read, zipfile.ZipFile(
@@ -352,7 +353,7 @@ def update_manifest_version(bot_path, new_version):
         updated_content = ""
         for line in manifest_content.split("\n"):
             if line.startswith("tag_name ="):
-                updated_content += f"tag_name = {new_version}\n"
+                updated_content += f"tag_name = {new_tag_name}\n"
             else:
                 updated_content += line + "\n"
 
@@ -361,8 +362,6 @@ def update_manifest_version(bot_path, new_version):
         zip_write.writestr(updated_manifest, updated_content.encode("utf-8"))
 
     temp_zip_file.replace(zip_file_path)
-
-    print("Version field in manifest.toml updated successfully!")
 
 
 def test_frontend_update(acfactory, storebot):
@@ -378,7 +377,7 @@ def test_frontend_update(acfactory, storebot):
     )  # Inital store hydration
     assert msg_in.is_webxdc()
 
-    update_manifest_version(storebot.home_path / ".config" / "xdcstore", '"v1000"')
+    update_manifest_tag_name(storebot.home_path / ".config" / "xdcstore", '"v1000"')
 
     # Start the bot again to load the newer store.xdc version
     storebot.stop()

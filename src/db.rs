@@ -271,8 +271,8 @@ pub async fn get_app_infos_for(
     FROM app_infos a
     WHERE app_id IN ({list}) 
         AND serial <= ?
-        AND version = (
-            SELECT MAX(version)
+        AND tag_name = (
+            SELECT MAX(tag_name)
             FROM app_infos
             WHERE app_id = a.app_id
               AND serial <= ?
