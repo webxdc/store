@@ -38,7 +38,7 @@ function AppInfoModal(item: AppInfoWithState, onDownload: () => void, onForward:
     <li class="w-full p-3">
       <div class="flex cursor-pointer items-center justify-between gap-2" onClick={() => setIsExpanded(!isExpanded())}>
         <img
-          src={`data:image/png;base64,${item.image!}`}
+          src={`${item.image}`}
           alt={item.name}
           class="h-16 w-16 rounded-xl object-cover"
           ondragstart={onDragStart}
@@ -215,7 +215,7 @@ const Store: Component = () => {
         console.error('Only base64 files are supported for drag-sending')
         return
       }
-      (window as any).webxdc_custom?.desktopDragFileOut?.(file.name, (file as any).base64, `data:image/png;base64,${item.image!}`)
+      (window as any).webxdc_custom?.desktopDragFileOut?.(file.name, (file as any).base64, item.image)
     }
   }
 
