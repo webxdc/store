@@ -75,7 +75,7 @@ pub async fn import_many(
                 .find(|(_, name)| *name == "icon.png" || *name == "icon.jpg");
             let image = if let Some((index, name)) = image {
                 let res = read_vec(&reader, index).await?;
-                let ending = name
+                let extension = name
                     .split('.')
                     .nth(1)
                     .context(format!("Can't extract file ending from {name}"))?;
