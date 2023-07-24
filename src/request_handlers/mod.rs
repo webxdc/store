@@ -3,6 +3,7 @@ use crate::{
     db::RecordId,
     utils::{get_webxdc_manifest, read_vec},
 };
+use anyhow::Context;
 use async_zip::tokio::read::fs::ZipFileReader;
 use base64::encode;
 use serde::{Deserialize, Serialize};
@@ -65,18 +66,16 @@ impl AppInfo {
         let image = entries
             .iter()
             .enumerate()
-            .find(|(_, entry)| {
-                entry
-                    .entry()
-                    .filename()
-                    .as_str()
-                    .map(|name| name == "icon.png" || name == "icon.jpg")
-                    .unwrap_or_default()
-            })
-            .map(|a| a.0);
-        let image = if let Some(index) = image {
+            .map(|(index, entry)| (index, entry.entry().filename().as_str().unwrap_or_default()))
+            .find(|(_, name)| *name == "icon.png" || *name == "icon.jpg");
+        let image = if let Some((index, name)) = image {
             let res = read_vec(&reader, index).await?;
-            Ok(encode(&res))
+            let ending = name
+                .split(".")
+                .nth(1)
+                .context(format!("Can't extract file ending from {name}"))?;
+            let base64 = encode(&res);
+            Ok(format!("data:image/{ending};base64,{base64}"))
         } else {
             Err(anyhow::anyhow!("Could not find image"))
         };
