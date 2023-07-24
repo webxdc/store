@@ -220,6 +220,7 @@ pub async fn maybe_get_greater_tag_name(
     .map(|app| app.get(0))
 }
 
+#[cfg(test)]
 /// Return all [AppInfo]s.
 pub async fn get_app_infos(c: &mut SqliteConnection) -> sqlx::Result<Vec<AppInfo>> {
     sqlx::query_as::<_, DBAppInfo>("SELECT * FROM app_infos")
