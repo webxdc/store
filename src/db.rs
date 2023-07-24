@@ -36,6 +36,7 @@ pub struct DBAppInfo {
     pub xdc_blob_path: String,
     pub size: i64,
     pub tag_name: String,
+    pub removed: bool,
 }
 
 impl From<DBAppInfo> for AppInfo {
@@ -51,6 +52,7 @@ impl From<DBAppInfo> for AppInfo {
             xdc_blob_path: PathBuf::from(db_app.xdc_blob_path),
             size: db_app.size,
             tag_name: db_app.tag_name,
+            removed: db_app.removed,
         }
     }
 }
@@ -221,7 +223,6 @@ pub async fn maybe_get_greater_tag_name(
     .map(|app| app.get(0))
 }
 
-#[cfg(test)]
 /// Return all [AppInfo]s.
 pub async fn get_app_infos(c: &mut SqliteConnection) -> sqlx::Result<Vec<AppInfo>> {
     sqlx::query_as::<_, DBAppInfo>("SELECT * FROM app_infos")
@@ -332,6 +333,16 @@ pub async fn get_store_tag_name(c: &mut SqliteConnection, msg: MsgId) -> sqlx::R
         .map(|a| (a.get("tag_name")))
 }
 
+/// Remove app with app_id from store.
+pub async fn remove_app(c: &mut SqliteConnection, app_id: &str) -> sqlx::Result<()> {
+    sqlx::query("UPDATE app_infos SET removed = 1 WHERE app_id = ? AND tag_name = (SELECT MAX(tag_name) FROM app_infos WHERE app_id = ?);")
+        .bind(app_id)
+        .bind(app_id)
+        .execute(c)
+        .await?;
+    Ok(())
+}
+
 #[cfg(test)]
 #[allow(clippy::unwrap_used)]
 mod tests {
@@ -406,6 +417,7 @@ mod tests {
             image: "aaaaaaaaaaaaaaaaaaaaaaaaa".to_string(),
             description: "This is a cool app".to_string(),
             xdc_blob_path: PathBuf::from("xdc_blob_path"),
+            removed: false,
         };
 
         create_app_info(&mut conn, &mut app_info).await.unwrap();
@@ -530,5 +542,39 @@ mod tests {
                 .await
                 .unwrap()
         );
+    }
+
+    #[tokio::test]
+    async fn test_app_remove() {
+        let mut conn = SqliteConnection::connect("sqlite::memory:").await.unwrap();
+        MIGRATOR.run(&mut conn).await.unwrap();
+        set_config(&mut conn, &BotConfig::default()).await.unwrap();
+
+        let mut app_info = AppInfo {
+            app_id: "testxdc".to_string(),
+            tag_name: "v0.0.1".to_string(),
+            ..Default::default()
+        };
+
+        super::create_app_info(&mut conn, &mut app_info)
+            .await
+            .unwrap();
+        app_info.tag_name = "v0.0.3".to_string();
+        super::create_app_info(&mut conn, &mut app_info)
+            .await
+            .unwrap();
+
+        app_info.tag_name = "v0.0.2".to_string();
+        super::create_app_info(&mut conn, &mut app_info)
+            .await
+            .unwrap();
+
+        super::remove_app(&mut conn, &app_info.app_id)
+            .await
+            .unwrap();
+        let loaded_app_info = get_app_info_for_app_id(&mut conn, &app_info.app_id)
+            .await
+            .unwrap();
+        assert!(loaded_app_info.removed)
     }
 }

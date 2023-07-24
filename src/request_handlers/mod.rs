@@ -8,7 +8,7 @@ use async_zip::tokio::read::fs::ZipFileReader;
 use base64::encode;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
-use sqlx::{Decode, FromRow, Type};
+use sqlx::Type;
 use std::path::{Path, PathBuf};
 use time::{format_description::well_known::Rfc3339, OffsetDateTime};
 use tokio::fs::File;
@@ -38,7 +38,7 @@ pub struct WexbdcManifest {
     pub date: String,
 }
 
-#[derive(TS, Deserialize, Serialize, Clone, Debug, Default, PartialEq, FromRow, Decode)]
+#[derive(TS, Deserialize, Serialize, Clone, Debug, Default, PartialEq)]
 #[ts(export)]
 #[ts(export_to = "frontend/src/bindings/")]
 pub struct AppInfo {
@@ -54,6 +54,7 @@ pub struct AppInfo {
     pub size: i64,
     #[serde(skip)]
     pub xdc_blob_path: PathBuf,
+    pub removed: bool,
 }
 
 impl AppInfo {
@@ -92,6 +93,7 @@ impl AppInfo {
             description: manifest.description,
             xdc_blob_path: file.to_path_buf(),
             id: 0, // This will be updated by the db on insert
+            removed: false,
         })
     }
 }

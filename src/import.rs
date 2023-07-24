@@ -5,7 +5,7 @@ use futures::future::join_all;
 use serde::Deserialize;
 use sqlx::SqliteConnection;
 use std::{
-    collections::HashMap,
+    collections::{hash_map::RandomState, HashMap, HashSet},
     fs,
     path::{Path, PathBuf},
 };
@@ -13,6 +13,7 @@ use time::{format_description::well_known::Rfc3339, OffsetDateTime};
 use tokio::fs::File;
 
 use crate::{
+    db,
     request_handlers::AppInfo,
     utils::{maybe_upgrade_xdc, read_vec, AddType},
 };
@@ -49,6 +50,15 @@ pub async fn import_many(
     let xdcget_lock =
         fs::read_to_string(path.join("xdcget.lock")).context("Failed to read xdcget.lock")?;
     let xdc_metas: HashMap<String, WexbdcManifest> = toml::from_str(&xdcget_lock)?;
+
+    let new_app_ids = HashSet::<_, RandomState>::from_iter(xdc_metas.keys().cloned());
+    let curr_app_ids = HashSet::<_, RandomState>::from_iter(
+        db::get_app_infos(conn).await?.into_iter().map(|a| a.app_id),
+    );
+    let removed = curr_app_ids.difference(&new_app_ids);
+    for app in removed {
+        db::remove_app(conn, app).await?;
+    }
 
     let mut xdcs = vec![];
     for xdc in xdc_metas.into_values() {
@@ -99,6 +109,7 @@ pub async fn import_many(
                 description: xdc.description,
                 xdc_blob_path: path,
                 size,
+                removed: false,
             })
         }))
     }
