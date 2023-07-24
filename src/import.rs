@@ -75,12 +75,15 @@ pub async fn import_many(
                 .find(|(_, name)| *name == "icon.png" || *name == "icon.jpg");
             let image = if let Some((index, name)) = image {
                 let res = read_vec(&reader, index).await?;
-                let extension = name
+                let mut extension = name
                     .split('.')
                     .nth(1)
                     .context(format!("Can't extract file ending from {name}"))?;
+                if extension == "jpg" {
+                    extension = "jpeg"
+                }
                 let base64 = encode(&res);
-                format!("data:image/{ending};base64,{base64}")
+                format!("data:image/{extension};base64,{base64}")
             } else {
                 bail!("Could not find image for {}", path.display())
             };

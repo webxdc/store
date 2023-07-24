@@ -215,7 +215,7 @@ const Store: Component = () => {
         console.error('Only base64 files are supported for drag-sending')
         return
       }
-      (window as any).webxdc_custom?.desktopDragFileOut?.(file.name, (file as any).base64, `data:image/png;base64,${item.image!}`)
+      (window as any).webxdc_custom?.desktopDragFileOut?.(file.name, (file as any).base64, item.image)
     }
   }
 
