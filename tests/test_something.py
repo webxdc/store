@@ -151,7 +151,13 @@ def test_update(acfactory, storebot):
     status_updates = msg_in.get_status_updates()
     assert len(status_updates) == 3
     payload = status_updates[-1]["payload"]
-    assert payload == {"type": "Update", "app_infos": [], "serial": 0, "old_serial": 0, "updating": []}
+    assert payload == {
+        "type": "Update",
+        "app_infos": [],
+        "serial": 0,
+        "old_serial": 0,
+        "updating": [],
+    }
 
 
 def test_update_advanced(acfactory, storebot_example):
