@@ -71,7 +71,7 @@ impl AppInfo {
         let image = if let Some((index, name)) = image {
             let res = read_vec(&reader, index).await?;
             let ending = name
-                .split(".")
+                .split('.')
                 .nth(1)
                 .context(format!("Can't extract file ending from {name}"))?;
             let base64 = encode(&res);
