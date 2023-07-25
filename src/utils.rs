@@ -1,7 +1,7 @@
 //! Utility functions
 
-use std::fs::File;
 use std::io::Write;
+use std::{collections::HashMap, fs::File};
 
 use anyhow::{Context as _, Result};
 use async_zip::tokio::read::fs::ZipFileReader;
@@ -12,7 +12,10 @@ use deltachat::{
     message::{Message, MsgId, Viewtype},
 };
 use directories::ProjectDirs;
+use itertools::Itertools;
+use serde::Deserialize;
 use serde::Serialize;
+use serde_json::{json, Value};
 use sqlx::SqliteConnection;
 use std::{
     env,
@@ -76,6 +79,12 @@ pub async fn send_store_xdc(
     Ok(msg_id)
 }
 
+pub fn to_hashmap<T: Serialize + for<'a> Deserialize<'a>>(
+    a: T,
+) -> serde_json::Result<HashMap<String, Value>> {
+    serde_json::from_value(serde_json::to_value(a)?)
+}
+
 /// Sends a [deltachat::webxdc::StatusUpdateItem] with all [AppInfo]s greater than the given serial.
 /// Updating tells the frontend which apps are going to receive an updated.
 pub async fn send_newest_updates(
@@ -85,11 +94,61 @@ pub async fn send_newest_updates(
     serial: u32,
     updating: Vec<String>,
 ) -> anyhow::Result<()> {
-    let app_infos: Vec<_> = db::get_active_app_infos_since(db, serial).await?;
-    let serial = db::get_last_serial(db).await?;
-    let resp = WebxdcStatusUpdatePayload::Update {
-        app_infos,
+    let app_infos: Vec<_> = db::get_changed_app_infos_since(db, serial).await?;
+    let old_app_infos = db::get_app_infos_for(
+        db,
+        &app_infos
+            .iter()
+            .map(|app_info| app_info.app_id.as_str())
+            .collect::<Vec<_>>(),
         serial,
+    )
+    .await?;
+    let old_app_infos = old_app_infos
+        .into_iter()
+        .map(|app_info| (app_info.app_id.clone(), app_info))
+        .collect::<std::collections::HashMap<_, _>>();
+
+    let changes = app_infos
+        .into_iter()
+        .map(|app_info| {
+            let Some(old_info) = old_app_infos.get(app_info.app_id.as_str()) else {
+                return to_hashmap(app_info)
+            };
+            let old_fields = to_hashmap(old_info.clone())?;
+            let new_fields = to_hashmap(app_info.clone())?;
+
+            let removed_fields = old_fields
+                .iter()
+                .filter(|(key, _)| !new_fields.contains_key(*key))
+                .map(|(key, _)| (key.to_string(), Value::Null))
+                .collect::<HashMap<_, _>>();
+
+            let mut changed_fields = new_fields
+                .into_iter()
+                .filter(|(key, val)| {
+                    if key == "version" || key == "app_id" {
+                        return true;
+                    }
+                    old_fields.get(key) != Some(val)
+                })
+                .collect::<HashMap<_, _>>();
+
+            changed_fields.extend(removed_fields);
+            Ok(changed_fields)
+        })
+        .collect_vec();
+
+    let mut all_changes = vec![];
+    for chang in changes {
+        all_changes.push(chang?)
+    }
+
+    let new_serial = db::get_last_serial(db).await?;
+    let resp = WebxdcStatusUpdatePayload::Update {
+        app_infos: json!(all_changes),
+        serial: new_serial,
+        old_serial: serial,
         updating,
     };
     send_update_payload_only(context, msg_id, resp).await?;

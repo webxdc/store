@@ -171,7 +171,7 @@ const Store: Component = () => {
   })
 
   window.webxdc.setUpdateListener(async (resp: ReceivedStatusUpdate<UpdateResponse | DownloadResponseOkay>) => {
-    updateHandler(resp.payload, db, appInfo, setAppInfo, setlastUpdateSerial, setIsUpdating, setlastUpdate, setUpdateNeeded, setUpdateReceived)
+    updateHandler(resp.payload, db, appInfo, lastSerial, setAppInfo, setlastUpdateSerial, setIsUpdating, setlastUpdate, setUpdateNeeded, setUpdateReceived)
     setlastSerial(resp.serial)
   }, lastSerial())
 

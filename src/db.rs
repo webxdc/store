@@ -17,6 +17,7 @@ use crate::{
     request_handlers::{AppInfo, ChatType},
 };
 use deltachat::{chat::ChatId, contact::ContactId, message::MsgId};
+use itertools::Itertools;
 use sqlx::{migrate::Migrator, Connection, FromRow, Row, SqliteConnection};
 use std::path::PathBuf;
 
@@ -139,7 +140,7 @@ pub async fn set_genesis_members(
 }
 
 /// Returns the latest store serial.
-pub async fn get_last_serial(c: &mut SqliteConnection) -> sqlx::Result<i32> {
+pub async fn get_last_serial(c: &mut SqliteConnection) -> sqlx::Result<u32> {
     sqlx::query("SELECT serial FROM config")
         .fetch_one(c)
         .await
@@ -230,7 +231,8 @@ pub async fn get_app_infos(c: &mut SqliteConnection) -> sqlx::Result<Vec<AppInfo
 }
 
 /// Get the newest [AppInfo]s with a serial greater than serial.
-pub async fn get_active_app_infos_since(
+/// Gets the latest versions of all changed apps.
+pub async fn get_changed_app_infos_since(
     c: &mut SqliteConnection,
     serial: u32,
 ) -> sqlx::Result<Vec<AppInfo>> {
@@ -244,6 +246,40 @@ JOIN (
 ) b ON a.app_id = b.app_id AND a.tag_name = b.latest_tag_name
 WHERE a.serial > ?"#,
     )
+    .bind(serial)
+    .fetch_all(c)
+    .await
+    .map(|app| app.into_iter().map(|a| a.into()).collect())
+}
+
+/// This function takes a list of app_ids's and returns the latest version of each app where serial <= serial.
+pub async fn get_app_infos_for(
+    c: &mut SqliteConnection,
+    apps: &[&str],
+    serial: u32,
+) -> sqlx::Result<Vec<AppInfo>> {
+    #[allow(unstable_name_collisions)]
+    let list = apps
+        .iter()
+        .map(|app| app.replace('\'', "''"))
+        .map(|app| format!("'{}'", app))
+        .intersperse(",".to_string())
+        .collect::<String>();
+    sqlx::query_as::<_, DBAppInfo>(&format!(
+        r#"
+    SELECT a.*
+    FROM app_infos a
+    WHERE app_id IN ({list}) 
+        AND serial <= ?
+        AND tag_name = (
+            SELECT MAX(tag_name)
+            FROM app_infos
+            WHERE app_id = a.app_id
+              AND serial <= ?
+        )
+    "#
+    ))
+    .bind(serial)
     .bind(serial)
     .fetch_all(c)
     .await
@@ -413,7 +449,7 @@ mod tests {
 
         assert_eq!(state, AddType::Updated);
         assert_eq!(
-            super::get_active_app_infos_since(&mut conn, 1)
+            super::get_changed_app_infos_since(&mut conn, 1)
                 .await
                 .unwrap(),
             vec![new_app_info.clone()]
