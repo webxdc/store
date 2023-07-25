@@ -51,6 +51,7 @@ export async function updateHandler(
       const app_infos = to_app_infos_by_id((payload.app_infos as AppInfo[]).map(app_info => ({ ...app_info, state: AppState.Initial } as AppInfoWithState)))
       setAppInfo(app_infos)
       await db.insertMultiple(Object.values(app_infos))
+      setIsUpdating(false)
     }
     else if (payload.old_serial === lastSerial()) {
       console.log('Reconceiling updates')
@@ -79,9 +80,10 @@ export async function updateHandler(
 
       await db.insertMultiple(added.map(key => ({ ...app_infos[key], state: AppState.Initial })) as AppInfoWithState[])
       await db.updateMultiple(updated.map(key => ({ ...appInfo[key], ...app_infos[key], state: appInfo[key].state !== AppState.Initial ? AppState.Updating : AppState.Initial })))
+      setIsUpdating(false)
     }
     else {
-      console.log('Ignoring outdated update')
+      console.log(`Ignoring outdated update with reference serial: ${payload.old_serial} and currente serial  ${lastSerial()}`)
       setIsUpdating(false)
       return
     }
