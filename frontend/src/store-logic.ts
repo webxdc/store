@@ -83,7 +83,7 @@ export async function updateHandler(
       setIsUpdating(false)
     }
     else {
-      console.log(`Ignoring outdated update with reference serial: ${payload.old_serial} and currente serial  ${lastSerial()}`)
+      console.log(`Ignoring outdated update with reference serial: ${payload.old_serial} and currente serial ${lastSerial()}`)
       setIsUpdating(false)
       return
     }

@@ -276,7 +276,7 @@ pub async fn get_app_infos_for(
             FROM app_infos
             WHERE app_id = a.app_id
               AND serial <= ?
-        );    
+        )
     "#
     ))
     .bind(serial)

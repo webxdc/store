@@ -130,11 +130,7 @@ pub async fn send_newest_updates(
                     if key == "version" || key == "app_id" {
                         return true;
                     }
-                    if let Some(old_val) = old_fields.get(key) {
-                        old_val != val
-                    } else {
-                        true
-                    }
+                    old_fields.get(key) != Some(val)
                 })
                 .collect::<HashMap<_, _>>();
 
