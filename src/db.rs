@@ -140,7 +140,7 @@ pub async fn set_genesis_members(
 }
 
 /// Returns the latest store serial.
-pub async fn get_last_serial(c: &mut SqliteConnection) -> sqlx::Result<i32> {
+pub async fn get_last_serial(c: &mut SqliteConnection) -> sqlx::Result<u32> {
     sqlx::query("SELECT serial FROM config")
         .fetch_one(c)
         .await
