@@ -414,3 +414,54 @@ def test_frontend_update(acfactory, storebot):
     # Test that the bots sends a new version of the store
     msg_in = ac1.wait_next_incoming_message()
     assert msg_in.is_webxdc()
+
+
+def test_remove(acfactory, storebot_example):
+    """Test that the bot sends initial update and responds to update requests."""
+    (ac1,) = acfactory.get_online_accounts(1)
+
+    bot_contact = ac1.create_contact(storebot_example.addr)
+    bot_chat = bot_contact.create_chat()
+    bot_chat.send_text("hi!")
+
+    msg_in = ac1.wait_next_incoming_message()
+    ac1._evtracker.get_matching("DC_EVENT_WEBXDC_STATUS_UPDATE")
+    serial = msg_in.get_status_updates()[-1]["payload"]["serial"]
+
+    sources_path = Path.cwd() / "example-xdcs" / "xdcget.lock"
+    new_lines = []
+    old_lines = []
+    with open(sources_path, "r+") as f:
+        old_lines = f.readlines()
+        # Remove last line app in xdcget.lock (tower-builder)
+        new_lines = old_lines[:-9]
+
+    with open(sources_path, "w") as f:
+        f.writelines(new_lines)
+
+    storebot_example.install_examples()
+
+    # restore old lock file
+    with open(sources_path, "w") as f:
+        f.writelines(old_lines)
+
+    # Request updates.
+    # dc-calendar is outdated by 1 version, dc-hextris not
+    assert msg_in.send_status_update(
+        {
+            "payload": {
+                "type": "UpdateRequest",
+                "serial": serial,
+                "apps": [],
+            }
+        },
+        "update",
+    )
+    ac1._evtracker.get_matching("DC_EVENT_WEBXDC_STATUS_UPDATE")
+
+    # Receive a response.
+    ac1._evtracker.get_matching("DC_EVENT_WEBXDC_STATUS_UPDATE")
+    status_updates = msg_in.get_status_updates()
+    assert len(status_updates) == 3
+    payload = status_updates[-1]["payload"]
+    assert payload['app_infos']== {'webxdc-tower-builder': None}

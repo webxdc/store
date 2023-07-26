@@ -214,7 +214,7 @@ pub async fn maybe_get_greater_tag_name(
     tag_name: &str,
 ) -> sqlx::Result<bool> {
     sqlx::query(
-        "SELECT EXISTS(SELECT 1 FROM app_infos WHERE app_id = ? AND tag_name > ? LIMIT 1) AS exists_greater_tag_name",
+        "SELECT EXISTS(SELECT 1 FROM app_infos WHERE app_id = ? AND tag_name > ? AND removed = false LIMIT 1) AS exists_greater_tag_name",
     )
     .bind(app_id)
     .bind(tag_name)
@@ -223,9 +223,18 @@ pub async fn maybe_get_greater_tag_name(
     .map(|app| app.get(0))
 }
 
+#[cfg(test)]
 /// Return all [AppInfo]s.
 pub async fn get_app_infos(c: &mut SqliteConnection) -> sqlx::Result<Vec<AppInfo>> {
     sqlx::query_as::<_, DBAppInfo>("SELECT * FROM app_infos")
+        .fetch_all(c)
+        .await
+        .map(|app| app.into_iter().map(|a| a.into()).collect())
+}
+
+/// Return all active [AppInfo]s.
+pub async fn get_active_app_infos(c: &mut SqliteConnection) -> sqlx::Result<Vec<AppInfo>> {
+    sqlx::query_as::<_, DBAppInfo>("SELECT * FROM app_infos WHERE removed = 0")
         .fetch_all(c)
         .await
         .map(|app| app.into_iter().map(|a| a.into()).collect())
@@ -287,9 +296,9 @@ pub async fn get_app_infos_for(
     .map(|app| app.into_iter().map(|a| a.into()).collect())
 }
 
-/// Returns wheter an [AppInfo] for given app_id existst.
+/// Returns wheter an [AppInfo] for given app_id exists.
 pub async fn app_exists(c: &mut SqliteConnection, app_id: &str) -> sqlx::Result<bool> {
-    sqlx::query("SELECT EXISTS(SELECT 1 FROM app_infos WHERE app_id = ?)")
+    sqlx::query("SELECT EXISTS(SELECT 1 FROM app_infos WHERE app_id = ? AND removed = 0)")
         .bind(app_id)
         .fetch_one(c)
         .await
@@ -302,12 +311,14 @@ pub async fn app_tag_name_exists(
     app_id: &str,
     tag_name: &str,
 ) -> sqlx::Result<bool> {
-    sqlx::query("SELECT EXISTS(SELECT 1 FROM app_infos WHERE app_id = ? AND tag_name = ?)")
-        .bind(app_id)
-        .bind(tag_name)
-        .fetch_one(c)
-        .await
-        .map(|row| row.get(0))
+    sqlx::query(
+        "SELECT EXISTS(SELECT 1 FROM app_infos WHERE app_id = ? AND tag_name = ? AND removed = 0)",
+    )
+    .bind(app_id)
+    .bind(tag_name)
+    .fetch_one(c)
+    .await
+    .map(|row| row.get(0))
 }
 
 /// Sets the webxdc tag_name for some sent webxdc.
@@ -335,12 +346,15 @@ pub async fn get_store_tag_name(c: &mut SqliteConnection, msg: MsgId) -> sqlx::R
 
 /// Remove app with app_id from store.
 pub async fn remove_app(c: &mut SqliteConnection, app_id: &str) -> sqlx::Result<()> {
-    sqlx::query("UPDATE app_infos SET removed = 1 WHERE app_id = ? AND tag_name = (SELECT MAX(tag_name) FROM app_infos WHERE app_id = ?);")
+    let mut t = c.begin().await?;
+    let next_serial = increase_get_serial(&mut t).await?;
+    sqlx::query("UPDATE app_infos SET removed = 1, serial = ?  WHERE app_id = ? AND tag_name = (SELECT MAX(tag_name) FROM app_infos WHERE app_id = ?);")
+        .bind(next_serial)
         .bind(app_id)
         .bind(app_id)
-        .execute(c)
+        .execute(&mut *t)
         .await?;
-    Ok(())
+    t.commit().await
 }
 
 #[cfg(test)]
@@ -569,12 +583,23 @@ mod tests {
             .await
             .unwrap();
 
+        let serial = super::get_last_serial(&mut conn).await.unwrap();
         super::remove_app(&mut conn, &app_info.app_id)
             .await
             .unwrap();
+
         let loaded_app_info = get_app_info_for_app_id(&mut conn, &app_info.app_id)
             .await
             .unwrap();
-        assert!(loaded_app_info.removed)
+
+        assert!(loaded_app_info.removed);
+        assert_eq!(loaded_app_info.tag_name, "v0.0.3".to_string());
+
+        let changed = super::get_changed_app_infos_since(&mut conn, serial)
+            .await
+            .unwrap();
+
+        assert_eq!(changed[0].tag_name, "v0.0.3".to_string());
+        assert!(changed[0].removed)
     }
 }

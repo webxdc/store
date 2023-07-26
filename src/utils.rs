@@ -104,16 +104,21 @@ pub async fn send_newest_updates(
         serial,
     )
     .await?;
+
+    let (removed, app_infos) = app_infos
+        .into_iter()
+        .partition::<Vec<_>, _>(|app_info| app_info.removed);
+
     let old_app_infos = old_app_infos
         .into_iter()
         .map(|app_info| (app_info.app_id.clone(), app_info))
         .collect::<std::collections::HashMap<_, _>>();
 
-    let changes = app_infos
+    let changes: Vec<anyhow::Result<(String, HashMap<String, Value>)>> = app_infos
         .into_iter()
         .map(|app_info| {
             let Some(old_info) = old_app_infos.get(app_info.app_id.as_str()) else {
-                return to_hashmap(app_info)
+                return Ok((app_info.app_id.clone(), to_hashmap(app_info)?))
             };
             let old_fields = to_hashmap(old_info.clone())?;
             let new_fields = to_hashmap(app_info.clone())?;
@@ -135,18 +140,23 @@ pub async fn send_newest_updates(
                 .collect::<HashMap<_, _>>();
 
             changed_fields.extend(removed_fields);
-            Ok(changed_fields)
+            Ok((app_info.app_id, changed_fields))
         })
         .collect_vec();
 
-    let mut all_changes = vec![];
-    for chang in changes {
-        all_changes.push(chang?)
+    let mut all_changes = HashMap::new();
+    for change in changes {
+        let (key, val) = change?;
+        all_changes.insert(key, val);
     }
 
+    let mut app_infos = json!(all_changes);
+    for removed_app in removed {
+        app_infos[removed_app.app_id] = Value::Null;
+    }
     let new_serial = db::get_last_serial(db).await?;
     let resp = WebxdcStatusUpdatePayload::Update {
-        app_infos: json!(all_changes),
+        app_infos,
         serial: new_serial,
         old_serial: serial,
         updating,
