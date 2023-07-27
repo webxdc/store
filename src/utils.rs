@@ -152,7 +152,9 @@ pub async fn send_newest_updates(
 
     let mut app_infos = json!(all_changes);
     for removed_app in removed {
-        app_infos[removed_app.app_id] = Value::Null;
+        *app_infos
+            .get_mut(removed_app.app_id)
+            .context("Problem accessing property")? = Value::Null;
     }
     let new_serial = db::get_last_serial(db).await?;
     let resp = WebxdcStatusUpdatePayload::Update {

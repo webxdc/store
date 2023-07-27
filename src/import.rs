@@ -53,7 +53,10 @@ pub async fn import_many(
 
     let new_app_ids = HashSet::<_, RandomState>::from_iter(xdc_metas.keys().cloned());
     let curr_app_ids = HashSet::<_, RandomState>::from_iter(
-        db::get_active_app_infos(conn).await?.into_iter().map(|a| a.app_id),
+        db::get_active_app_infos(conn)
+            .await?
+            .into_iter()
+            .map(|a| a.app_id),
     );
     let removed_app_ids = curr_app_ids.difference(&new_app_ids);
 

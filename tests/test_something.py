@@ -464,4 +464,4 @@ def test_remove(acfactory, storebot_example):
     status_updates = msg_in.get_status_updates()
     assert len(status_updates) == 3
     payload = status_updates[-1]["payload"]
-    assert payload['app_infos']== {'webxdc-tower-builder': None}
+    assert payload["app_infos"] == {"webxdc-tower-builder": None}
