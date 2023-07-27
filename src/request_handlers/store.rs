@@ -67,7 +67,7 @@ pub async fn handle_status_update(
             }
         }
         WebxdcStatusUpdatePayload::Download { app_id } => {
-            info!("Handling store download");
+            info!("Handling store download for {app_id}");
             let resp = handle_download(&state, app_id).await;
             send_update_payload_only(context, msg_id, resp).await?;
         }
@@ -89,7 +89,6 @@ pub async fn handle_download(state: &State, app_id: String) -> WebxdcStatusUpdat
     }
 }
 
-/// Handles a request to download a store app.
 /// Returns the base64 encoded webxdc and the name of the app.
 async fn get_webxdc_data(state: &State, app_id: &str) -> anyhow::Result<(String, String)> {
     let app = db::get_app_info_for_app_id(&mut *state.db.acquire().await?, app_id).await?;

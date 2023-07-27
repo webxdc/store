@@ -134,7 +134,7 @@ def test_update(acfactory, storebot):
     assert len(status_updates) == 1
     assert status_updates[0]["payload"] == {
         "type": "Update",
-        "app_infos": [],
+        "app_infos": {},
         "serial": 0,
         "old_serial": 0,
         "updating": [],
@@ -153,7 +153,7 @@ def test_update(acfactory, storebot):
     payload = status_updates[-1]["payload"]
     assert payload == {
         "type": "Update",
-        "app_infos": [],
+        "app_infos": {},
         "serial": 0,
         "old_serial": 0,
         "updating": [],
@@ -255,7 +255,7 @@ def test_partial_update(acfactory, storebot_example):
     status_updates = msg_in.get_status_updates()
     assert len(status_updates) == 3
     payload = status_updates[-1]["payload"]
-    assert payload["app_infos"][0] == {
+    assert payload["app_infos"]["webxdc-2048"] == {
         "app_id": "webxdc-2048",
         "description": "pupu",
         "tag_name": "v100",
@@ -311,12 +311,8 @@ def test_download(acfactory, storebot_example):
     ac1._evtracker.get_matching("DC_EVENT_WEBXDC_STATUS_UPDATE")
 
     status_updates = msg_in.get_status_updates()
-    payload = status_updates[0]["payload"]
-    app_infos = payload["app_infos"]
-    xdc_2040 = [xdc for xdc in app_infos if xdc["name"] == "2048"][0]
-
     assert msg_in.send_status_update(
-        {"payload": {"type": "Download", "app_id": xdc_2040["app_id"]}}, ""
+        {"payload": {"type": "Download", "app_id": "webxdc-2048"}}, ""
     )
 
     ac1._evtracker.get_matching("DC_EVENT_WEBXDC_STATUS_UPDATE")
@@ -326,7 +322,7 @@ def test_download(acfactory, storebot_example):
     status_updates = msg_in.get_status_updates()
     payload = status_updates[2]["payload"]
     assert payload["type"] == "DownloadOkay"
-    assert payload["app_id"] == xdc_2040["app_id"]
+    assert payload["app_id"] == "webxdc-2048"
     assert payload["name"] == "2048"
     with open(str(Path.cwd()) + "/example-xdcs/webxdc-2048-v1.2.1.xdc", "rb") as f:
         assert payload["data"] == base64.b64encode(f.read()).decode("ascii")
@@ -445,8 +441,6 @@ def test_remove(acfactory, storebot_example):
     with open(sources_path, "w") as f:
         f.writelines(old_lines)
 
-    # Request updates.
-    # dc-calendar is outdated by 1 version, dc-hextris not
     assert msg_in.send_status_update(
         {
             "payload": {

@@ -214,7 +214,7 @@ pub async fn maybe_get_greater_tag_name(
     tag_name: &str,
 ) -> sqlx::Result<bool> {
     sqlx::query(
-        "SELECT EXISTS(SELECT 1 FROM app_infos WHERE app_id = ? AND tag_name > ? AND removed = false LIMIT 1) AS exists_greater_tag_name",
+        "SELECT EXISTS(SELECT 1 FROM app_infos WHERE app_id = ? AND tag_name > ? AND removed = 0 LIMIT 1) AS exists_greater_tag_name",
     )
     .bind(app_id)
     .bind(tag_name)
@@ -430,7 +430,7 @@ mod tests {
             source_code_url: "https://git.example.com/sebastian/app".to_string(),
             image: "aaaaaaaaaaaaaaaaaaaaaaaaa".to_string(),
             description: "This is a cool app".to_string(),
-            xdc_blob_path: PathBuf::from("xdc_blob_path"),
+            xdc_blob_path: PathBuf::from("example-xdcs/webxdc-2048-v1.2.1.xdc"),
             removed: false,
         };
 
@@ -440,6 +440,19 @@ mod tests {
             .await
             .unwrap();
 
+        assert_eq!(app_info, loaded_app_info);
+
+        app_info.app_id = "test2".to_string();
+        let dest = env::temp_dir().join("example-xdcs");
+        let add_type = crate::utils::maybe_upgrade_xdc(&mut app_info, &mut conn, &dest)
+            .await
+            .unwrap();
+
+        assert_eq!(add_type, crate::utils::AddType::Added);
+
+        let loaded_app_info = get_app_info_for_app_id(&mut conn, &app_info.app_id)
+            .await
+            .unwrap();
         assert_eq!(app_info, loaded_app_info);
     }
 
