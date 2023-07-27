@@ -358,7 +358,7 @@ pub async fn remove_app(c: &mut SqliteConnection, app_id: &str) -> sqlx::Result<
 }
 
 #[cfg(test)]
-#[allow(clippy::unwrap_used)]
+#[allow(clippy::unwrap_used, clippy::indexing_slicing)]
 mod tests {
     use super::*;
     use crate::utils::AddType;
