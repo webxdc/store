@@ -444,6 +444,7 @@ mod tests {
 
         app_info.app_id = "test2".to_string();
         let dest = env::temp_dir().join("example-xdcs");
+        create_dir(&dest).ok();
         let add_type = crate::utils::maybe_upgrade_xdc(&mut app_info, &mut conn, &dest)
             .await
             .unwrap();
