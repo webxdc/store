@@ -12,7 +12,7 @@ import OutdatedView from './components/Outdated'
 import type { WebxdcStatusUpdatePayload } from '~/bindings/WebxdcStatusUpdatePayload'
 
 import { AppInfoDB } from '~/db/store_db'
-import { to_app_infos_by_id, updateHandler } from '~/store-logic'
+import { updateHandler } from '~/store-logic'
 import { AppState } from '~/types'
 import type { AppInfoWithState, AppInfosById } from '~/types'
 import mock from '~/mock'
@@ -139,6 +139,13 @@ const AppList: Component<AppListProps> = (props) => {
   )
 }
 
+function to_app_infos_by_id<T extends { app_id: string }>(app_infos: T[]): Record<string, T> {
+  return app_infos.reduce((acc, appinfo) => {
+    acc[appinfo.app_id] = appinfo
+    return acc
+  }, {} as Record<string, T>)
+}
+
 const Store: Component = () => {
   const [appInfo, setAppInfo] = createStore({} as AppInfosById)
   const [lastSerial, setlastSerial] = useStorage('last-serial', 0) // Last store-serial
@@ -165,7 +172,7 @@ const Store: Component = () => {
     setAppInfo(app_infos)
 
     if (import.meta.env.DEV) {
-      setAppInfo(to_app_infos_by_id(mock))
+      setAppInfo(mock)
       setlastSerial(1)
     }
   })

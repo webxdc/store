@@ -36,13 +36,6 @@ function isComplete(elements: Record<string, Partial<AppInfo> | null>): elements
   return true
 }
 
-export function to_app_infos_by_id<T extends { app_id: string }>(app_infos: T[]): Record<string, T> {
-  return app_infos.reduce((acc, appinfo) => {
-    acc[appinfo.app_id] = appinfo
-    return acc
-  }, {} as Record<string, T>)
-}
-
 export async function updateHandler(
   payload: object,
   db: AppInfoDB,
@@ -61,7 +54,7 @@ export async function updateHandler(
       const app_infos = payload.app_infos
       if (isComplete(app_infos)) {
         const app_infos_states: AppInfosById = Object.keys(app_infos).reduce((res, key) => {
-          res[key] = { state: AppState.Initial, ...app_infos[key] }
+          res[key] = { ...app_infos[key], state: AppState.Initial }
           return res
         }, {} as AppInfosById)
         setAppInfo(app_infos_states)
@@ -100,7 +93,7 @@ export async function updateHandler(
       }))
 
       await db.insertMultiple(added.map(key => ({ ...app_infos[key], state: AppState.Initial })) as AppInfoWithState[])
-      await db.updateMultiple(updated.map(key => ({ ...appInfo[key], ...app_infos[key], state: appInfo[key].state !== AppState.Initial ? AppState.Updating : AppState.Initial })))
+      await db.updateMultiple(updated.map(key => ({ ...appInfo[key], ...app_infos[key] })))
       setIsUpdating(false)
     }
     else {

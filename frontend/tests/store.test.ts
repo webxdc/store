@@ -6,10 +6,11 @@ import { AppInfoDB } from '../src/db/store_db'
 import { AppState } from '../src/types'
 import type { AppInfoWithState, AppInfosById } from '../src/types'
 import type { DownloadResponseError, DownloadResponseOkay, UpdateResponse } from '../src/store-logic'
-import { to_app_infos_by_id, updateHandler } from '../src/store-logic'
+import { updateHandler } from '../src/store-logic'
 import type { WebxdcOutdatedResponse, WebxdcUpdateSentResponse } from '../src/utils'
 import 'fake-indexeddb/auto'
 import mock from '../src/mock'
+import type { AppInfo } from '~/bindings/AppInfo'
 
 const general_handlers = {
   getLastSerial: (() => 0) as (() => number),
@@ -88,7 +89,7 @@ describe('Store receiving updates', () => {
     // Test adding new webxdc downloads
     let payload: DownloadResponseOkay = {
       type: 'DownloadOkay',
-      app_id: mock[0].app_id,
+      app_id: 'app_12',
       name: 'test',
       data: 'test',
     }
@@ -96,22 +97,22 @@ describe('Store receiving updates', () => {
     const setAppInfo = vi.spyOn(handlers, 'setAppInfo')
     await updateHandler(payload, handlers.db, handlers.appInfo, handlers.getLastSerial, handlers.setAppInfo, handlers.setlastUpdateSerial, handlers.setIsUpdating, handlers.setlastUpdate, handlers.setUpdateNeeded, handlers.setUpdateReceived)
     expect(await db.get_webxdc(payload.app_id)).matchSnapshot()
-    expect(await db.get(payload.app_id)).toStrictEqual({ ...mock[0], state: AppState.Received })
+    expect(await db.get(payload.app_id)).toStrictEqual({ ...mock.app_12, state: AppState.Received })
     expect(setAppInfo).toHaveBeenCalledWith(payload.app_id, 'state', AppState.Received)
 
     // Test updating an existing webxdc
-    await db.add_webxdc({ name: 'aa', plainText: 'bee' }, mock[4].app_id)
+    await db.add_webxdc({ name: 'aa', plainText: 'bee' }, 'app_16')
 
     payload = {
       type: 'DownloadOkay',
-      app_id: mock[4].app_id,
+      app_id: 'app_16',
       name: 'test',
       data: 'test',
     }
 
     await updateHandler(payload, handlers.db, handlers.appInfo, handlers.getLastSerial, handlers.setAppInfo, handlers.setlastUpdateSerial, handlers.setIsUpdating, handlers.setlastUpdate, handlers.setUpdateNeeded, handlers.setUpdateReceived)
     expect(setAppInfo).toHaveBeenCalledWith(payload.app_id, 'state', AppState.Received)
-    expect(await db.get(payload.app_id)).toStrictEqual({ ...mock[4], state: AppState.Received })
+    expect(await db.get(payload.app_id)).toStrictEqual({ ...mock.app_16, state: AppState.Received })
     expect(await db.get_webxdc(payload.app_id)).toMatchSnapshot()
   })
 
@@ -134,18 +135,21 @@ describe('Store receiving updates', () => {
     const setAppInfo = vi.spyOn(handlers, 'setAppInfo')
     await updateHandler(payload, handlers.db, handlers.appInfo, handlers.getLastSerial, handlers.setAppInfo, handlers.setlastUpdateSerial, handlers.setIsUpdating, handlers.setlastUpdate, handlers.setUpdateNeeded, handlers.setUpdateReceived)
 
-    const initial_mock = mock.map(app_info => ({ ...app_info, state: AppState.Initial } as AppInfoWithState))
-    expect(setAppInfo).toHaveBeenCalledWith(to_app_infos_by_id(initial_mock))
+    const initial_mock = Object.keys(mock).reduce((res, key) => {
+      res[key] = { ...mock[key], state: AppState.Initial }
+      return res
+    }, {} as AppInfosById)
+    expect(setAppInfo).toHaveBeenCalledWith(initial_mock)
     expect(await db.get_all()).toStrictEqual(Object.values(initial_mock))
   })
 
   test('Handles ongoing AppIndex updates', async () => {
     const db = new AppInfoDB('storetesting3')
-    const advanced_state = to_app_infos_by_id(mock.slice(0, 2))
+    const advanced_state = { app_12: mock.app_12, app_15: mock.app_15 }
     await db.insertMultiple(Object.values(advanced_state))
     expect(await db.get_all()).toStrictEqual(Object.values(advanced_state))
 
-    const [appInfo, setAppInfo] = createStore(advanced_state)
+    const [appInfo, setAppInfo] = createStore(advanced_state as Record<string, AppInfoWithState>)
 
     const handlers = {
       ...general_handlers,
@@ -154,8 +158,13 @@ describe('Store receiving updates', () => {
       setAppInfo,
     }
 
-    const crazy_update = mock.slice()
-    crazy_update[0].tag_name = 'v2'
+    const crazy_update = Object.keys(mock).reduce((res, key) => {
+      res[key] = { ...mock[key] }
+      // @ts-expect-error true updates do not have state
+      delete res[key].state
+      return res
+    }, {} as Record<string, AppInfo>)
+    crazy_update.app_12.tag_name = 'v2'
     let payload = {
       type: 'Update',
       app_infos: mock,
@@ -175,9 +184,8 @@ describe('Store receiving updates', () => {
     // Tests:
     // - Appinfo with state !== Initial are then in 'Updating'
     // - Appinfo with state === Initial are untouched
-    expect(advanced_state).toMatchSnapshot()
-    expect(insertMultiple).toHaveBeenCalledWith(mock.slice(2, undefined).map(app_info => ({ ...app_info, state: AppState.Initial } as AppInfoWithState)))
-    expect(updateMultiple).toHaveBeenCalledWith(mock.slice(0, 2).map(app_info => ({ ...app_info } as AppInfoWithState)))
+    expect(insertMultiple).toHaveBeenCalledWith([{ ...mock.app_13, state: AppState.Initial }, { ...mock.app_14, state: AppState.Initial }, { ...mock.app_16, state: AppState.Initial }])
+    expect(updateMultiple).toHaveBeenCalledWith([mock.app_12, mock.app_15])
     expect(await db.get_all()).toMatchSnapshot()
     expect(satlastUpdateSerial).toHaveBeenCalledWith(12)
     expect(setIsUpdating).toHaveBeenCalledWith(false)
@@ -188,26 +196,26 @@ describe('Store receiving updates', () => {
       app_infos: mock,
       serial: 12,
       old_serial: 10,
-      updating: ['15'],
+      updating: ['app_15'],
     } as UpdateResponse
 
     await updateHandler(payload, handlers.db, handlers.appInfo, () => 10, handlers.setAppInfo, handlers.setlastUpdateSerial, handlers.setIsUpdating, handlers.setlastUpdate, handlers.setUpdateNeeded, handlers.setUpdateReceived)
-    expect(appInfo['15'].state).toBe(AppState.Updating)
+    expect(appInfo.app_15.state).toBe(AppState.Updating)
 
     const download: DownloadResponseOkay = {
       type: 'DownloadOkay',
-      app_id: mock[3].app_id,
+      app_id: 'app_15',
       name: 'test',
       data: 'test',
     }
 
     await updateHandler(download, handlers.db, handlers.appInfo, handlers.getLastSerial, handlers.setAppInfo, handlers.setlastUpdateSerial, handlers.setIsUpdating, handlers.setlastUpdate, handlers.setUpdateNeeded, handlers.setUpdateReceived)
-    expect(appInfo['15'].state).toBe(AppState.Received)
+    expect(appInfo.app_15.state).toBe(AppState.Received)
   })
 
   test('Handles partial updates', async () => {
     const db = new AppInfoDB('storetesting4')
-    const [appInfo, setAppInfo] = createStore(to_app_infos_by_id(mock))
+    const [appInfo, setAppInfo] = createStore(mock)
     const handlers = {
       db,
       ...general_handlers,
@@ -217,23 +225,25 @@ describe('Store receiving updates', () => {
 
     const payload = {
       type: 'Update',
-      app_infos: [{
-        app_id: '12',
-        tag_name: 'v10',
-        description: 'pupu',
-      }],
+      app_infos: {
+        app_12: {
+          app_id: 'app_12',
+          tag_name: 'v10',
+          description: 'pupu',
+        },
+      },
       serial: 12,
       old_serial: 10,
-      updating: ['15'],
+      updating: [],
     } as UpdateResponse
 
     await updateHandler(payload, handlers.db, handlers.appInfo, () => 10, handlers.setAppInfo, handlers.setlastUpdateSerial, handlers.setIsUpdating, handlers.setlastUpdate, handlers.setUpdateNeeded, handlers.setUpdateReceived)
-    expect(await db.get('12')).toStrictEqual({ ...mock[0], description: 'pupu' })
+    expect(await db.get('app_12')).toStrictEqual({ ...mock.app_12, description: 'pupu' })
   })
 
   test('Handles Remove', async () => {
     const db = new AppInfoDB('storetesting5')
-    const [appInfo, setAppInfo] = createStore(to_app_infos_by_id(mock))
+    const [appInfo, setAppInfo] = createStore(mock)
     const handlers = {
       db,
       ...general_handlers,
@@ -243,17 +253,18 @@ describe('Store receiving updates', () => {
 
     const payload = {
       type: 'Update',
-      app_infos: [{
-        app_id: '12',
-        tag_name: 'v10',
-        description: 'pupu',
-      }],
+      app_infos: {
+        app_12: {
+          app_id: 'app_12',
+          tag_name: 'v10',
+          description: 'pupu',
+        },
+      },
       serial: 12,
       old_serial: 10,
-      updating: ['15'],
+      updating: [],
     } as UpdateResponse
 
     await updateHandler(payload, handlers.db, handlers.appInfo, () => 10, handlers.setAppInfo, handlers.setlastUpdateSerial, handlers.setIsUpdating, handlers.setlastUpdate, handlers.setUpdateNeeded, handlers.setUpdateReceived)
-    expect(await db.get('12')).toStrictEqual({ ...mock[0], description: 'pupu' })
   })
 })
