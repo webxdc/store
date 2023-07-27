@@ -96,7 +96,7 @@ export async function updateHandler(
     console.log('Received webxdc')
     const file = { base64: payload.data, name: `${payload.name}.xdc` }
     await db.add_webxdc(file, payload.app_id)
-    await db.update({ ...appInfo[payload.app_id], state: AppState.Received })
+    await db.updateState(payload.app_id, AppState.Received)
     setAppInfo(payload.app_id, 'state', AppState.Received)
   }
   else if (isDownloadResponseError(payload)) {

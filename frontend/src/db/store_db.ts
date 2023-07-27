@@ -1,5 +1,5 @@
 import type { AppInfo } from '../bindings/AppInfo'
-import type { AppInfoWithState } from '../types'
+import type { AppState, AppInfoWithState } from '../types'
 import type { XDCFile } from '../webxdc'
 
 export class AppInfoDB {
@@ -68,14 +68,20 @@ export class AppInfoDB {
     })
   }
 
-  async update(data: AppInfoWithState): Promise<void> {
+  // Set the state of the app.
+  async updateState(app_id: string, state: AppState): Promise<void> {
     const db = await this.open()
     return new Promise((resolve, reject) => {
       const transaction = db.transaction('appInfo', 'readwrite')
       transaction.onerror = () => reject(transaction.error)
       const store = transaction.objectStore('appInfo')
-      const request = store.put(data)
-      request.onsuccess = () => resolve()
+      const request = store.get(app_id)
+      request.onsuccess = () => {
+          const appInfo = request.result
+          appInfo.state = state
+          const putRequest = store.put(appInfo)
+          putRequest.onsuccess = () => resolve()
+      }
     })
   }
 
