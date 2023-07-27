@@ -80,10 +80,10 @@ describe('Store receiving updates', () => {
     const handlers = {
       ...general_handlers,
       db,
-      appInfo: to_app_infos_by_id(mock),
+      appInfo: mock,
     }
 
-    await db.insertMultiple(mock)
+    await db.insertMultiple(Object.values(mock))
 
     // Test adding new webxdc downloads
     let payload: DownloadResponseOkay = {
@@ -207,6 +207,32 @@ describe('Store receiving updates', () => {
 
   test('Handles partial updates', async () => {
     const db = new AppInfoDB('storetesting4')
+    const [appInfo, setAppInfo] = createStore(to_app_infos_by_id(mock))
+    const handlers = {
+      db,
+      ...general_handlers,
+      appInfo,
+      setAppInfo,
+    }
+
+    const payload = {
+      type: 'Update',
+      app_infos: [{
+        app_id: '12',
+        tag_name: 'v10',
+        description: 'pupu',
+      }],
+      serial: 12,
+      old_serial: 10,
+      updating: ['15'],
+    } as UpdateResponse
+
+    await updateHandler(payload, handlers.db, handlers.appInfo, () => 10, handlers.setAppInfo, handlers.setlastUpdateSerial, handlers.setIsUpdating, handlers.setlastUpdate, handlers.setUpdateNeeded, handlers.setUpdateReceived)
+    expect(await db.get('12')).toStrictEqual({ ...mock[0], description: 'pupu' })
+  })
+
+  test('Handles Remove', async () => {
+    const db = new AppInfoDB('storetesting5')
     const [appInfo, setAppInfo] = createStore(to_app_infos_by_id(mock))
     const handlers = {
       db,

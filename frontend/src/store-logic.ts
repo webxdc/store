@@ -24,6 +24,18 @@ function isUpdateResponse(p: any): p is UpdateResponse {
   return p.type === 'Update'
 }
 
+function isComplete(elements: Record<string, Partial<AppInfo> | null>): elements is Record<string, AppInfo> {
+  for (const element of Object.values(elements)) {
+    if (element == null) {
+      continue
+    }
+    if (!(!!element.app_id && !!element.date && !!element.description && !!element.name && !!element.size && !!element.source_code_url && !!element.tag_name)) {
+      return false
+    }
+  }
+  return true
+}
+
 export function to_app_infos_by_id<T extends { app_id: string }>(app_infos: T[]): Record<string, T> {
   return app_infos.reduce((acc, appinfo) => {
     acc[appinfo.app_id] = appinfo
@@ -46,23 +58,32 @@ export async function updateHandler(
   if (isUpdateResponse(payload)) {
     if (payload.old_serial === 0) {
       console.log('Initialising apps')
-      // initially write the newest update to state
-      // we can assert the partial updates to be complete here because we got an initial message
-      const app_infos = to_app_infos_by_id((payload.app_infos as AppInfo[]).map(app_info => ({ ...app_info, state: AppState.Initial } as AppInfoWithState)))
-      setAppInfo(app_infos)
-      await db.insertMultiple(Object.values(app_infos))
-      setIsUpdating(false)
+      const app_infos = payload.app_infos
+      if (isComplete(app_infos)) {
+        const app_infos_states: AppInfosById = Object.keys(app_infos).reduce((res, key) => {
+          res[key] = { state: AppState.Initial, ...app_infos[key] }
+          return res
+        }, {} as AppInfosById)
+        setAppInfo(app_infos_states)
+        await db.insertMultiple(Object.values(app_infos_states))
+        setIsUpdating(false)
+      }
+      else {
+        console.error('Received incomplete initialization message')
+      }
     }
     else if (payload.old_serial === lastSerial()) {
       console.log('Reconceiling updates')
-      // all but the first update only overwrite existing properties
-      const app_infos = to_app_infos_by_id(payload.app_infos.map((app_info) => {
-        return { ...app_info, state: AppState.Initial }
-      }))
+      const app_infos = payload.app_infos
       const added: string[] = []
       const updated: string[] = []
+      const removed: string[] = []
       setAppInfo(produce((s) => {
         for (const key in app_infos) {
+          if (app_infos[key] === null) {
+            delete s[key]
+            removed.push(key)
+          }
           if (s[key] === undefined) {
             // As we don't know that app we can  assert the partial updates to be complete here
             s[key] = { ...(app_infos[key] as AppInfoWithState) }

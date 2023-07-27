@@ -54,6 +54,7 @@ pub struct AppInfo {
     pub size: i64,
     #[serde(skip)]
     pub xdc_blob_path: PathBuf,
+    #[serde(skip)]
     pub removed: bool,
 }
 
@@ -155,7 +156,7 @@ pub enum WebxdcStatusUpdatePayload {
     },
     Update {
         /// List of new / updated app infos.
-        #[ts(type = "(Partial<AppInfo> & {app_id: string})[]")]
+        #[ts(type = "Record<string, (Partial<AppInfo> & {app_id: string} | null)>")]
         app_infos: Value,
         /// The newest serial of the bot.    
         serial: u32,

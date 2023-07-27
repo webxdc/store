@@ -1,8 +1,8 @@
-import type { AppInfoWithState } from './types'
 import { AppState } from './types'
+import type { AppInfosById } from './types'
 
-export default [
-  {
+export default {
+  app_12: {
     app_id: '12',
     name: 'Poll',
     description: 'Simple poll app\nOne question, up to 5 pre-defined answers for people to vote on.\nThis little app is done in less than 10 KBs of Javascript.',
@@ -14,7 +14,7 @@ export default [
     state: AppState.Initial,
     rights_obtained: false,
   },
-  {
+  app_13: {
     app_id: '13',
     name: '2048',
     description: 'Join numbers to a 2048 tile\nThe classic 2048 puzzle game.\nMove tiles with the same number together and get a 2048 tile to win.\nHighscores are shared with the group.',
@@ -25,7 +25,7 @@ export default [
     tag_name: 'v1',
     state: AppState.Downloading,
   },
-  {
+  app_14: {
     app_id: '14',
     name: 'Calendar',
     description: 'Mobile-friendly calendar app\nManage events collaboratively with other chat members.\nYou can import/export events or invites.',
@@ -36,7 +36,7 @@ export default [
     tag_name: 'v1',
     state: AppState.DownloadCancelled,
   },
-  {
+  app_15: {
     app_id: '15',
     name: 'Chess Board',
     description: 'Mobile-friendly calendar app\nManage events collaboratively with other chat members.\nYou can import/export events or invites.',
@@ -47,7 +47,7 @@ export default [
     tag_name: 'v1',
     state: AppState.Received,
   },
-  {
+  app_16: {
     app_id: '16',
     name: 'Draw',
     description: 'Simple drawing board\nA little drawing board to create draws that you can then share with friends.',
@@ -58,4 +58,4 @@ export default [
     tag_name: 'v1',
     state: AppState.Updating,
   },
-] as AppInfoWithState[]
+} as AppInfosById
