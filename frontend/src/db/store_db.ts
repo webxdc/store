@@ -90,13 +90,13 @@ export class AppInfoDB {
     })
   }
 
-  async remove_multiple_app_infos(ids: number[]): Promise<void> {
+  async remove_multiple_app_infos(ids: string[]): Promise<void> {
     const db = await this.open()
     return new Promise((resolve, reject) => {
       const transaction = db.transaction('appInfo', 'readwrite')
       transaction.onerror = () => reject(transaction.error)
       const store = transaction.objectStore('appInfo')
-      ids.forEach((id: number) => store.delete(id))
+      ids.forEach((id: string) => store.delete(id))
       transaction.oncomplete = () => resolve()
     })
   }

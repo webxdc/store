@@ -77,7 +77,7 @@ export async function updateHandler(
             delete s[key]
             removed.push(key)
           }
-          if (s[key] === undefined) {
+          else if (s[key] === undefined) {
             // As we don't know that app we can  assert the partial updates to be complete here
             s[key] = { ...(app_infos[key] as AppInfoWithState) }
             added.push(key)
@@ -94,6 +94,8 @@ export async function updateHandler(
 
       await db.insertMultiple(added.map(key => ({ ...app_infos[key], state: AppState.Initial })) as AppInfoWithState[])
       await db.updateMultiple(updated.map(key => ({ ...appInfo[key], ...app_infos[key] })))
+      await db.remove_multiple_app_infos(removed)
+      removed.forEach(key => db.remove_webxdc(key))
       setIsUpdating(false)
     }
     else {

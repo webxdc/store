@@ -254,17 +254,17 @@ describe('Store receiving updates', () => {
     const payload = {
       type: 'Update',
       app_infos: {
-        app_12: {
-          app_id: 'app_12',
-          tag_name: 'v10',
-          description: 'pupu',
-        },
+        app_12: null,
       },
       serial: 12,
       old_serial: 10,
       updating: [],
     } as UpdateResponse
 
+    const removeSpy = vi.spyOn(db, 'remove_multiple_app_infos')
+    const cacheDeleteSpy = vi.spyOn(db, 'remove_webxdc')
     await updateHandler(payload, handlers.db, handlers.appInfo, () => 10, handlers.setAppInfo, handlers.setlastUpdateSerial, handlers.setIsUpdating, handlers.setlastUpdate, handlers.setUpdateNeeded, handlers.setUpdateReceived)
+    expect(removeSpy).not.toHaveBeenCalledWith([['app_12']])
+    expect(cacheDeleteSpy).not.toHaveBeenCalledWith([['app_12']])
   })
 })
