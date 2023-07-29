@@ -23,7 +23,8 @@ CREATE TABLE IF NOT EXISTS app_infos (
     description TEXT NOT NULL,
     xdc_blob_path TEXT NOT NULL,
     tag_name TEXT NOT NULL,
-    serial INTEGER NOT NULL
+    serial INTEGER NOT NULL,
+    removed BOOLEAN NOT NULL DEFAULT 0
 );
 
 CREATE INDEX IF NOT EXISTS app_id ON app_infos (app_id);

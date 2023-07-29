@@ -20,8 +20,8 @@ use crate::{
     project_dirs,
     request_handlers::{genesis, store, ChatType, WebxdcStatusUpdate, WebxdcStatusUpdatePayload},
     utils::{
-        configure_from_env, get_store_xdc_path, get_webxdc_tag_name, send_newest_updates,
-        send_store_xdc, send_update_payload_only, unpack_assets,
+        configure_from_env, get_store_xdc_path, get_webxdc_tag_name, init_store,
+        send_update_payload_only, unpack_assets, update_store,
     },
     GENESIS_QR, INVITE_QR, VERSION,
 };
@@ -218,15 +218,7 @@ impl Bot {
                         "Chat {chat_id} is not in the database, adding it as chat with type store"
                     );
                         db::set_chat_type(conn, chat_id, ChatType::Store).await?;
-                        let msg = send_store_xdc(context, &state, chat_id, true).await?;
-                        send_newest_updates(
-                            context,
-                            msg,
-                            &mut *state.db.acquire().await?,
-                            0,
-                            vec![],
-                        )
-                        .await?;
+                        init_store(context, &state, chat_id).await?;
                     }
                 }
             }
@@ -298,10 +290,10 @@ impl Bot {
             return Ok(());
         };
 
-        if let WebxdcStatusUpdatePayload::UpdateWebxdc = request.payload {
-            send_store_xdc(context, &state, chat_id, true).await?;
+        if let WebxdcStatusUpdatePayload::UpdateWebxdc { serial } = request.payload {
             send_update_payload_only(context, msg_id, WebxdcStatusUpdatePayload::UpdateSent)
                 .await?;
+            update_store(context, &state, chat_id, serial).await?;
             return Ok(());
         }
 

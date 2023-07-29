@@ -60,21 +60,42 @@ pub(crate) fn unpack_assets() -> Result<()> {
     Ok(())
 }
 
-/// Send a webxdc to a chat.
-pub async fn send_store_xdc(
+/// Send newest version to chat together with all [AppInfo]s.
+pub async fn init_store(
     context: &Context,
     state: &State,
     chat_id: ChatId,
-    hydrate: bool,
 ) -> anyhow::Result<MsgId> {
     let mut webxdc_msg = Message::new(Viewtype::Webxdc);
     webxdc_msg.set_text(Some(store_message().to_string()));
     webxdc_msg.set_file(get_store_xdc_path()?.display(), None);
     let msg_id = chat::send_msg(context, chat_id, &mut webxdc_msg).await?;
-    if hydrate {
-        send_newest_updates(context, msg_id, &mut *state.db.acquire().await?, 0, vec![]).await?;
-    }
     let conn = &mut *state.db.acquire().await?;
+    let app_infos = db::get_active_app_infos(conn).await?;
+    let serial = db::get_last_serial(conn).await?;
+    send_update_payload_only(
+        context,
+        msg_id,
+        WebxdcStatusUpdatePayload::Init { app_infos, serial },
+    )
+    .await?;
+    db::set_store_tag_name(conn, msg_id, &state.store_tag_name).await?;
+    Ok(msg_id)
+}
+
+/// Send newest store webxdc to a chat together with newest updates.
+pub async fn update_store(
+    context: &Context,
+    state: &State,
+    chat_id: ChatId,
+    serial: u32,
+) -> anyhow::Result<MsgId> {
+    let mut webxdc_msg = Message::new(Viewtype::Webxdc);
+    webxdc_msg.set_text(Some(store_message().to_string()));
+    webxdc_msg.set_file(get_store_xdc_path()?.display(), None);
+    let msg_id = chat::send_msg(context, chat_id, &mut webxdc_msg).await?;
+    let conn = &mut *state.db.acquire().await?;
+    send_newest_updates(context, msg_id, conn, serial, vec![]).await?;
     db::set_store_tag_name(conn, msg_id, &state.store_tag_name).await?;
     Ok(msg_id)
 }
@@ -86,7 +107,7 @@ pub fn to_hashmap<T: Serialize + for<'a> Deserialize<'a>>(
 }
 
 /// Sends a [deltachat::webxdc::StatusUpdateItem] with all [AppInfo]s greater than the given serial.
-/// Updating tells the frontend which apps are going to receive an updated.
+/// `updating` tells the frontend which apps are going to receive an updated.
 pub async fn send_newest_updates(
     context: &Context,
     msg_id: MsgId,
@@ -104,16 +125,21 @@ pub async fn send_newest_updates(
         serial,
     )
     .await?;
+
+    let (removed, app_infos) = app_infos
+        .into_iter()
+        .partition::<Vec<_>, _>(|app_info| app_info.removed);
+
     let old_app_infos = old_app_infos
         .into_iter()
         .map(|app_info| (app_info.app_id.clone(), app_info))
         .collect::<std::collections::HashMap<_, _>>();
 
-    let changes = app_infos
+    let changes: Vec<anyhow::Result<(String, HashMap<String, Value>)>> = app_infos
         .into_iter()
         .map(|app_info| {
             let Some(old_info) = old_app_infos.get(app_info.app_id.as_str()) else {
-                return to_hashmap(app_info)
+                return Ok((app_info.app_id.clone(), to_hashmap(app_info)?))
             };
             let old_fields = to_hashmap(old_info.clone())?;
             let new_fields = to_hashmap(app_info.clone())?;
@@ -135,18 +161,26 @@ pub async fn send_newest_updates(
                 .collect::<HashMap<_, _>>();
 
             changed_fields.extend(removed_fields);
-            Ok(changed_fields)
+            Ok((app_info.app_id, changed_fields))
         })
         .collect_vec();
 
-    let mut all_changes = vec![];
-    for chang in changes {
-        all_changes.push(chang?)
+    let mut all_changes = HashMap::new();
+    for change in changes {
+        let (key, val) = change?;
+        all_changes.insert(key, val);
     }
 
+    let mut app_infos = json!(all_changes);
+    for removed_app in removed {
+        app_infos
+            .as_object_mut()
+            .context("Problem accessing property")?
+            .insert(removed_app.app_id, Value::Null);
+    }
     let new_serial = db::get_last_serial(db).await?;
     let resp = WebxdcStatusUpdatePayload::Update {
-        app_infos: json!(all_changes),
+        app_infos,
         serial: new_serial,
         old_serial: serial,
         updating,

@@ -5,14 +5,14 @@ use futures::future::join_all;
 use serde::Deserialize;
 use sqlx::SqliteConnection;
 use std::{
-    collections::HashMap,
-    fs,
+    collections::{hash_map::RandomState, HashMap, HashSet},
     path::{Path, PathBuf},
 };
 use time::{format_description::well_known::Rfc3339, OffsetDateTime};
-use tokio::fs::File;
+use tokio::fs::{self, File};
 
 use crate::{
+    db,
     request_handlers::AppInfo,
     utils::{maybe_upgrade_xdc, read_vec, AddType},
 };
@@ -46,9 +46,27 @@ pub async fn import_many(
     xdcs_path: PathBuf,
     conn: &mut SqliteConnection,
 ) -> anyhow::Result<()> {
-    let xdcget_lock =
-        fs::read_to_string(path.join("xdcget.lock")).context("Failed to read xdcget.lock")?;
+    let xdcget_lock = fs::read_to_string(path.join("xdcget.lock"))
+        .await
+        .context("Failed to read xdcget.lock")?;
     let xdc_metas: HashMap<String, WexbdcManifest> = toml::from_str(&xdcget_lock)?;
+
+    let new_app_ids = HashSet::<_, RandomState>::from_iter(xdc_metas.keys().cloned());
+    let curr_app_ids = HashSet::<_, RandomState>::from_iter(
+        db::get_active_app_infos(conn)
+            .await?
+            .into_iter()
+            .map(|a| a.app_id),
+    );
+    let removed_app_ids = curr_app_ids.difference(&new_app_ids);
+
+    let mut removed = vec![];
+    for app_id in removed_app_ids {
+        let app_info = db::get_app_info_for_app_id(conn, app_id).await?;
+        db::remove_app(conn, &app_info.app_id).await?;
+        fs::remove_file(&app_info.xdc_blob_path).await?;
+        removed.push(app_info.xdc_blob_path);
+    }
 
     let mut xdcs = vec![];
     for xdc in xdc_metas.into_values() {
@@ -99,6 +117,7 @@ pub async fn import_many(
                 description: xdc.description,
                 xdc_blob_path: path,
                 size,
+                removed: false,
             })
         }))
     }
@@ -133,9 +152,9 @@ pub async fn import_many(
         }
     }
 
-    for (list, name) in vec![added, updated, ignored]
+    for (list, name) in vec![added, updated, ignored, removed]
         .into_iter()
-        .zip(&["Added", "Updated", "Ignored"])
+        .zip(&["Added", "Updated", "Ignored", "Removed"])
     {
         if list.is_empty() {
             println!("{name}: None");

@@ -36,6 +36,7 @@ pub struct DBAppInfo {
     pub xdc_blob_path: String,
     pub size: i64,
     pub tag_name: String,
+    pub removed: bool,
 }
 
 impl From<DBAppInfo> for AppInfo {
@@ -51,6 +52,7 @@ impl From<DBAppInfo> for AppInfo {
             xdc_blob_path: PathBuf::from(db_app.xdc_blob_path),
             size: db_app.size,
             tag_name: db_app.tag_name,
+            removed: db_app.removed,
         }
     }
 }
@@ -197,7 +199,7 @@ pub async fn get_app_info_for_app_id(
     app_id: &str,
 ) -> sqlx::Result<AppInfo> {
     sqlx::query_as::<_, DBAppInfo>(
-        "SELECT * FROM app_infos WHERE app_id = ? ORDER BY tag_name DESC LIMIT 1;",
+        "SELECT * FROM app_infos WHERE app_id = ? ORDER BY serial DESC LIMIT 1;",
     )
     .bind(app_id)
     .fetch_one(c)
@@ -212,7 +214,7 @@ pub async fn maybe_get_greater_tag_name(
     tag_name: &str,
 ) -> sqlx::Result<bool> {
     sqlx::query(
-        "SELECT EXISTS(SELECT 1 FROM app_infos WHERE app_id = ? AND tag_name > ? LIMIT 1) AS exists_greater_tag_name",
+        "SELECT EXISTS(SELECT 1 FROM app_infos WHERE app_id = ? AND tag_name > ? AND removed = 0 LIMIT 1) AS exists_greater_tag_name",
     )
     .bind(app_id)
     .bind(tag_name)
@@ -230,6 +232,22 @@ pub async fn get_app_infos(c: &mut SqliteConnection) -> sqlx::Result<Vec<AppInfo
         .map(|app| app.into_iter().map(|a| a.into()).collect())
 }
 
+/// Returns the newest AppInfo for each app.
+pub async fn get_active_app_infos(c: &mut SqliteConnection) -> sqlx::Result<Vec<AppInfo>> {
+    sqlx::query_as::<_, DBAppInfo>(
+        r#"SELECT a.*
+    FROM app_infos a
+    JOIN (
+        SELECT app_id, MAX(serial) AS latest_serial
+        FROM app_infos
+        GROUP BY app_id
+    ) b ON a.app_id = b.app_id AND a.serial = b.latest_serial"#,
+    )
+    .fetch_all(c)
+    .await
+    .map(|app| app.into_iter().map(|a| a.into()).collect())
+}
+
 /// Get the newest [AppInfo]s with a serial greater than serial.
 /// Gets the latest versions of all changed apps.
 pub async fn get_changed_app_infos_since(
@@ -240,10 +258,10 @@ pub async fn get_changed_app_infos_since(
         r#"SELECT a.*
 FROM app_infos a
 JOIN (
-    SELECT app_id, MAX(tag_name) AS latest_tag_name
+    SELECT app_id, MAX(serial) AS latest_serial
     FROM app_infos
     GROUP BY app_id
-) b ON a.app_id = b.app_id AND a.tag_name = b.latest_tag_name
+) b ON a.app_id = b.app_id AND a.serial = b.latest_serial
 WHERE a.serial > ?"#,
     )
     .bind(serial)
@@ -271,8 +289,8 @@ pub async fn get_app_infos_for(
     FROM app_infos a
     WHERE app_id IN ({list}) 
         AND serial <= ?
-        AND tag_name = (
-            SELECT MAX(tag_name)
+        AND serial = (
+            SELECT MAX(serial)
             FROM app_infos
             WHERE app_id = a.app_id
               AND serial <= ?
@@ -286,9 +304,9 @@ pub async fn get_app_infos_for(
     .map(|app| app.into_iter().map(|a| a.into()).collect())
 }
 
-/// Returns wheter an [AppInfo] for given app_id existst.
+/// Returns whether an [AppInfo] for given app_id exists.
 pub async fn app_exists(c: &mut SqliteConnection, app_id: &str) -> sqlx::Result<bool> {
-    sqlx::query("SELECT EXISTS(SELECT 1 FROM app_infos WHERE app_id = ?)")
+    sqlx::query("SELECT EXISTS(SELECT 1 FROM app_infos WHERE app_id = ? AND removed = 0)")
         .bind(app_id)
         .fetch_one(c)
         .await
@@ -301,12 +319,14 @@ pub async fn app_tag_name_exists(
     app_id: &str,
     tag_name: &str,
 ) -> sqlx::Result<bool> {
-    sqlx::query("SELECT EXISTS(SELECT 1 FROM app_infos WHERE app_id = ? AND tag_name = ?)")
-        .bind(app_id)
-        .bind(tag_name)
-        .fetch_one(c)
-        .await
-        .map(|row| row.get(0))
+    sqlx::query(
+        "SELECT EXISTS(SELECT 1 FROM app_infos WHERE app_id = ? AND tag_name = ? AND removed = 0)",
+    )
+    .bind(app_id)
+    .bind(tag_name)
+    .fetch_one(c)
+    .await
+    .map(|row| row.get(0))
 }
 
 /// Sets the webxdc tag_name for some sent webxdc.
@@ -332,8 +352,21 @@ pub async fn get_store_tag_name(c: &mut SqliteConnection, msg: MsgId) -> sqlx::R
         .map(|a| (a.get("tag_name")))
 }
 
+/// Removes app with app_id from store.
+pub async fn remove_app(c: &mut SqliteConnection, app_id: &str) -> sqlx::Result<()> {
+    let mut t = c.begin().await?;
+    let next_serial = increase_get_serial(&mut t).await?;
+    sqlx::query("UPDATE app_infos SET removed = 1, serial = ? WHERE app_id = ? AND serial = (SELECT MAX(serial) FROM app_infos WHERE app_id = ?);")
+        .bind(next_serial)
+        .bind(app_id)
+        .bind(app_id)
+        .execute(&mut *t)
+        .await?;
+    t.commit().await
+}
+
 #[cfg(test)]
-#[allow(clippy::unwrap_used)]
+#[allow(clippy::unwrap_used, clippy::indexing_slicing)]
 mod tests {
     use super::*;
     use crate::utils::AddType;
@@ -405,7 +438,8 @@ mod tests {
             source_code_url: "https://git.example.com/sebastian/app".to_string(),
             image: "aaaaaaaaaaaaaaaaaaaaaaaaa".to_string(),
             description: "This is a cool app".to_string(),
-            xdc_blob_path: PathBuf::from("xdc_blob_path"),
+            xdc_blob_path: PathBuf::from("example-xdcs/webxdc-2048-v1.2.1.xdc"),
+            removed: false,
         };
 
         create_app_info(&mut conn, &mut app_info).await.unwrap();
@@ -414,6 +448,20 @@ mod tests {
             .await
             .unwrap();
 
+        assert_eq!(app_info, loaded_app_info);
+
+        app_info.app_id = "test2".to_string();
+        let dest = env::temp_dir().join("example-xdcs");
+        create_dir(&dest).ok();
+        let add_type = crate::utils::maybe_upgrade_xdc(&mut app_info, &mut conn, &dest)
+            .await
+            .unwrap();
+
+        assert_eq!(add_type, crate::utils::AddType::Added);
+
+        let loaded_app_info = get_app_info_for_app_id(&mut conn, &app_info.app_id)
+            .await
+            .unwrap();
         assert_eq!(app_info, loaded_app_info);
     }
 
@@ -530,5 +578,50 @@ mod tests {
                 .await
                 .unwrap()
         );
+    }
+
+    #[tokio::test]
+    async fn test_app_remove() {
+        let mut conn = SqliteConnection::connect("sqlite::memory:").await.unwrap();
+        MIGRATOR.run(&mut conn).await.unwrap();
+        set_config(&mut conn, &BotConfig::default()).await.unwrap();
+
+        let mut app_info = AppInfo {
+            app_id: "testxdc".to_string(),
+            tag_name: "v0.0.1".to_string(),
+            ..Default::default()
+        };
+
+        super::create_app_info(&mut conn, &mut app_info)
+            .await
+            .unwrap();
+        app_info.tag_name = "v0.0.3".to_string();
+        super::create_app_info(&mut conn, &mut app_info)
+            .await
+            .unwrap();
+
+        app_info.tag_name = "v0.0.10".to_string();
+        super::create_app_info(&mut conn, &mut app_info)
+            .await
+            .unwrap();
+
+        let serial = super::get_last_serial(&mut conn).await.unwrap();
+        super::remove_app(&mut conn, &app_info.app_id)
+            .await
+            .unwrap();
+
+        let loaded_app_info = get_app_info_for_app_id(&mut conn, &app_info.app_id)
+            .await
+            .unwrap();
+
+        assert!(loaded_app_info.removed);
+        assert_eq!(loaded_app_info.tag_name, "v0.0.10".to_string());
+
+        let changed = super::get_changed_app_infos_since(&mut conn, serial)
+            .await
+            .unwrap();
+
+        assert_eq!(changed[0].tag_name, "v0.0.10".to_string());
+        assert!(changed[0].removed)
     }
 }

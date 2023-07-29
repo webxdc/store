@@ -165,7 +165,7 @@ const Store: Component = () => {
     setAppInfo(app_infos)
 
     if (import.meta.env.DEV) {
-      setAppInfo(to_app_infos_by_id(mock))
+      setAppInfo(mock)
       setlastSerial(1)
     }
   })
@@ -263,7 +263,7 @@ const Store: Component = () => {
       </div>
       {/* modals */}
       <Show when={updateNeeded()}>
-        <OutdatedView updated_received={updateReceived()} />
+        <OutdatedView updated_received={updateReceived()} serial={lastUpdateSerial()} />
       </Show>
       {showCommit() && <p class="text-small mr-1 text-right text-sm text-gray-300"> {import.meta.env.VITE_COMMIT} </p>}
     </div>

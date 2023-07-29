@@ -8,7 +8,7 @@ use async_zip::tokio::read::fs::ZipFileReader;
 use base64::encode;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
-use sqlx::{Decode, FromRow, Type};
+use sqlx::Type;
 use std::path::{Path, PathBuf};
 use time::{format_description::well_known::Rfc3339, OffsetDateTime};
 use tokio::fs::File;
@@ -38,7 +38,7 @@ pub struct WexbdcManifest {
     pub date: String,
 }
 
-#[derive(TS, Deserialize, Serialize, Clone, Debug, Default, PartialEq, FromRow, Decode)]
+#[derive(TS, Deserialize, Serialize, Clone, Debug, Default, PartialEq)]
 #[ts(export)]
 #[ts(export_to = "frontend/src/bindings/")]
 pub struct AppInfo {
@@ -54,6 +54,8 @@ pub struct AppInfo {
     pub size: i64,
     #[serde(skip)]
     pub xdc_blob_path: PathBuf,
+    #[serde(skip)]
+    pub removed: bool,
 }
 
 impl AppInfo {
@@ -92,6 +94,7 @@ impl AppInfo {
             description: manifest.description,
             xdc_blob_path: file.to_path_buf(),
             id: 0, // This will be updated by the db on insert
+            removed: false,
         })
     }
 }
@@ -116,7 +119,10 @@ pub struct WebxdcStatusUpdate {
 #[serde(tag = "type")]
 pub enum WebxdcStatusUpdatePayload {
     // General update request.
-    UpdateWebxdc,
+    UpdateWebxdc {
+        /// Old serial of the store.
+        serial: u32,
+    },
 
     // General update response.
     Outdated {
@@ -153,7 +159,7 @@ pub enum WebxdcStatusUpdatePayload {
     },
     Update {
         /// List of new / updated app infos.
-        #[ts(type = "(Partial<AppInfo> & {app_id: string})[]")]
+        #[ts(type = "Record<string, (Partial<AppInfo> & {app_id: string} | null)>")]
         app_infos: Value,
         /// The newest serial of the bot.    
         serial: u32,
@@ -164,9 +170,11 @@ pub enum WebxdcStatusUpdatePayload {
         /// The frontend can use these to set the state to updating.
         updating: Vec<String>,
     },
-
-    /// This type is only needed so [AppInfo] is imported in the generated typesript.
-    _Mock {
-        app_info: AppInfo,
+    /// First message send to the store xdc together containing all [AppInfo]s.
+    Init {
+        /// List of initial AppInfos.
+        app_infos: Vec<AppInfo>,
+        /// Last serial of the store.
+        serial: u32,
     },
 }
