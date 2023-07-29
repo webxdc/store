@@ -6,11 +6,11 @@ import { AppState } from './types'
 import type { WebxdcStatusUpdatePayload } from './bindings/WebxdcStatusUpdatePayload'
 import type { AppInfoDB } from './db/store_db'
 import { isOutdatedResponse, isUpdateSendResponse as isUpdateSentResponse } from './utils'
-import type { AppInfo } from './bindings/AppInfo'
 
 export type DownloadResponseOkay = Extract<WebxdcStatusUpdatePayload, { type: 'DownloadOkay' }>
 export type DownloadResponseError = Extract<WebxdcStatusUpdatePayload, { type: 'DownloadError' }>
 export type UpdateResponse = Extract<WebxdcStatusUpdatePayload, { type: 'Update' }>
+export type InitResponse = Extract<WebxdcStatusUpdatePayload, { type: 'Init' }>
 
 function isDownloadResponseOkay(p: any): p is DownloadResponseOkay {
   return p.type === 'DownloadOkay'
@@ -24,16 +24,15 @@ function isUpdateResponse(p: any): p is UpdateResponse {
   return p.type === 'Update'
 }
 
-function isComplete(elements: Record<string, Partial<AppInfo> | null>): elements is Record<string, AppInfo> {
-  for (const element of Object.values(elements)) {
-    if (element == null) {
-      continue
-    }
-    if (!(!!element.app_id && !!element.date && !!element.description && !!element.name && !!element.size && !!element.source_code_url && !!element.tag_name)) {
-      return false
-    }
-  }
-  return true
+function isInit(p: any): p is InitResponse {
+  return p.type === 'Init'
+}
+
+export function to_app_infos_by_id<T extends { app_id: string }>(app_infos: T[]): Record<string, T> {
+  return app_infos.reduce((acc, appinfo) => {
+    acc[appinfo.app_id] = appinfo
+    return acc
+  }, {} as Record<string, T>)
 }
 
 export async function updateHandler(
@@ -48,24 +47,16 @@ export async function updateHandler(
   setUpdateNeeded: Setter<boolean>,
   setUpdateReceived: Setter<boolean>,
 ) {
-  if (isUpdateResponse(payload)) {
-    if (payload.old_serial === 0) {
-      console.log('Initialising apps')
-      const app_infos = payload.app_infos
-      if (isComplete(app_infos)) {
-        const app_infos_states: AppInfosById = Object.keys(app_infos).reduce((res, key) => {
-          res[key] = { ...app_infos[key], state: AppState.Initial }
-          return res
-        }, {} as AppInfosById)
-        setAppInfo(app_infos_states)
-        await db.insertMultiple(Object.values(app_infos_states))
-        setIsUpdating(false)
-      }
-      else {
-        console.error('Received incomplete initialization message')
-      }
-    }
-    else if (payload.old_serial === lastSerial()) {
+  if (isInit(payload)) {
+    console.log('Initialising apps')
+    const app_infos = to_app_infos_by_id((payload.app_infos).map(app_info => ({ ...app_info, state: AppState.Initial })))
+    setAppInfo(app_infos)
+    await db.insertMultiple(Object.values(app_infos))
+    setIsUpdating(false)
+    setlastUpdateSerial(payload.serial)
+  }
+  else if (isUpdateResponse(payload)) {
+    if (lastSerial() === payload.old_serial) {
       console.log('Reconceiling updates')
       const app_infos = payload.app_infos
       const added: string[] = []
@@ -78,7 +69,7 @@ export async function updateHandler(
             removed.push(key)
           }
           else if (s[key] === undefined) {
-            // As we don't know that app we can  assert the partial updates to be complete here
+            // As we don't know that app_id, we can assert the partial updates to be complete here.
             s[key] = { ...(app_infos[key] as AppInfoWithState) }
             added.push(key)
           }
@@ -96,17 +87,14 @@ export async function updateHandler(
       await db.updateMultiple(updated.map(key => ({ ...appInfo[key], ...app_infos[key] })))
       await db.remove_multiple_app_infos(removed)
       removed.forEach(key => db.remove_webxdc(key))
+      setlastUpdateSerial(payload.serial)
       setIsUpdating(false)
+      setlastUpdate(new Date())
     }
     else {
-      console.log(`Ignoring outdated update with reference serial: ${payload.old_serial} and currente serial ${lastSerial()}`)
+      console.log('Update serial mismatch')
       setIsUpdating(false)
-      return
     }
-
-    setlastUpdateSerial(payload.serial)
-    setIsUpdating(false)
-    setlastUpdate(new Date())
   }
   else if (isDownloadResponseOkay(payload)) {
     console.log('Received webxdc')

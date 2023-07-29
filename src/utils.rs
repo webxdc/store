@@ -60,21 +60,42 @@ pub(crate) fn unpack_assets() -> Result<()> {
     Ok(())
 }
 
-/// Send a webxdc to a chat.
-pub async fn send_store_xdc(
+/// Send newest version to chat together with all [AppInfo]s.
+pub async fn init_store(
     context: &Context,
     state: &State,
     chat_id: ChatId,
-    hydrate: bool,
 ) -> anyhow::Result<MsgId> {
     let mut webxdc_msg = Message::new(Viewtype::Webxdc);
     webxdc_msg.set_text(Some(store_message().to_string()));
     webxdc_msg.set_file(get_store_xdc_path()?.display(), None);
     let msg_id = chat::send_msg(context, chat_id, &mut webxdc_msg).await?;
-    if hydrate {
-        send_newest_updates(context, msg_id, &mut *state.db.acquire().await?, 0, vec![]).await?;
-    }
     let conn = &mut *state.db.acquire().await?;
+    let app_infos = db::get_active_app_infos(conn).await?;
+    let serial = db::get_last_serial(conn).await?;
+    send_update_payload_only(
+        context,
+        msg_id,
+        WebxdcStatusUpdatePayload::Init { app_infos, serial },
+    )
+    .await?;
+    db::set_store_tag_name(conn, msg_id, &state.store_tag_name).await?;
+    Ok(msg_id)
+}
+
+/// Send newest store webxdc to a chat together with newest updates.
+pub async fn update_store(
+    context: &Context,
+    state: &State,
+    chat_id: ChatId,
+    serial: u32,
+) -> anyhow::Result<MsgId> {
+    let mut webxdc_msg = Message::new(Viewtype::Webxdc);
+    webxdc_msg.set_text(Some(store_message().to_string()));
+    webxdc_msg.set_file(get_store_xdc_path()?.display(), None);
+    let msg_id = chat::send_msg(context, chat_id, &mut webxdc_msg).await?;
+    let conn = &mut *state.db.acquire().await?;
+    send_newest_updates(context, msg_id, conn, serial, vec![]).await?;
     db::set_store_tag_name(conn, msg_id, &state.store_tag_name).await?;
     Ok(msg_id)
 }
@@ -86,7 +107,7 @@ pub fn to_hashmap<T: Serialize + for<'a> Deserialize<'a>>(
 }
 
 /// Sends a [deltachat::webxdc::StatusUpdateItem] with all [AppInfo]s greater than the given serial.
-/// Updating tells the frontend which apps are going to receive an updated.
+/// `updating` tells the frontend which apps are going to receive an updated.
 pub async fn send_newest_updates(
     context: &Context,
     msg_id: MsgId,

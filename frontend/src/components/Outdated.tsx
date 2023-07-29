@@ -3,6 +3,7 @@ import type { WebxdcStatusUpdatePayload } from '../bindings/WebxdcStatusUpdatePa
 
 interface OutdatedViewProps {
   updated_received: boolean
+  serial: number
 }
 
 type UpdateRequest = Extract<WebxdcStatusUpdatePayload, { type: 'UpdateWebxdc' }>
@@ -11,7 +12,7 @@ const AppInfoPreview: Component<OutdatedViewProps> = (props) => {
   const [buttonUsed, setButtonUsed] = createSignal(false)
 
   const update_req = () => {
-    window.webxdc.sendUpdate({ payload: { type: 'UpdateWebxdc' } as UpdateRequest }, '')
+    window.webxdc.sendUpdate({ payload: { type: 'UpdateWebxdc', serial: props.serial } as UpdateRequest }, '')
     setButtonUsed(true)
   }
   return (

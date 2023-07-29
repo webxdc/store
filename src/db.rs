@@ -199,7 +199,7 @@ pub async fn get_app_info_for_app_id(
     app_id: &str,
 ) -> sqlx::Result<AppInfo> {
     sqlx::query_as::<_, DBAppInfo>(
-        "SELECT * FROM app_infos WHERE app_id = ? ORDER BY tag_name DESC LIMIT 1;",
+        "SELECT * FROM app_infos WHERE app_id = ? ORDER BY serial DESC LIMIT 1;",
     )
     .bind(app_id)
     .fetch_one(c)
@@ -232,12 +232,20 @@ pub async fn get_app_infos(c: &mut SqliteConnection) -> sqlx::Result<Vec<AppInfo
         .map(|app| app.into_iter().map(|a| a.into()).collect())
 }
 
-/// Return all active [AppInfo]s.
+/// Returns the newest AppInfo for each app.
 pub async fn get_active_app_infos(c: &mut SqliteConnection) -> sqlx::Result<Vec<AppInfo>> {
-    sqlx::query_as::<_, DBAppInfo>("SELECT * FROM app_infos WHERE removed = 0")
-        .fetch_all(c)
-        .await
-        .map(|app| app.into_iter().map(|a| a.into()).collect())
+    sqlx::query_as::<_, DBAppInfo>(
+        r#"SELECT a.*
+    FROM app_infos a
+    JOIN (
+        SELECT app_id, MAX(serial) AS latest_serial
+        FROM app_infos
+        GROUP BY app_id
+    ) b ON a.app_id = b.app_id AND a.serial = b.latest_serial"#,
+    )
+    .fetch_all(c)
+    .await
+    .map(|app| app.into_iter().map(|a| a.into()).collect())
 }
 
 /// Get the newest [AppInfo]s with a serial greater than serial.
@@ -250,10 +258,10 @@ pub async fn get_changed_app_infos_since(
         r#"SELECT a.*
 FROM app_infos a
 JOIN (
-    SELECT app_id, MAX(tag_name) AS latest_tag_name
+    SELECT app_id, MAX(serial) AS latest_serial
     FROM app_infos
     GROUP BY app_id
-) b ON a.app_id = b.app_id AND a.tag_name = b.latest_tag_name
+) b ON a.app_id = b.app_id AND a.serial = b.latest_serial
 WHERE a.serial > ?"#,
     )
     .bind(serial)
@@ -281,8 +289,8 @@ pub async fn get_app_infos_for(
     FROM app_infos a
     WHERE app_id IN ({list}) 
         AND serial <= ?
-        AND tag_name = (
-            SELECT MAX(tag_name)
+        AND serial = (
+            SELECT MAX(serial)
             FROM app_infos
             WHERE app_id = a.app_id
               AND serial <= ?
@@ -296,7 +304,7 @@ pub async fn get_app_infos_for(
     .map(|app| app.into_iter().map(|a| a.into()).collect())
 }
 
-/// Returns wheter an [AppInfo] for given app_id exists.
+/// Returns whether an [AppInfo] for given app_id exists.
 pub async fn app_exists(c: &mut SqliteConnection, app_id: &str) -> sqlx::Result<bool> {
     sqlx::query("SELECT EXISTS(SELECT 1 FROM app_infos WHERE app_id = ? AND removed = 0)")
         .bind(app_id)
@@ -344,11 +352,11 @@ pub async fn get_store_tag_name(c: &mut SqliteConnection, msg: MsgId) -> sqlx::R
         .map(|a| (a.get("tag_name")))
 }
 
-/// Remove app with app_id from store.
+/// Removes app with app_id from store.
 pub async fn remove_app(c: &mut SqliteConnection, app_id: &str) -> sqlx::Result<()> {
     let mut t = c.begin().await?;
     let next_serial = increase_get_serial(&mut t).await?;
-    sqlx::query("UPDATE app_infos SET removed = 1, serial = ?  WHERE app_id = ? AND tag_name = (SELECT MAX(tag_name) FROM app_infos WHERE app_id = ?);")
+    sqlx::query("UPDATE app_infos SET removed = 1, serial = ? WHERE app_id = ? AND serial = (SELECT MAX(serial) FROM app_infos WHERE app_id = ?);")
         .bind(next_serial)
         .bind(app_id)
         .bind(app_id)
@@ -592,7 +600,7 @@ mod tests {
             .await
             .unwrap();
 
-        app_info.tag_name = "v0.0.2".to_string();
+        app_info.tag_name = "v0.0.10".to_string();
         super::create_app_info(&mut conn, &mut app_info)
             .await
             .unwrap();
@@ -607,13 +615,13 @@ mod tests {
             .unwrap();
 
         assert!(loaded_app_info.removed);
-        assert_eq!(loaded_app_info.tag_name, "v0.0.3".to_string());
+        assert_eq!(loaded_app_info.tag_name, "v0.0.10".to_string());
 
         let changed = super::get_changed_app_infos_since(&mut conn, serial)
             .await
             .unwrap();
 
-        assert_eq!(changed[0].tag_name, "v0.0.3".to_string());
+        assert_eq!(changed[0].tag_name, "v0.0.10".to_string());
         assert!(changed[0].removed)
     }
 }

@@ -119,7 +119,10 @@ pub struct WebxdcStatusUpdate {
 #[serde(tag = "type")]
 pub enum WebxdcStatusUpdatePayload {
     // General update request.
-    UpdateWebxdc,
+    UpdateWebxdc {
+        /// Old serial of the store.
+        serial: u32,
+    },
 
     // General update response.
     Outdated {
@@ -167,9 +170,11 @@ pub enum WebxdcStatusUpdatePayload {
         /// The frontend can use these to set the state to updating.
         updating: Vec<String>,
     },
-
-    /// This type is only needed so [AppInfo] is imported in the generated typesript.
-    _Mock {
-        app_info: AppInfo,
+    /// First message send to the store xdc together containing all [AppInfo]s.
+    Init {
+        /// List of initial AppInfos.
+        app_infos: Vec<AppInfo>,
+        /// Last serial of the store.
+        serial: u32,
     },
 }

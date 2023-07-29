@@ -5,7 +5,7 @@ import { createStore } from 'solid-js/store'
 import { AppInfoDB } from '../src/db/store_db'
 import { AppState } from '../src/types'
 import type { AppInfoWithState, AppInfosById } from '../src/types'
-import type { DownloadResponseError, DownloadResponseOkay, UpdateResponse } from '../src/store-logic'
+import type { DownloadResponseError, DownloadResponseOkay, InitResponse, UpdateResponse } from '../src/store-logic'
 import { updateHandler } from '../src/store-logic'
 import type { WebxdcOutdatedResponse, WebxdcUpdateSentResponse } from '../src/utils'
 import 'fake-indexeddb/auto'
@@ -125,26 +125,30 @@ describe('Store receiving updates', () => {
     }
 
     const payload = {
-      type: 'Update',
-      app_infos: mock,
+      type: 'Init',
+      app_infos: Object.values(mock),
       serial: 12,
-      old_serial: 0,
-      updating: [],
-    } as UpdateResponse
+    } as InitResponse
 
     const setAppInfo = vi.spyOn(handlers, 'setAppInfo')
+    const satlastUpdateSerial = vi.spyOn(handlers, 'setlastUpdateSerial')
+    const setIsUpdating = vi.spyOn(handlers, 'setIsUpdating')
     await updateHandler(payload, handlers.db, handlers.appInfo, handlers.getLastSerial, handlers.setAppInfo, handlers.setlastUpdateSerial, handlers.setIsUpdating, handlers.setlastUpdate, handlers.setUpdateNeeded, handlers.setUpdateReceived)
 
-    const initial_mock = Object.keys(mock).reduce((res, key) => {
+    const apps_with_initial_state = Object.keys(mock).reduce((res, key) => {
       res[key] = { ...mock[key], state: AppState.Initial }
       return res
     }, {} as AppInfosById)
-    expect(setAppInfo).toHaveBeenCalledWith(initial_mock)
-    expect(await db.get_all()).toStrictEqual(Object.values(initial_mock))
+    expect(setAppInfo).toHaveBeenCalledWith(apps_with_initial_state)
+    expect(await db.get_all()).toStrictEqual(Object.values(apps_with_initial_state))
+    expect(satlastUpdateSerial).toHaveBeenCalledWith(12)
+    expect(setIsUpdating).toHaveBeenCalledWith(false)
   })
 
   test('Handles ongoing AppIndex updates', async () => {
     const db = new AppInfoDB('storetesting3')
+
+    // Create some initial state
     const advanced_state = { app_12: mock.app_12, app_15: mock.app_15 }
     await db.insertMultiple(Object.values(advanced_state))
     expect(await db.get_all()).toStrictEqual(Object.values(advanced_state))
@@ -181,9 +185,6 @@ describe('Store receiving updates', () => {
 
     await updateHandler(payload, handlers.db, handlers.appInfo, () => 10, handlers.setAppInfo, handlers.setlastUpdateSerial, handlers.setIsUpdating, handlers.setlastUpdate, handlers.setUpdateNeeded, handlers.setUpdateReceived)
 
-    // Tests:
-    // - Appinfo with state !== Initial are then in 'Updating'
-    // - Appinfo with state === Initial are untouched
     expect(insertMultiple).toHaveBeenCalledWith([{ ...mock.app_13, state: AppState.Initial }, { ...mock.app_14, state: AppState.Initial }, { ...mock.app_16, state: AppState.Initial }])
     expect(updateMultiple).toHaveBeenCalledWith([mock.app_12, mock.app_15])
     expect(await db.get_all()).toMatchSnapshot()
