@@ -13,7 +13,7 @@ use log::{debug, error, info, trace, warn};
 use qrcode_generator::QrCodeEcc;
 use serde::{Deserialize, Serialize};
 use sqlx::{pool::PoolConnection, Sqlite, SqlitePool};
-use std::{fs, sync::Arc};
+use std::{fs, path::PathBuf, sync::Arc};
 
 use crate::{
     db::{self, MIGRATOR},
@@ -70,6 +70,17 @@ impl Bot {
         )
         .await
         .context("Failed to create context")?;
+
+        context
+            .set_config(
+                Config::Selfavatar,
+                Some(
+                    PathBuf::from("frontend/public/icon.png")
+                        .to_str()
+                        .context("Failed to convert image path")?,
+                ),
+            )
+            .await?;
 
         if !context.get_config_bool(Config::Configured).await? {
             info!("DC: Start configuring...");
