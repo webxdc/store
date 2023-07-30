@@ -49,7 +49,7 @@ pub async fn configure_from_env(ctx: &Context) -> Result<()> {
 }
 
 pub(crate) fn unpack_assets() -> Result<()> {
-    std::fs::create_dir_all(project_dirs()?.config_dir()).ok();
+    std::fs::create_dir_all(project_dirs()?.config_dir())?;
 
     let store_bytes = include_bytes!("../assets/store.xdc");
     let store_path = get_store_xdc_path()?;
