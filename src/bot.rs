@@ -172,7 +172,7 @@ impl Bot {
             }
         });
         self.dc_ctx.start_io().await;
-        info!("successfully started bot! 🥳");
+        info!("Successfully started bot! 🥳");
     }
 
     /// Handle dc-events.

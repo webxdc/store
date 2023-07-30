@@ -125,7 +125,8 @@ const AppList: Component<AppListProps> = (props) => {
   })
 
   return (
-    <Show when={filtered_items().length !== 0} fallback={<p class="text-center unimportant">No results for "{props.search_query}"</p>}>
+    <Show when={filtered_items().length !== 0} fallback={
+      <Show when={props.search_query.length > 0}><p class="text-center unimportant">No results for "{props.search_query}"</p></Show>}>
       <For each={filtered_items() || props.items}>
         {(item, index) => (
           <>
@@ -166,7 +167,7 @@ const Store: Component = () => {
 
     if (import.meta.env.DEV) {
       setAppInfo(mock)
-      setlastSerial(1)
+      // setlastSerial(1)
     }
   })
 
@@ -236,7 +237,16 @@ const Store: Component = () => {
             <hr />
             <ul class="w-full flex flex-grow flex-col gap-1 p-2">
               <Show when={!(lastSerial() === 0)} fallback={
-                <p class="text-center unimportant">Loading store..</p>
+                <div class="text-center unimportant">
+                  <p >This Webxdc Store
+                    is not connected to a Bot
+                    to get apps from.
+                  </p>
+                  <p >To get a working Webxdc Store,
+                    please send "Hi" to
+                    appbot@testrun.org
+                  </p>
+                </div>
               }>
                 <AppList
                   items={Object.values(appInfo).sort((a, b) => Number(b.date - a.date))} search_query={query()}

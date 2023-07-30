@@ -61,26 +61,23 @@ pub(crate) fn unpack_assets() -> Result<()> {
 }
 
 /// Send newest version to chat together with all [AppInfo]s.
-pub async fn init_store(
-    context: &Context,
-    state: &State,
-    chat_id: ChatId,
-) -> anyhow::Result<MsgId> {
+pub async fn init_store(context: &Context, state: &State, chat_id: ChatId) -> anyhow::Result<()> {
     let mut webxdc_msg = Message::new(Viewtype::Webxdc);
     webxdc_msg.set_text(Some(store_message().to_string()));
     webxdc_msg.set_file(get_store_xdc_path()?.display(), None);
-    let msg_id = chat::send_msg(context, chat_id, &mut webxdc_msg).await?;
+    chat_id.set_draft(context, Some(&mut webxdc_msg)).await?;
     let conn = &mut *state.db.acquire().await?;
     let app_infos = db::get_active_app_infos(conn).await?;
     let serial = db::get_last_serial(conn).await?;
     send_update_payload_only(
         context,
-        msg_id,
+        webxdc_msg.get_id(),
         WebxdcStatusUpdatePayload::Init { app_infos, serial },
     )
     .await?;
-    db::set_store_tag_name(conn, msg_id, &state.store_tag_name).await?;
-    Ok(msg_id)
+    db::set_store_tag_name(conn, webxdc_msg.get_id(), &state.store_tag_name).await?;
+    chat::send_msg(context, chat_id, &mut webxdc_msg).await?;
+    Ok(())
 }
 
 /// Send newest store webxdc to a chat together with newest updates.
@@ -89,15 +86,21 @@ pub async fn update_store(
     state: &State,
     chat_id: ChatId,
     serial: u32,
-) -> anyhow::Result<MsgId> {
+) -> anyhow::Result<()> {
     let mut webxdc_msg = Message::new(Viewtype::Webxdc);
     webxdc_msg.set_text(Some(store_message().to_string()));
     webxdc_msg.set_file(get_store_xdc_path()?.display(), None);
-    let msg_id = chat::send_msg(context, chat_id, &mut webxdc_msg).await?;
-    let conn = &mut *state.db.acquire().await?;
-    send_newest_updates(context, msg_id, conn, serial, vec![]).await?;
-    db::set_store_tag_name(conn, msg_id, &state.store_tag_name).await?;
-    Ok(msg_id)
+    chat_id.set_draft(context, Some(&mut webxdc_msg)).await?;
+    send_newest_updates(
+        context,
+        webxdc_msg.get_id(),
+        &mut *state.db.acquire().await?,
+        serial,
+        vec![],
+    )
+    .await?;
+    chat::send_msg(context, chat_id, &mut webxdc_msg).await?;
+    Ok(())
 }
 
 pub fn to_hashmap<T: Serialize + for<'a> Deserialize<'a>>(
