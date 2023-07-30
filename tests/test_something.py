@@ -279,6 +279,45 @@ def test_import(acfactory, storebot_example):
     assert len(app_infos) == 4
 
 
+def test_online_import(acfactory, storebot):
+    """Test that import works while the bot is running."""
+    (ac1,) = acfactory.get_online_accounts(1)
+
+    bot_contact = ac1.create_contact(storebot.addr)
+    bot_chat = bot_contact.create_chat()
+    bot_chat.send_text("hi!")
+
+    msg_in = ac1.wait_next_incoming_message()
+    ac1._evtracker.get_matching("DC_EVENT_WEBXDC_STATUS_UPDATE")
+
+    assert msg_in.is_webxdc()
+    status_updates = msg_in.get_status_updates()
+    assert len(status_updates) == 1
+    payload = status_updates[0]["payload"]
+    assert payload == {
+        "type": "Init",
+        "serial": 0,
+        "app_infos": [],
+    }
+
+    # Import apps into the running bot.
+    storebot.install_examples()
+
+    # Request an update.
+    assert msg_in.send_status_update(
+        {"payload": {"type": "UpdateRequest", "serial": 0}}, "update"
+    )
+    ac1._evtracker.get_matching("DC_EVENT_WEBXDC_STATUS_UPDATE")
+
+    # Receive a response with just imported apps.
+    ac1._evtracker.get_matching("DC_EVENT_WEBXDC_STATUS_UPDATE")
+    status_updates = msg_in.get_status_updates()
+    assert len(status_updates) == 3
+    payload = status_updates[2]["payload"]
+    app_infos = payload["app_infos"]
+    assert len(app_infos) == 4
+
+
 def test_version(acfactory, storebot):
     """Test /version command."""
 
