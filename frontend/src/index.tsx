@@ -242,9 +242,10 @@ const Store: Component = () => {
                     is not connected to a Bot
                     to get apps from.
                   </p>
-                  <p >To get a working Webxdc Store,
-                    please send "Hi" to
-                    appbot@testrun.org
+                  <p >To get a working Webxdc store,
+                    you need to send "Hi" to a store address and use the store app you get back.  
+                    If nothing else you may try sending "Hi" to xstore@testrun.org , an experimental 
+                    community deployment offering some curated apps. 
                   </p>
                 </div>
               }>
