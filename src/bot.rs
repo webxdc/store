@@ -13,14 +13,14 @@ use log::{debug, error, info, trace, warn};
 use qrcode_generator::QrCodeEcc;
 use serde::{Deserialize, Serialize};
 use sqlx::{pool::PoolConnection, Sqlite, SqlitePool};
-use std::{fs, path::PathBuf, sync::Arc};
+use std::{fs, sync::Arc};
 
 use crate::{
     db::{self, MIGRATOR},
     project_dirs,
     request_handlers::{genesis, store, ChatType, WebxdcStatusUpdate, WebxdcStatusUpdatePayload},
     utils::{
-        configure_from_env, get_store_xdc_path, get_webxdc_tag_name, init_store,
+        configure_from_env, get_icon_path, get_store_xdc_path, get_webxdc_tag_name, init_store,
         send_update_payload_only, unpack_assets, update_store,
     },
     GENESIS_QR, INVITE_QR, VERSION,
@@ -70,17 +70,6 @@ impl Bot {
         )
         .await
         .context("Failed to create context")?;
-
-        context
-            .set_config(
-                Config::Selfavatar,
-                Some(
-                    PathBuf::from("frontend/public/icon.png")
-                        .to_str()
-                        .context("Failed to convert image path")?,
-                ),
-            )
-            .await?;
 
         if !context.get_config_bool(Config::Configured).await? {
             info!("DC: Start configuring...");
@@ -154,6 +143,17 @@ impl Bot {
     /// Creates genesis group and qr-codes.
     /// Returns the complete bot config.
     async fn setup(context: &Context) -> Result<BotConfig> {
+        context
+            .set_config(
+                Config::Selfavatar,
+                Some(
+                    get_icon_path()?
+                        .to_str()
+                        .context("Can't convert image file")?,
+                ),
+            )
+            .await?;
+
         let genesis_group =
             chat::create_group_chat(context, ProtectionStatus::Protected, "Appstore: Genesis")
                 .await?;
