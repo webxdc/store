@@ -167,7 +167,7 @@ const Store: Component = () => {
 
     if (import.meta.env.DEV) {
       setAppInfo(mock)
-      // setlastSerial(1)
+      setlastSerial(1)
     }
   })
 
@@ -235,38 +235,36 @@ const Store: Component = () => {
               </button>
             </div>
             <hr />
-            <ul class="w-full flex flex-grow flex-col gap-1 p-2">
-              <Show when={!(lastSerial() === 0)} fallback={
-                <div class="text-center unimportant">
-                  <p class="mb-2">
-                    This Webxdc Store is not connected to a Bot to get apps from.
-                  </p>
-                  <p>
-                    To get a working Webxdc store, you need to send "Hi" to a store address, for example
-                    xstore@testrun.org, which is a community hosted instance with some curated apps.
-                  </p>
-                </div>
-              }>
+            <Show when={!(lastSerial() === 0)} fallback={<div class="text-center unimportant mt-5">
+              <p class="mb-2">
+                This Webxdc Store is not connected to a Bot to get apps from.
+              </p>
+              <p>
+                To get a working Webxdc store, you need to send "Hi" to a store address, for example
+                xstore@testrun.org, which is a community hosted instance with some curated apps.
+              </p>
+            </div>}>
+              <ul class="w-full flex flex-grow flex-col gap-1 p-2">
                 <AppList
                   items={Object.values(appInfo).sort((a, b) => Number(b.date - a.date))} search_query={query()}
                   onDownload={handleDownload}
                   onForward={handleForward}
                   onRemove={handleRemove}
-                  onDragStart={onDragStart} ></AppList>
-              </Show>
-            </ul>
-            <hr />
-            <div class="flex flex-col flex-wrap justify-center gap-2 py-4 pb-5 xs:flex-row">
-              <button class="font-thin unimportant" onClick={() => setShowCommit(!showCommit())}>
-                Last update: {isUpdating() ? 'Updating..' : `${formatDistanceToNow(lastUpdate())} ago`}
-              </button>
-              <Show when={!isUpdating()}>
-                <span class="hidden unimportant xs:block">-</span>
-                <button class="text-blue-500" onclick={update}>
-                  Update
+                  onDragStart={onDragStart}></AppList>
+              </ul>
+              <hr />
+              <div class="flex flex-col flex-wrap justify-center gap-2 py-4 pb-5 xs:flex-row">
+                <button class="font-thin unimportant" onClick={() => setShowCommit(!showCommit())}>
+                  Last update: {isUpdating() ? 'Updating..' : `${formatDistanceToNow(lastUpdate())} ago`}
                 </button>
-              </Show>
-            </div>
+                <Show when={!isUpdating()}>
+                  <span class="hidden unimportant xs:block">-</span>
+                  <button class="text-blue-500" onclick={update}>
+                    Update
+                  </button>
+                </Show>
+              </div>
+            </Show>
           </div>
         </div >
       </div>
