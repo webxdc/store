@@ -238,13 +238,13 @@ const Store: Component = () => {
             <ul class="w-full flex flex-grow flex-col gap-1 p-2">
               <Show when={!(lastSerial() === 0)} fallback={
                 <div class="text-center unimportant">
-                  <p >This Webxdc Store
-                    is not connected to a Bot
-                    to get apps from.
+                  <p class="mb-2">
+                    This Webxdc Store is not connected to a Bot to get apps from.
                   </p>
-                  <p >To get a working Webxdc store,
+                  <p>
+                    To get a working Webxdc store,
                     you need to send "Hi" to a store address and use the store app you get back.
-                    If nothing else you may try sending "Hi" to xstore@testrun.org , an experimental
+                    If nothing else works, you may try sending "Hi" to xstore@testrun.org, an experimental
                     community deployment offering some curated apps.
                   </p>
                 </div>
