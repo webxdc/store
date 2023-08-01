@@ -3,5 +3,5 @@ import
 **/__pycache__/*
 **.log
 dist
-assets
+assets/*.xdc
 *~

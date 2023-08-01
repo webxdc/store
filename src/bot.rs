@@ -20,7 +20,7 @@ use crate::{
     project_dirs,
     request_handlers::{genesis, store, ChatType, WebxdcStatusUpdate, WebxdcStatusUpdatePayload},
     utils::{
-        configure_from_env, get_store_xdc_path, get_webxdc_tag_name, init_store,
+        configure_from_env, get_icon_path, get_store_xdc_path, get_webxdc_tag_name, init_store,
         send_update_payload_only, unpack_assets, update_store,
     },
     GENESIS_QR, INVITE_QR, VERSION,
@@ -143,6 +143,17 @@ impl Bot {
     /// Creates genesis group and qr-codes.
     /// Returns the complete bot config.
     async fn setup(context: &Context) -> Result<BotConfig> {
+        context
+            .set_config(
+                Config::Selfavatar,
+                Some(
+                    get_icon_path()?
+                        .to_str()
+                        .context("Can't convert image file")?,
+                ),
+            )
+            .await?;
+
         let genesis_group =
             chat::create_group_chat(context, ProtectionStatus::Protected, "Appstore: Genesis")
                 .await?;

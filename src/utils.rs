@@ -49,14 +49,19 @@ pub async fn configure_from_env(ctx: &Context) -> Result<()> {
 }
 
 pub(crate) fn unpack_assets() -> Result<()> {
-    let store_bytes = include_bytes!("../assets/store.xdc");
-
     std::fs::create_dir_all(project_dirs()?.config_dir())?;
 
+    let store_bytes = include_bytes!("../assets/store.xdc");
     let store_path = get_store_xdc_path()?;
     let mut file = File::create(&store_path)
         .with_context(|| format!("failed to create {}", store_path.display()))?;
     file.write_all(store_bytes)?;
+
+    let icon_bytes = include_bytes!("../assets/icon.png");
+    let icon_path = get_icon_path()?;
+    let mut file = File::create(&icon_path)
+        .with_context(|| format!("failed to create {}", icon_path.display()))?;
+    file.write_all(icon_bytes)?;
     Ok(())
 }
 
@@ -305,4 +310,8 @@ pub async fn maybe_upgrade_xdc(
 
 pub fn get_store_xdc_path() -> anyhow::Result<PathBuf> {
     Ok(project_dirs()?.config_dir().to_path_buf().join(STORE_XDC))
+}
+
+pub fn get_icon_path() -> anyhow::Result<PathBuf> {
+    Ok(project_dirs()?.config_dir().to_path_buf().join("icon.png"))
 }
