@@ -68,7 +68,7 @@ pub(crate) fn unpack_assets() -> Result<()> {
 /// Send newest version to chat together with all [AppInfo]s.
 pub async fn init_store(context: &Context, state: &State, chat_id: ChatId) -> anyhow::Result<()> {
     let mut webxdc_msg = Message::new(Viewtype::Webxdc);
-    webxdc_msg.set_text(Some(store_message().to_string()));
+    webxdc_msg.set_text(store_message().to_string());
     webxdc_msg.set_file(get_store_xdc_path()?.display(), None);
     chat_id.set_draft(context, Some(&mut webxdc_msg)).await?;
     let conn = &mut *state.db.acquire().await?;
@@ -93,7 +93,7 @@ pub async fn update_store(
     serial: u32,
 ) -> anyhow::Result<()> {
     let mut webxdc_msg = Message::new(Viewtype::Webxdc);
-    webxdc_msg.set_text(Some(store_message().to_string()));
+    webxdc_msg.set_text(store_message().to_string());
     webxdc_msg.set_file(get_store_xdc_path()?.display(), None);
     chat_id.set_draft(context, Some(&mut webxdc_msg)).await?;
     send_newest_updates(
