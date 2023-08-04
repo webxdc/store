@@ -248,11 +248,9 @@ impl Bot {
         msg_id: MsgId,
     ) -> Result<()> {
         let msg = Message::load_from_db(context, msg_id).await?;
-        if let Some(text) = msg.get_text() {
-            if text == "/version" {
-                chat::send_text_msg(context, chat_id, VERSION.to_string()).await?;
-                return Ok(());
-            }
+        if msg.get_text() == "/version" {
+            chat::send_text_msg(context, chat_id, VERSION.to_string()).await?;
+            return Ok(());
         }
 
         match db::get_chat_type(&mut *state.db.acquire().await?, chat_id).await {
