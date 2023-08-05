@@ -1,12 +1,17 @@
+//! Command line interface.
+
 use clap::{Parser, Subcommand};
 
+/// Command line argument parser.
 #[derive(Parser, Debug)]
 #[command()]
 pub struct BotCli {
+    #[allow(clippy::missing_docs_in_private_items)]
     #[command(subcommand)]
     pub action: BotActions,
 }
 
+/// Command line subcommands.
 #[derive(Subcommand, Debug)]
 pub enum BotActions {
     /// Start the bot.

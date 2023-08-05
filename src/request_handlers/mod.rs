@@ -15,6 +15,7 @@ use ts_rs::TS;
 
 pub mod store;
 
+/// `manifest.toml` structure.
 #[derive(Deserialize)]
 pub struct WebxdcManifest {
     /// Webxdc application identifier.
@@ -36,22 +37,45 @@ pub struct WebxdcManifest {
     pub date: String,
 }
 
+/// Information about a single application in the store index.
 #[derive(TS, Deserialize, Serialize, Clone, Debug, Default, PartialEq)]
 #[ts(export)]
 #[ts(export_to = "frontend/src/bindings/")]
 pub struct AppInfo {
+    #[allow(clippy::missing_docs_in_private_items)]
     #[serde(skip)]
     pub id: RecordId,
+
+    /// Application ID, e.g. `webxdc-poll`.
     pub app_id: String,
+
+    /// Release tag, e.g. `v2.2.0`.
     pub tag_name: String,
+
+    /// Date as a timestamp in seconds.
     pub date: i64,
+
+    /// Application name, e.g. `Checklist`.
     pub name: String,
+
+    /// Source code URL, e.g. `https://codeberg.org/webxdc/checklist`.
     pub source_code_url: String,
+
+    /// Application icon encoded as a data URL,
+    /// for example `data:image/png;base64,...`.
     pub image: String,
+
+    /// Human-readable application description.
     pub description: String,
+
+    /// Application size in bytes.
     pub size: i64,
+
+    /// Absolute path to the .xdc file.
     #[serde(skip)]
     pub xdc_blob_path: PathBuf,
+
+    /// True if the application has been removed.
     #[serde(skip)]
     pub removed: bool,
 }
@@ -100,6 +124,7 @@ impl AppInfo {
 /// WebXDC status update.
 #[derive(Serialize, Deserialize)]
 pub struct WebxdcStatusUpdate {
+    /// `payload` field of the WebXDC update.
     pub payload: WebxdcStatusUpdatePayload,
 }
 
@@ -109,20 +134,35 @@ pub struct WebxdcStatusUpdate {
 #[ts(export_to = "frontend/src/bindings/")]
 #[serde(tag = "type")]
 pub enum WebxdcStatusUpdatePayload {
-    // General update request.
+    /// Request sent from the frontend to the bot
+    /// when user clicks "Download"
+    /// in the dialog notifying about
+    /// the newer version of the `store.xdc`.
     UpdateWebxdc {
-        /// Old serial of the store.
+        /// Old serial of the store index.
         serial: u32,
     },
 
-    // General update response.
+    /// Response sent by the bot if the bot receives a request
+    /// to a previously sent `store.xdc` with a `tag_name`
+    /// different `tag_name` from the current one.
     Outdated {
+        /// Always true.
         critical: bool,
+
+        /// `tag_name` field from the `manifest.toml` of the actual `store.xdc`.
         tag_name: String,
     },
+
+    /// Response sent to an outdated version of `store.xdc`
+    /// when the user requested a new `store.xdc` with an `UpdateWebxdc` request.
+    ///
+    /// This response is used by the frontend to display
+    /// instructions for the user to look for an updated `store.xdc` in the chat.
     UpdateSent,
 
-    // Store WebXDC requests.
+    /// Request to update the application index
+    /// sent by the `store.xdc` frontend to the bot.
     UpdateRequest {
         /// Requested update sequence number.
         serial: u32,
@@ -130,41 +170,58 @@ pub enum WebxdcStatusUpdatePayload {
         #[serde(default)]
         apps: Vec<(String, String)>,
     },
+
+    /// Request to download the application .xdc
+    /// sent by the frontend to the bot.
     Download {
         /// ID of the requested application.
         app_id: String,
     },
 
-    // Store bot responses.
+    /// Successful response to the download request.
     DownloadOkay {
         /// app_id of the downloaded app.
         app_id: String,
+
         /// Name to be used as filename in `sendToChat`.
         name: String,
+
         /// Base64 encoded webxdc.
         data: String,
     },
+
+    /// Negative response to the download request.
     DownloadError {
+        /// Application ID of the requested app.
         app_id: String,
+
+        /// Error message.
         error: String,
     },
+
+    /// Index update response sent by the bot to the frontend.
     Update {
         /// List of new / updated app infos.
         #[ts(type = "Record<string, (Partial<AppInfo> & {app_id: string} | null)>")]
         app_infos: Value,
+
         /// The newest serial of the bot.    
         serial: u32,
+
         /// The old serial that the request was also made with.
         /// If it is a full [AppInfo] update, this will be 0.
         old_serial: u32,
+
         /// `app_id`s of apps that will receive an update.
         /// The frontend can use these to set the state to updating.
         updating: Vec<String>,
     },
+
     /// First message send to the store xdc together containing all [AppInfo]s.
     Init {
         /// List of initial AppInfos.
         app_infos: Vec<AppInfo>,
+
         /// Last serial of the store.
         serial: u32,
     },

@@ -1,4 +1,12 @@
-#![warn(clippy::all, clippy::indexing_slicing, clippy::unwrap_used)]
+//! Store bot.
+
+#![warn(
+    clippy::all,
+    clippy::indexing_slicing,
+    clippy::unwrap_used,
+    clippy::missing_docs_in_private_items,
+    missing_docs
+)]
 mod bot;
 mod cli;
 mod db;
@@ -17,7 +25,11 @@ use cli::{BotActions, BotCli};
 use tokio::signal;
 use utils::{project_dirs, AddType};
 
+/// File name of the setup contact QR code.
 const INVITE_QR: &str = "1o1_invite_qr.png";
+
+/// Bot version printed in response to the `version` command line command
+/// and sent back in response to the `/version` chat message.
 const VERSION: &str = include_file_str!("VERSION");
 
 #[tokio::main]
