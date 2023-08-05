@@ -28,7 +28,6 @@ use crate::{
     db,
     messages::store_message,
     request_handlers::{AppInfo, WebxdcStatusUpdatePayload, WexbdcManifest},
-    STORE_XDC,
 };
 
 pub(crate) fn project_dirs() -> Result<ProjectDirs> {
@@ -312,7 +311,7 @@ pub async fn maybe_upgrade_xdc(
 }
 
 pub fn get_store_xdc_path() -> Result<PathBuf> {
-    Ok(project_dirs()?.config_dir().to_path_buf().join(STORE_XDC))
+    Ok(project_dirs()?.config_dir().to_path_buf().join("store.xdc"))
 }
 
 pub fn get_icon_path() -> Result<PathBuf> {

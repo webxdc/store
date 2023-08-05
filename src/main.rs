@@ -19,7 +19,6 @@ use utils::{project_dirs, AddType};
 
 const GENESIS_QR: &str = "genesis_invite_qr.png";
 const INVITE_QR: &str = "1o1_invite_qr.png";
-const STORE_XDC: &str = "store.xdc";
 const VERSION: &str = include_file_str!("VERSION");
 
 #[tokio::main]
