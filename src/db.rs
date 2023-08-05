@@ -48,22 +48,6 @@ impl From<DBAppInfo> for AppInfo {
     }
 }
 
-#[derive(FromRow)]
-struct DBBotConfig {
-    pub invite_qr: String,
-    pub serial: i32,
-}
-
-impl TryFrom<DBBotConfig> for BotConfig {
-    type Error = anyhow::Error;
-    fn try_from(db_bot_config: DBBotConfig) -> Result<Self> {
-        Ok(Self {
-            invite_qr: db_bot_config.invite_qr,
-            serial: db_bot_config.serial,
-        })
-    }
-}
-
 pub type RecordId = i32;
 
 pub async fn set_config(c: &mut SqliteConnection, config: &BotConfig) -> Result<()> {
@@ -76,12 +60,10 @@ pub async fn set_config(c: &mut SqliteConnection, config: &BotConfig) -> Result<
 }
 
 pub async fn get_config(c: &mut SqliteConnection) -> Result<BotConfig> {
-    let res: Result<BotConfig> =
-        sqlx::query_as::<_, DBBotConfig>("SELECT invite_qr, serial FROM config")
-            .fetch_one(c)
-            .await
-            .map(|db_bot_config| db_bot_config.try_into())?;
-    res
+    let res: BotConfig = sqlx::query_as::<_, BotConfig>("SELECT invite_qr, serial FROM config")
+        .fetch_one(c)
+        .await?;
+    Ok(res)
 }
 
 /// Returns the latest store serial.
