@@ -66,43 +66,55 @@ pub(crate) fn unpack_assets() -> Result<()> {
 
 /// Send newest version to chat together with all [AppInfo]s.
 pub async fn init_store(context: &Context, state: &State, chat_id: ChatId) -> Result<()> {
-    let mut webxdc_msg = Message::new(Viewtype::Webxdc);
-    webxdc_msg.set_text(store_message().to_string());
-    webxdc_msg.set_file(get_store_xdc_path()?.display(), None);
-    chat_id.set_draft(context, Some(&mut webxdc_msg)).await?;
-    let conn = &mut *state.db.acquire().await?;
-    let app_infos = db::get_active_app_infos(conn).await?;
-    let serial = db::get_last_serial(conn).await?;
-    send_update_payload_only(
-        context,
-        webxdc_msg.get_id(),
-        WebxdcStatusUpdatePayload::Init { app_infos, serial },
-    )
-    .await?;
-    db::set_store_tag_name(conn, webxdc_msg.get_id(), &state.store_tag_name).await?;
-    chat::send_msg(context, chat_id, &mut webxdc_msg).await?;
+    update_store(context, state, chat_id, 0).await?;
     Ok(())
 }
 
 /// Send newest store webxdc to a chat together with newest updates.
+///
+/// `_serial` is the serial number sent by the old frontend
+/// in a request for upgrade.
+/// It is currently not used because updating the store
+/// is essentially sending a new store, so the whole
+/// index has to be sent from scratch in any case.
 pub async fn update_store(
     context: &Context,
     state: &State,
     chat_id: ChatId,
-    serial: u32,
+    _serial: u32,
 ) -> Result<()> {
     let mut webxdc_msg = Message::new(Viewtype::Webxdc);
     webxdc_msg.set_text(store_message().to_string());
     webxdc_msg.set_file(get_store_xdc_path()?.display(), None);
     chat_id.set_draft(context, Some(&mut webxdc_msg)).await?;
-    send_newest_updates(
-        context,
-        webxdc_msg.get_id(),
-        &mut *state.db.acquire().await?,
-        serial,
-        vec![],
-    )
-    .await?;
+
+    let conn = &mut *state.db.acquire().await?;
+    let serial = 0;
+    if serial == 0 {
+        let app_infos = db::get_active_app_infos(conn).await?;
+        let serial = db::get_last_serial(conn).await?;
+        send_update_payload_only(
+            context,
+            webxdc_msg.get_id(),
+            WebxdcStatusUpdatePayload::Init { app_infos, serial },
+        )
+        .await?;
+    } else {
+        // Currently unused code path.
+        //
+        // This will be used when webxdc message is replaced
+        // without changing the msg_id, thus preserving old updates.
+        send_newest_updates(
+            context,
+            webxdc_msg.get_id(),
+            &mut *state.db.acquire().await?,
+            serial,
+            vec![],
+        )
+        .await?;
+    }
+
+    db::set_store_tag_name(conn, webxdc_msg.get_id(), &state.store_tag_name).await?;
     chat::send_msg(context, chat_id, &mut webxdc_msg).await?;
     Ok(())
 }
