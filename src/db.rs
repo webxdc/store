@@ -12,21 +12,44 @@ use itertools::Itertools;
 use sqlx::{migrate::Migrator, Connection, FromRow, Row, SqliteConnection};
 use std::path::PathBuf;
 
+#[allow(clippy::missing_docs_in_private_items)]
 pub static MIGRATOR: Migrator = sqlx::migrate!();
 
 /// Only a intermediate struct because Decode can not (yet) be derived for [AppInfo].
 #[derive(FromRow)]
 pub struct DBAppInfo {
+    #[allow(clippy::missing_docs_in_private_items)]
     pub id: RecordId,
+
+    /// Application ID, e.g. `webxdc-poll`.
     pub app_id: String,
+
+    /// Application name, e.g. `Checklist`.
     pub name: String,
+
+    /// Date as a timestamp in seconds.
     pub date: i64,
+
+    /// Source code URL, e.g. `https://codeberg.org/webxdc/checklist`.
     pub source_code_url: String,
+
+    /// Application icon encoded as a data URL,
+    /// for example `data:image/png;base64,...`.
     pub image: String,
+
+    /// Human-readable application description.
     pub description: String,
+
+    /// Absolute path to the .xdc file.
     pub xdc_blob_path: String,
+
+    /// Application size in bytes.
     pub size: i64,
+
+    /// Release tag, e.g. `v2.2.0`.
     pub tag_name: String,
+
+    /// True if the application has been removed.
     pub removed: bool,
 }
 
@@ -48,8 +71,10 @@ impl From<DBAppInfo> for AppInfo {
     }
 }
 
+#[allow(clippy::missing_docs_in_private_items)]
 pub type RecordId = i32;
 
+/// Stores the bot configuration into the `config` table of the bot database.
 pub async fn set_config(c: &mut SqliteConnection, config: &BotConfig) -> Result<()> {
     sqlx::query("INSERT INTO config (invite_qr, serial) VALUES (?, ?)")
         .bind(&config.invite_qr)
@@ -59,6 +84,7 @@ pub async fn set_config(c: &mut SqliteConnection, config: &BotConfig) -> Result<
     Ok(())
 }
 
+/// Retrieves the bot configuration from the database.
 pub async fn get_config(c: &mut SqliteConnection) -> Result<BotConfig> {
     let res: BotConfig = sqlx::query_as::<_, BotConfig>("SELECT invite_qr, serial FROM config")
         .fetch_one(c)
@@ -265,7 +291,7 @@ pub async fn set_store_tag_name(
     Ok(())
 }
 
-/// Gets the webxdc tag_name for some sent webxdc.
+/// Returns the webxdc `tag_name` for some previously sent `store.xdc` instance.
 pub async fn get_store_tag_name(c: &mut SqliteConnection, msg: MsgId) -> sqlx::Result<String> {
     sqlx::query("SELECT * FROM webxdc_tag_names WHERE msg_id = ?")
         .bind(msg.to_u32())

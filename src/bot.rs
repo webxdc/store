@@ -1,4 +1,5 @@
-//! Entry for the bot code
+//! Entry for the bot code.
+
 use anyhow::{Context as _, Result};
 use deltachat::{
     chat::{self, ChatId},
@@ -26,22 +27,34 @@ use crate::{
     INVITE_QR, VERSION,
 };
 
+/// Bot configuration.
 #[derive(FromRow, Serialize, Deserialize, PartialEq, Debug, Default)]
 pub struct BotConfig {
+    /// QR code for the contact setup.
     pub invite_qr: String,
+
+    /// Serial number incremented each time an application index is changed.
     pub serial: i32,
 }
 
-/// Github Bot state
+/// Bot state.
 pub struct State {
+    /// SQLite connection pool.
     pub db: SqlitePool,
+
+    /// Bot configuration.
     pub config: BotConfig,
+
+    /// `tag_name` field from the `manifest.toml` of the `store.xdc`.
     pub store_tag_name: String,
 }
 
-/// Github Bot
+/// Store bot.
 pub struct Bot {
+    /// Delta Chat account.
     dc_ctx: Context,
+
+    /// Reference to the bot state.
     state: Arc<State>,
 }
 
@@ -266,6 +279,7 @@ impl Bot {
         Ok(())
     }
 
+    /// Retrieves a database connection from the pool.
     pub async fn get_db_connection(&self) -> sqlx::Result<PoolConnection<Sqlite>> {
         self.state.db.acquire().await
     }

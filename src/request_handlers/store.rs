@@ -1,3 +1,5 @@
+//! Handling the WebXDC updates sent to the store frontend.
+
 use super::WebxdcStatusUpdatePayload;
 use crate::{
     bot::State,
@@ -15,6 +17,7 @@ use deltachat::{
 use log::{info, warn};
 use std::sync::Arc;
 
+#[allow(clippy::missing_docs_in_private_items)]
 pub async fn handle_message(context: &Context, state: Arc<State>, chat_id: ChatId) -> Result<()> {
     let chat = chat::Chat::load_from_db(context, chat_id).await?;
     if let constants::Chattype::Single = chat.typ {
@@ -23,6 +26,7 @@ pub async fn handle_message(context: &Context, state: Arc<State>, chat_id: ChatI
     Ok(())
 }
 
+#[allow(clippy::missing_docs_in_private_items)]
 pub async fn handle_status_update(
     context: &Context,
     state: Arc<State>,
@@ -72,6 +76,7 @@ pub async fn handle_status_update(
     Ok(())
 }
 
+#[allow(clippy::missing_docs_in_private_items)]
 pub async fn handle_download(state: &State, app_id: String) -> WebxdcStatusUpdatePayload {
     match get_webxdc_data(state, &app_id).await {
         Ok((data, name)) => WebxdcStatusUpdatePayload::DownloadOkay { data, name, app_id },

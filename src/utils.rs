@@ -30,10 +30,12 @@ use crate::{
     request_handlers::{AppInfo, WebxdcManifest, WebxdcStatusUpdatePayload},
 };
 
+#[allow(clippy::missing_docs_in_private_items)]
 pub(crate) fn project_dirs() -> Result<ProjectDirs> {
     ProjectDirs::from("", "", "XDC Store").context("cannot determine home directory")
 }
 
+/// Configures the bot account according to the environment variables `addr` and `mail_pw`.
 pub async fn configure_from_env(ctx: &Context) -> Result<()> {
     let addr = env::var("addr").context("Missing environment variable addr")?;
     ctx.set_config(Config::Addr, Some(&addr)).await?;
@@ -47,6 +49,7 @@ pub async fn configure_from_env(ctx: &Context) -> Result<()> {
     Ok(())
 }
 
+/// Unpacks the assets built into the bot binary into the configuration directory.
 pub(crate) fn unpack_assets() -> Result<()> {
     std::fs::create_dir_all(project_dirs()?.config_dir())?;
 
@@ -107,6 +110,7 @@ pub async fn update_store(
     Ok(())
 }
 
+#[allow(clippy::missing_docs_in_private_items)]
 pub fn to_hashmap<T: Serialize + for<'a> Deserialize<'a>>(
     a: T,
 ) -> serde_json::Result<HashMap<String, Value>> {
@@ -196,6 +200,7 @@ pub async fn send_newest_updates(
     Ok(())
 }
 
+/// Reads the given ZIP file entry into a string.
 pub async fn read_string(reader: &ZipFileReader, index: usize) -> Result<String> {
     let mut entry = reader.reader_with_entry(index).await?;
     let mut data = String::new();
@@ -203,6 +208,7 @@ pub async fn read_string(reader: &ZipFileReader, index: usize) -> Result<String>
     Ok(data)
 }
 
+/// Reads the given ZIP file entry into a byte vector.
 pub async fn read_vec(reader: &ZipFileReader, index: usize) -> Result<Vec<u8>> {
     let mut entry = reader.reader_with_entry(index).await?;
     let mut data = Vec::new();
@@ -229,6 +235,7 @@ pub async fn send_update_payload_only<T: Serialize>(
     Ok(())
 }
 
+/// Extracts and parses `manifest.toml` from the .xdc ZIP archive.
 pub async fn get_webxdc_manifest(reader: &ZipFileReader) -> Result<WebxdcManifest> {
     let entries = reader.file().entries();
     let manifest_index = entries
@@ -248,12 +255,14 @@ pub async fn get_webxdc_manifest(reader: &ZipFileReader) -> Result<WebxdcManifes
     Ok(toml::from_str(&read_string(reader, manifest_index).await?)?)
 }
 
+/// Returns the `tag_name` field from the `manifest.toml` of the given `.xdc` file.
 pub async fn get_webxdc_tag_name(file: impl AsRef<Path>) -> Result<String> {
     let reader = ZipFileReader::new(file).await?;
     let manifest = get_webxdc_manifest(&reader).await?;
     Ok(manifest.tag_name)
 }
 
+#[allow(clippy::missing_docs_in_private_items)]
 #[derive(Debug, PartialEq)]
 pub enum AddType {
     /// Add a new app_info
@@ -310,10 +319,12 @@ pub async fn maybe_upgrade_xdc(
     Ok(add_type)
 }
 
+/// Returns the file path to the store frontend .xdc file.
 pub fn get_store_xdc_path() -> Result<PathBuf> {
     Ok(project_dirs()?.config_dir().to_path_buf().join("store.xdc"))
 }
 
+/// Returns the file path to the store avatar.
 pub fn get_icon_path() -> Result<PathBuf> {
     Ok(project_dirs()?.config_dir().to_path_buf().join("icon.png"))
 }

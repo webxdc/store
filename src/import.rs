@@ -1,3 +1,5 @@
+//! Importing applications into the bot.
+
 use anyhow::{bail, Context as _, Result};
 use async_zip::tokio::read::fs::ZipFileReader;
 use base64::encode;
@@ -17,6 +19,7 @@ use crate::{
     utils::{maybe_upgrade_xdc, read_vec, AddType},
 };
 
+/// Structure of the `manifest.toml` stored in .xdc files.
 #[derive(Deserialize, Debug)]
 pub struct WebxdcManifest {
     /// Webxdc application identifier.
@@ -41,6 +44,7 @@ pub struct WebxdcManifest {
     pub cache_relname: PathBuf,
 }
 
+#[allow(clippy::missing_docs_in_private_items)]
 pub async fn import_many(
     path: &Path,
     xdcs_path: PathBuf,
