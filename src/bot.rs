@@ -1,7 +1,7 @@
 //! Entry for the bot code
 use anyhow::{Context as _, Result};
 use deltachat::{
-    chat::{self, ChatId, ProtectionStatus},
+    chat::{self, ChatId},
     config::Config,
     context::Context,
     message::{Message, MsgId},
@@ -18,19 +18,17 @@ use std::{fs, sync::Arc};
 use crate::{
     db::{self, MIGRATOR},
     project_dirs,
-    request_handlers::{genesis, store, ChatType, WebxdcStatusUpdate, WebxdcStatusUpdatePayload},
+    request_handlers::{store, WebxdcStatusUpdate, WebxdcStatusUpdatePayload},
     utils::{
-        configure_from_env, get_icon_path, get_store_xdc_path, get_webxdc_tag_name, init_store,
+        configure_from_env, get_icon_path, get_store_xdc_path, get_webxdc_tag_name,
         send_update_payload_only, unpack_assets, update_store,
     },
-    GENESIS_QR, INVITE_QR, VERSION,
+    INVITE_QR, VERSION,
 };
 
 #[derive(Serialize, Deserialize, PartialEq, Debug, Default)]
 pub struct BotConfig {
-    pub genesis_qr: String,
     pub invite_qr: String,
-    pub genesis_group: ChatId,
     pub serial: i32,
 }
 
@@ -92,26 +90,9 @@ impl Bot {
             Err(_) => {
                 info!("Bot hasn't been configured yet, start configuring...");
                 let config = Self::setup(&context).await.context("Failed to setup bot")?;
-                let conn = &mut *db.acquire().await?;
                 db::set_config(&mut *db.acquire().await?, &config).await?;
 
-                // setc chat type for genesis group
-                db::set_chat_type(conn, config.genesis_group, ChatType::Genesis).await?;
-
-                // save qr codes to disk
-                let dest_path = dirs.config_dir().to_path_buf().join(GENESIS_QR);
-                qrcode_generator::to_png_to_file(
-                    &config.genesis_qr,
-                    QrCodeEcc::Low,
-                    1024,
-                    &dest_path,
-                )
-                .context("failed to generate genesis QR at {dest_path}")?;
-                eprintln!(
-                    "Generated genesis group join QR-code at {}",
-                    dest_path.display()
-                );
-
+                // Save QR code to disk.
                 let dest_path = dirs.config_dir().to_path_buf().join(INVITE_QR);
                 qrcode_generator::to_png_to_file(
                     &config.invite_qr,
@@ -140,7 +121,7 @@ impl Bot {
         })
     }
 
-    /// Creates genesis group and qr-codes.
+    /// Sets avatar and creates a QR code.
     /// Returns the complete bot config.
     async fn setup(context: &Context) -> Result<BotConfig> {
         context
@@ -154,17 +135,10 @@ impl Bot {
             )
             .await?;
 
-        let genesis_group =
-            chat::create_group_chat(context, ProtectionStatus::Protected, "Appstore: Genesis")
-                .await?;
-
-        let genesis_qr = securejoin::get_securejoin_qr(context, Some(genesis_group)).await?;
         let invite_qr = securejoin::get_securejoin_qr(context, None).await?;
 
         Ok(BotConfig {
-            genesis_qr,
             invite_qr,
-            genesis_group,
             serial: 0,
         })
     }
@@ -213,26 +187,6 @@ impl Bot {
 
                 Self::handle_dc_webxdc_update(context, state, msg_id, update_string).await?
             }
-            EventType::ChatModified(chat_id) => {
-                let conn = &mut *state.db.acquire().await?;
-                match db::get_chat_type(conn, chat_id).await {
-                    Ok(chat_type) => {
-                        let contacts = chat::get_chat_contacts(context, chat_id).await?;
-                        let filtered = contacts.into_iter().filter(|ci| !ci.is_special());
-                        if chat_type == ChatType::Genesis {
-                            info!("Updating genesis contacts");
-                            db::set_genesis_members(conn, &filtered.collect::<Vec<_>>()).await?;
-                        };
-                    }
-                    Err(_e) => {
-                        info!(
-                        "Chat {chat_id} is not in the database, adding it as chat with type store"
-                    );
-                        db::set_chat_type(conn, chat_id, ChatType::Store).await?;
-                        init_store(context, &state, chat_id).await?;
-                    }
-                }
-            }
             other => {
                 debug!("DC: [unhandled event] {other:?}");
             }
@@ -253,28 +207,9 @@ impl Bot {
             return Ok(());
         }
 
-        match db::get_chat_type(&mut *state.db.acquire().await?, chat_id).await {
-            Ok(chat_type) => {
-                info!("Handling message with type <{chat_type:?}>");
-                match chat_type {
-                    ChatType::Store => {
-                        store::handle_message(context, state, chat_id).await?;
-                    }
-                    ChatType::Genesis => {
-                        genesis::handle_message(context, state, chat_id, msg_id).await?
-                    }
-                }
-            }
-            Err(e) => match e {
-                sqlx::Error::RowNotFound => {
-                    info!("creating new 1:1 chat with type Store");
-                    db::set_chat_type(&mut *state.db.acquire().await?, chat_id, ChatType::Store)
-                        .await?;
-                    store::handle_message(context, state, chat_id).await?;
-                }
-                _ => warn!("Problem while retrieving [ChatType]: {}", e),
-            },
-        }
+        info!("Handling message {msg_id}.");
+        store::handle_message(context, state, chat_id).await?;
+
         Ok(())
     }
 
@@ -288,7 +223,6 @@ impl Bot {
         let msg = Message::load_from_db(context, msg_id).await?;
         let chat_id = msg.get_chat_id();
         let conn = &mut *state.db.acquire().await?;
-        let chat_type = db::get_chat_type(conn, chat_id).await?;
         let store_tag_name = db::get_store_tag_name(conn, msg.get_id()).await?;
 
         let Ok(request) = serde_json::from_str::<WebxdcStatusUpdate>(&update) else {
@@ -327,9 +261,7 @@ impl Bot {
             return Ok(());
         }
 
-        if chat_type == ChatType::Store {
-            store::handle_status_update(context, state, msg_id, request.payload).await?
-        }
+        store::handle_status_update(context, state, msg_id, request.payload).await?;
 
         Ok(())
     }

@@ -2,14 +2,7 @@
 CREATE TABLE IF NOT EXISTS config (
     id INTEGER PRIMARY KEY NOT NULL,
     invite_qr TEXT NOT NULL,
-    genesis_qr TEXT NOT NULL,
-    genesis_group INTEGER NOT NULL,
     serial INTEGER NOT NULL
-);
-
-CREATE TABLE IF NOT EXISTS chat_to_chat_type (
-    chat_id INTEGER PRIMARY KEY NOT NULL,
-    chat_type INTEGER NOT NULL
 );
 
 CREATE TABLE IF NOT EXISTS app_infos (

@@ -16,7 +16,7 @@ pub enum BotActions {
         /// Path from which files should be imported.
         path: String,
     },
-    /// Show the 1:1-invite and genesis-invite qr code.
+    /// Show the 1:1-invite QR code.
     ShowQr,
     /// Show the bots version.
     Version,

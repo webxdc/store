@@ -1,23 +1,13 @@
 //! Bot Database
 //! It consists of these tables:
-//! - users (Stores reviewers, publishers, genesis members etc.)
 //! - app_infos (Stores the app infos)
-//! - chats (Stores information about the review and submit chats)
-//! - chat_to_chat_type (Acts as a map between ChatId and ChatType)
 //! - config (Where config is stored)
-//!
-//! A chat entry will be created when submitting a webxdc and holds a [SubmitChat].
-//! When the app is send to review, it will turn into a [ReviewChat] using the same row but with
-//! the review chats chat_id stored in a dedicated field.
 //!
 //! See migrations folder for further details.
 
-use crate::{
-    bot::BotConfig,
-    request_handlers::{AppInfo, ChatType},
-};
+use crate::{bot::BotConfig, request_handlers::AppInfo};
 use anyhow::Result;
-use deltachat::{chat::ChatId, contact::ContactId, message::MsgId};
+use deltachat::message::MsgId;
 use itertools::Itertools;
 use sqlx::{migrate::Migrator, Connection, FromRow, Row, SqliteConnection};
 use std::path::PathBuf;
@@ -60,9 +50,7 @@ impl From<DBAppInfo> for AppInfo {
 
 #[derive(FromRow)]
 struct DBBotConfig {
-    pub genesis_qr: String,
     pub invite_qr: String,
-    pub genesis_group: i32,
     pub serial: i32,
 }
 
@@ -70,9 +58,7 @@ impl TryFrom<DBBotConfig> for BotConfig {
     type Error = anyhow::Error;
     fn try_from(db_bot_config: DBBotConfig) -> Result<Self> {
         Ok(Self {
-            genesis_qr: db_bot_config.genesis_qr,
             invite_qr: db_bot_config.invite_qr,
-            genesis_group: ChatId::new(u32::try_from(db_bot_config.genesis_group)?),
             serial: db_bot_config.serial,
         })
     }
@@ -81,62 +67,21 @@ impl TryFrom<DBBotConfig> for BotConfig {
 pub type RecordId = i32;
 
 pub async fn set_config(c: &mut SqliteConnection, config: &BotConfig) -> Result<()> {
-    sqlx::query(
-        "INSERT INTO config (genesis_qr, invite_qr, genesis_group, serial) VALUES (?, ?, ?, ?)",
-    )
-    .bind(&config.genesis_qr)
-    .bind(&config.invite_qr)
-    .bind(config.genesis_group.to_u32())
-    .bind(config.serial)
-    .execute(c)
-    .await?;
+    sqlx::query("INSERT INTO config (invite_qr, serial) VALUES (?, ?)")
+        .bind(&config.invite_qr)
+        .bind(config.serial)
+        .execute(c)
+        .await?;
     Ok(())
 }
 
 pub async fn get_config(c: &mut SqliteConnection) -> Result<BotConfig> {
-    let res: Result<BotConfig> = sqlx::query_as::<_, DBBotConfig>(
-        "SELECT genesis_qr, invite_qr, genesis_group, serial FROM config",
-    )
-    .fetch_one(c)
-    .await
-    .map(|db_bot_config| db_bot_config.try_into())?;
+    let res: Result<BotConfig> =
+        sqlx::query_as::<_, DBBotConfig>("SELECT invite_qr, serial FROM config")
+            .fetch_one(c)
+            .await
+            .map(|db_bot_config| db_bot_config.try_into())?;
     res
-}
-
-pub async fn set_chat_type(
-    c: &mut SqliteConnection,
-    chat_id: ChatId,
-    chat_type: ChatType,
-) -> Result<()> {
-    sqlx::query("INSERT INTO chat_to_chat_type (chat_id, chat_type) VALUES (?, ?)")
-        .bind(chat_id.to_u32())
-        .bind(chat_type)
-        .execute(c)
-        .await?;
-    Ok(())
-}
-
-pub async fn get_chat_type(c: &mut SqliteConnection, chat_id: ChatId) -> sqlx::Result<ChatType> {
-    sqlx::query("SELECT chat_type FROM chat_to_chat_type WHERE (chat_id = ?)")
-        .bind(chat_id.to_u32())
-        .fetch_one(c)
-        .await
-        .map(|row| row.try_get("chat_type"))?
-}
-
-pub async fn add_genesis(c: &mut SqliteConnection, contact_id: ContactId) -> sqlx::Result<()> {
-    sqlx::query("INSERT INTO users (genesis, tester, publisher, contact_id) VALUES (true, false, false, ?) ON CONFLICT (contact_id) DO UPDATE SET genesis=true")
-        .bind(contact_id.to_u32())
-        .execute(c)
-        .await?;
-    Ok(())
-}
-
-pub async fn set_genesis_members(c: &mut SqliteConnection, contacts: &[ContactId]) -> Result<()> {
-    for genesis in contacts {
-        add_genesis(c, *genesis).await?;
-    }
-    Ok(())
 }
 
 /// Returns the latest store serial.
@@ -374,27 +319,12 @@ mod tests {
         MIGRATOR.run(&mut conn).await.unwrap();
 
         let config = BotConfig {
-            genesis_qr: "genesis_qr".to_string(),
             invite_qr: "invite_qr".to_string(),
-            genesis_group: ChatId::new(1),
             serial: 0,
         };
         set_config(&mut conn, &config).await.unwrap();
         let loaded_config = get_config(&mut conn).await.unwrap();
         assert_eq!(config, loaded_config);
-    }
-
-    #[tokio::test]
-    async fn test_create_get_chattype() {
-        let mut conn = SqliteConnection::connect("sqlite::memory:").await.unwrap();
-        MIGRATOR.run(&mut conn).await.unwrap();
-
-        let chat_type = ChatType::Genesis;
-        let chat_id = ChatId::new(0);
-
-        set_chat_type(&mut conn, chat_id, chat_type).await.unwrap();
-        let loaded_chat_type = get_chat_type(&mut conn, chat_id).await.unwrap();
-        assert_eq!(chat_type, loaded_chat_type)
     }
 
     #[tokio::test]
