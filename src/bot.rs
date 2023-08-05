@@ -12,7 +12,7 @@ use deltachat::{
 use log::{debug, error, info, trace, warn};
 use qrcode_generator::QrCodeEcc;
 use serde::{Deserialize, Serialize};
-use sqlx::{pool::PoolConnection, Sqlite, SqlitePool};
+use sqlx::{pool::PoolConnection, FromRow, Sqlite, SqlitePool};
 use std::{fs, sync::Arc};
 
 use crate::{
@@ -26,7 +26,7 @@ use crate::{
     INVITE_QR, VERSION,
 };
 
-#[derive(Serialize, Deserialize, PartialEq, Debug, Default)]
+#[derive(FromRow, Serialize, Deserialize, PartialEq, Debug, Default)]
 pub struct BotConfig {
     pub invite_qr: String,
     pub serial: i32,
