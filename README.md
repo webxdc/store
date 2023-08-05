@@ -20,7 +20,7 @@ The Bot does not need to be internet-reachable.
 
 ## Getting started with sharing ("installing") a first app to a chat group 
 
-TODO: make bot available via sending a message to: xdcstore@testrun.org 
+TODO: make bot available via sending a message to: xstore@testrun.org 
 
 TODO: insert QR code here for setting up contact with the xdcstore bot
 
