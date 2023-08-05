@@ -78,10 +78,15 @@ jobs:
       - name: Cache Rust builds
         uses: swatinem/rust-cache@v2
 
-      - name: Build the tarball
+      - name: Build the tarball (debug)
+        if: ${{ github.event_name == 'pull_request' }}
         run: bash -x scripts/dist.sh
         env:
           ERUDA: "yes"
+
+      - name: Build the tarball (production)
+        if: ${{ github.event_name != 'pull_request' }}
+        run: bash -x scripts/dist.sh
 
       - name: Upload the tarball
         uses: actions/upload-artifact@v3
