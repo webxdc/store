@@ -12,7 +12,7 @@ import OutdatedView from './components/Outdated'
 import type { WebxdcStatusUpdatePayload } from '~/bindings/WebxdcStatusUpdatePayload'
 
 import { AppInfoDB } from '~/db/store_db'
-import { to_app_infos_by_id, updateHandler } from '~/store-logic'
+import { cmpApps, to_app_infos_by_id, updateHandler } from '~/store-logic'
 import { AppState } from '~/types'
 import type { AppInfoWithState, AppInfosById } from '~/types'
 import mock from '~/mock'
@@ -246,7 +246,7 @@ const Store: Component = () => {
             </div>}>
               <ul class="w-full flex flex-grow flex-col gap-1 p-2">
                 <AppList
-                  items={Object.values(appInfo).sort((a, b) => Number(b.date - a.date))} search_query={query()}
+                  items={Object.values(appInfo).sort(cmpApps)} search_query={query()}
                   onDownload={handleDownload}
                   onForward={handleForward}
                   onRemove={handleRemove}

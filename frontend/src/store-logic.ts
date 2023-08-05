@@ -28,6 +28,17 @@ function isInit(p: any): p is InitResponse {
   return p.type === 'Init'
 }
 
+
+export function cmpApps(a: AppInfoWithState, b: AppInfoWithState): number {
+    if (a.state === b.state) {
+        return Number(b.date - a.date)
+    }
+    if (a.state === AppState.Received) {
+        return -1
+    }
+    return 1
+}
+
 export function to_app_infos_by_id<T extends { app_id: string }>(app_infos: T[]): Record<string, T> {
   return app_infos.reduce((acc, appinfo) => {
     acc[appinfo.app_id] = appinfo
