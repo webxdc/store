@@ -30,13 +30,14 @@ function isInit(p: any): p is InitResponse {
 
 
 export function cmpApps(a: AppInfoWithState, b: AppInfoWithState): number {
-    if (a.state === b.state) {
-        return Number(b.date - a.date)
+    if (a.state !== b.state) {
+        if (a.state === AppState.Received) {
+            return -1
+        } else if (b.state === AppState.Received) {
+            return 1
+        }
     }
-    if (a.state === AppState.Received) {
-        return -1
-    }
-    return 1
+    return Number(b.date - a.date)
 }
 
 export function to_app_infos_by_id<T extends { app_id: string }>(app_infos: T[]): Record<string, T> {
