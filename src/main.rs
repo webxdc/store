@@ -17,7 +17,6 @@ use cli::{BotActions, BotCli};
 use tokio::signal;
 use utils::{project_dirs, AddType};
 
-const GENESIS_QR: &str = "genesis_invite_qr.png";
 const INVITE_QR: &str = "1o1_invite_qr.png";
 const VERSION: &str = include_file_str!("VERSION");
 
@@ -60,9 +59,6 @@ async fn main() -> Result<()> {
             let bot = Bot::new().await.context("Failed to create bot")?;
             match db::get_config(&mut *bot.get_db_connection().await?).await {
                 Ok(config) => {
-                    println!("Genesis invite qr:");
-                    qr2term::print_qr(config.genesis_qr)?;
-                    println!("Bot invite qr:");
                     qr2term::print_qr(config.invite_qr)?;
                 }
                 Err(_) => println!("Bot not configured yet, start the bot first."),

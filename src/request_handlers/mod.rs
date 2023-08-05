@@ -8,13 +8,11 @@ use async_zip::tokio::read::fs::ZipFileReader;
 use base64::encode;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
-use sqlx::Type;
 use std::path::{Path, PathBuf};
 use time::{format_description::well_known::Rfc3339, OffsetDateTime};
 use tokio::fs::File;
 use ts_rs::TS;
 
-pub mod genesis;
 pub mod store;
 
 #[derive(Deserialize)]
@@ -97,13 +95,6 @@ impl AppInfo {
             removed: false,
         })
     }
-}
-
-#[derive(Serialize, Deserialize, Type, Clone, Copy, Debug, PartialEq)]
-
-pub enum ChatType {
-    Store,
-    Genesis,
 }
 
 /// WebXDC status update.
