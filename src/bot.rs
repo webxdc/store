@@ -191,7 +191,7 @@ impl Bot {
         context: &Context,
         state: Arc<State>,
         event: EventType,
-    ) -> anyhow::Result<()> {
+    ) -> Result<()> {
         match event {
             EventType::ConfigureProgress { progress, comment } => {
                 trace!("DC: Configuring progress: {progress} {comment:?}")
@@ -284,7 +284,7 @@ impl Bot {
         state: Arc<State>,
         msg_id: MsgId,
         update: String,
-    ) -> anyhow::Result<()> {
+    ) -> Result<()> {
         let msg = Message::load_from_db(context, msg_id).await?;
         let chat_id = msg.get_chat_id();
         let conn = &mut *state.db.acquire().await?;

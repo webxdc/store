@@ -1,3 +1,4 @@
+use anyhow::Result;
 use deltachat::{chat::ChatId, context::Context, message::MsgId};
 use std::sync::Arc;
 
@@ -8,6 +9,6 @@ pub async fn handle_message(
     _state: Arc<State>,
     _chat_id: ChatId,
     _msg_id: MsgId,
-) -> anyhow::Result<()> {
+) -> Result<()> {
     Ok(())
 }

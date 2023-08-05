@@ -3,7 +3,7 @@ use crate::{
     db::RecordId,
     utils::{get_webxdc_manifest, read_vec},
 };
-use anyhow::Context;
+use anyhow::{Context as _, Result};
 use async_zip::tokio::read::fs::ZipFileReader;
 use base64::encode;
 use serde::{Deserialize, Serialize};
@@ -60,7 +60,7 @@ pub struct AppInfo {
 
 impl AppInfo {
     /// Create appinfo from webxdc file.
-    pub async fn from_xdc(file: &Path) -> anyhow::Result<Self> {
+    pub async fn from_xdc(file: &Path) -> Result<Self> {
         let size = i64::try_from(File::open(&file).await?.metadata().await?.len())?;
         let reader = ZipFileReader::new(&file).await?;
         let entries = reader.file().entries();

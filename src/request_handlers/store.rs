@@ -4,7 +4,7 @@ use crate::{
     db,
     utils::{init_store, send_newest_updates, send_update_payload_only},
 };
-use anyhow::Context as _;
+use anyhow::{Context as _, Result};
 use base64::encode;
 use deltachat::{
     chat::{self, ChatId},
@@ -15,11 +15,7 @@ use deltachat::{
 use log::{info, warn};
 use std::sync::Arc;
 
-pub async fn handle_message(
-    context: &Context,
-    state: Arc<State>,
-    chat_id: ChatId,
-) -> anyhow::Result<()> {
+pub async fn handle_message(context: &Context, state: Arc<State>, chat_id: ChatId) -> Result<()> {
     let chat = chat::Chat::load_from_db(context, chat_id).await?;
     if let constants::Chattype::Single = chat.typ {
         init_store(context, &state, chat_id).await?;
@@ -32,7 +28,7 @@ pub async fn handle_status_update(
     state: Arc<State>,
     msg_id: MsgId,
     payload: WebxdcStatusUpdatePayload,
-) -> anyhow::Result<()> {
+) -> Result<()> {
     match payload {
         WebxdcStatusUpdatePayload::UpdateRequest { serial, apps } => {
             info!("Handling store update request");
@@ -90,7 +86,7 @@ pub async fn handle_download(state: &State, app_id: String) -> WebxdcStatusUpdat
 }
 
 /// Returns the base64 encoded webxdc and the name of the app.
-async fn get_webxdc_data(state: &State, app_id: &str) -> anyhow::Result<(String, String)> {
+async fn get_webxdc_data(state: &State, app_id: &str) -> Result<(String, String)> {
     let app = db::get_app_info_for_app_id(&mut *state.db.acquire().await?, app_id).await?;
     Ok((
         encode(

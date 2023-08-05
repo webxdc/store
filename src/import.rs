@@ -1,4 +1,4 @@
-use anyhow::{bail, Context};
+use anyhow::{bail, Context as _, Result};
 use async_zip::tokio::read::fs::ZipFileReader;
 use base64::encode;
 use futures::future::join_all;
@@ -45,7 +45,7 @@ pub async fn import_many(
     path: &Path,
     xdcs_path: PathBuf,
     conn: &mut SqliteConnection,
-) -> anyhow::Result<()> {
+) -> Result<()> {
     let xdcget_lock = fs::read_to_string(path.join("xdcget.lock"))
         .await
         .context("Failed to read xdcget.lock")?;
@@ -174,11 +174,7 @@ pub async fn import_many(
 /// Add a single webxdc to the store
 /// - Add it to the db
 /// - Copy it into the `dest` location
-pub async fn import_one(
-    file: &Path,
-    dest: &Path,
-    conn: &mut SqliteConnection,
-) -> anyhow::Result<AddType> {
+pub async fn import_one(file: &Path, dest: &Path, conn: &mut SqliteConnection) -> Result<AddType> {
     if !file
         .to_str()
         .context("can't convert to str")?

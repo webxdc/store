@@ -9,7 +9,7 @@ mod utils;
 use std::fs::create_dir_all;
 use std::path::PathBuf;
 
-use anyhow::Context as _;
+use anyhow::{Context as _, Result};
 use bot::Bot;
 use build_script_file_gen::include_file_str;
 use clap::Parser;
@@ -23,7 +23,7 @@ const STORE_XDC: &str = "store.xdc";
 const VERSION: &str = include_file_str!("VERSION");
 
 #[tokio::main]
-async fn main() -> anyhow::Result<()> {
+async fn main() -> Result<()> {
     env_logger::Builder::from_env(env_logger::Env::default().default_filter_or("info")).init();
     let cli = BotCli::parse();
 

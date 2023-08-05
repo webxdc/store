@@ -66,7 +66,7 @@ pub(crate) fn unpack_assets() -> Result<()> {
 }
 
 /// Send newest version to chat together with all [AppInfo]s.
-pub async fn init_store(context: &Context, state: &State, chat_id: ChatId) -> anyhow::Result<()> {
+pub async fn init_store(context: &Context, state: &State, chat_id: ChatId) -> Result<()> {
     let mut webxdc_msg = Message::new(Viewtype::Webxdc);
     webxdc_msg.set_text(store_message().to_string());
     webxdc_msg.set_file(get_store_xdc_path()?.display(), None);
@@ -91,7 +91,7 @@ pub async fn update_store(
     state: &State,
     chat_id: ChatId,
     serial: u32,
-) -> anyhow::Result<()> {
+) -> Result<()> {
     let mut webxdc_msg = Message::new(Viewtype::Webxdc);
     webxdc_msg.set_text(store_message().to_string());
     webxdc_msg.set_file(get_store_xdc_path()?.display(), None);
@@ -122,7 +122,7 @@ pub async fn send_newest_updates(
     db: &mut SqliteConnection,
     serial: u32,
     updating: Vec<String>,
-) -> anyhow::Result<()> {
+) -> Result<()> {
     let app_infos: Vec<_> = db::get_changed_app_infos_since(db, serial).await?;
     let old_app_infos = db::get_app_infos_for(
         db,
@@ -143,7 +143,7 @@ pub async fn send_newest_updates(
         .map(|app_info| (app_info.app_id.clone(), app_info))
         .collect::<std::collections::HashMap<_, _>>();
 
-    let changes: Vec<anyhow::Result<(String, HashMap<String, Value>)>> = app_infos
+    let changes: Vec<Result<(String, HashMap<String, Value>)>> = app_infos
         .into_iter()
         .map(|app_info| {
             let Some(old_info) = old_app_infos.get(app_info.app_id.as_str()) else {
@@ -197,14 +197,14 @@ pub async fn send_newest_updates(
     Ok(())
 }
 
-pub async fn read_string(reader: &ZipFileReader, index: usize) -> anyhow::Result<String> {
+pub async fn read_string(reader: &ZipFileReader, index: usize) -> Result<String> {
     let mut entry = reader.reader_with_entry(index).await?;
     let mut data = String::new();
     entry.read_to_string_checked(&mut data).await?;
     Ok(data)
 }
 
-pub async fn read_vec(reader: &ZipFileReader, index: usize) -> anyhow::Result<Vec<u8>> {
+pub async fn read_vec(reader: &ZipFileReader, index: usize) -> Result<Vec<u8>> {
     let mut entry = reader.reader_with_entry(index).await?;
     let mut data = Vec::new();
     entry.read_to_end_checked(&mut data).await?;
@@ -216,7 +216,7 @@ pub async fn send_update_payload_only<T: Serialize>(
     context: &Context,
     msg_id: MsgId,
     payload: T,
-) -> anyhow::Result<()> {
+) -> Result<()> {
     context
         .send_webxdc_status_update_struct(
             msg_id,
@@ -230,7 +230,7 @@ pub async fn send_update_payload_only<T: Serialize>(
     Ok(())
 }
 
-pub async fn get_webxdc_manifest(reader: &ZipFileReader) -> anyhow::Result<WexbdcManifest> {
+pub async fn get_webxdc_manifest(reader: &ZipFileReader) -> Result<WexbdcManifest> {
     let entries = reader.file().entries();
     let manifest_index = entries
         .iter()
@@ -249,7 +249,7 @@ pub async fn get_webxdc_manifest(reader: &ZipFileReader) -> anyhow::Result<Wexbd
     Ok(toml::from_str(&read_string(reader, manifest_index).await?)?)
 }
 
-pub async fn get_webxdc_tag_name(file: impl AsRef<Path>) -> anyhow::Result<String> {
+pub async fn get_webxdc_tag_name(file: impl AsRef<Path>) -> Result<String> {
     let reader = ZipFileReader::new(file).await?;
     let manifest = get_webxdc_manifest(&reader).await?;
     Ok(manifest.tag_name)
@@ -270,7 +270,7 @@ pub async fn maybe_upgrade_xdc(
     app_info: &mut AppInfo,
     conn: &mut SqliteConnection,
     dest: &Path,
-) -> anyhow::Result<AddType> {
+) -> Result<AddType> {
     let add_type = if db::app_tag_name_exists(conn, &app_info.app_id, &app_info.tag_name).await? {
         AddType::Ignored
     } else if db::app_exists(conn, &app_info.app_id).await? {
@@ -311,10 +311,10 @@ pub async fn maybe_upgrade_xdc(
     Ok(add_type)
 }
 
-pub fn get_store_xdc_path() -> anyhow::Result<PathBuf> {
+pub fn get_store_xdc_path() -> Result<PathBuf> {
     Ok(project_dirs()?.config_dir().to_path_buf().join(STORE_XDC))
 }
 
-pub fn get_icon_path() -> anyhow::Result<PathBuf> {
+pub fn get_icon_path() -> Result<PathBuf> {
     Ok(project_dirs()?.config_dir().to_path_buf().join("icon.png"))
 }

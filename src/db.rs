@@ -16,6 +16,7 @@ use crate::{
     bot::BotConfig,
     request_handlers::{AppInfo, ChatType},
 };
+use anyhow::Result;
 use deltachat::{chat::ChatId, contact::ContactId, message::MsgId};
 use itertools::Itertools;
 use sqlx::{migrate::Migrator, Connection, FromRow, Row, SqliteConnection};
@@ -67,7 +68,7 @@ struct DBBotConfig {
 
 impl TryFrom<DBBotConfig> for BotConfig {
     type Error = anyhow::Error;
-    fn try_from(db_bot_config: DBBotConfig) -> anyhow::Result<Self> {
+    fn try_from(db_bot_config: DBBotConfig) -> Result<Self> {
         Ok(Self {
             genesis_qr: db_bot_config.genesis_qr,
             invite_qr: db_bot_config.invite_qr,
@@ -79,7 +80,7 @@ impl TryFrom<DBBotConfig> for BotConfig {
 
 pub type RecordId = i32;
 
-pub async fn set_config(c: &mut SqliteConnection, config: &BotConfig) -> anyhow::Result<()> {
+pub async fn set_config(c: &mut SqliteConnection, config: &BotConfig) -> Result<()> {
     sqlx::query(
         "INSERT INTO config (genesis_qr, invite_qr, genesis_group, serial) VALUES (?, ?, ?, ?)",
     )
@@ -92,8 +93,8 @@ pub async fn set_config(c: &mut SqliteConnection, config: &BotConfig) -> anyhow:
     Ok(())
 }
 
-pub async fn get_config(c: &mut SqliteConnection) -> anyhow::Result<BotConfig> {
-    let res: anyhow::Result<BotConfig> = sqlx::query_as::<_, DBBotConfig>(
+pub async fn get_config(c: &mut SqliteConnection) -> Result<BotConfig> {
+    let res: Result<BotConfig> = sqlx::query_as::<_, DBBotConfig>(
         "SELECT genesis_qr, invite_qr, genesis_group, serial FROM config",
     )
     .fetch_one(c)
@@ -106,7 +107,7 @@ pub async fn set_chat_type(
     c: &mut SqliteConnection,
     chat_id: ChatId,
     chat_type: ChatType,
-) -> anyhow::Result<()> {
+) -> Result<()> {
     sqlx::query("INSERT INTO chat_to_chat_type (chat_id, chat_type) VALUES (?, ?)")
         .bind(chat_id.to_u32())
         .bind(chat_type)
@@ -131,10 +132,7 @@ pub async fn add_genesis(c: &mut SqliteConnection, contact_id: ContactId) -> sql
     Ok(())
 }
 
-pub async fn set_genesis_members(
-    c: &mut SqliteConnection,
-    contacts: &[ContactId],
-) -> anyhow::Result<()> {
+pub async fn set_genesis_members(c: &mut SqliteConnection, contacts: &[ContactId]) -> Result<()> {
     for genesis in contacts {
         add_genesis(c, *genesis).await?;
     }
@@ -169,10 +167,7 @@ pub async fn increase_get_serial(c: &mut SqliteConnection) -> sqlx::Result<u32> 
 }
 
 /// Create [AppInfo].
-pub async fn create_app_info(
-    c: &mut SqliteConnection,
-    app_info: &mut AppInfo,
-) -> anyhow::Result<()> {
+pub async fn create_app_info(c: &mut SqliteConnection, app_info: &mut AppInfo) -> Result<()> {
     let mut trans = c.begin().await?;
     let next_serial = increase_get_serial(&mut trans).await?;
     let res = sqlx::query("INSERT INTO app_infos (app_id, name, description, tag_name, image, xdc_blob_path, source_code_url, serial, date, size) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)")
