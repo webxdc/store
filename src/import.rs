@@ -18,7 +18,7 @@ use crate::{
 };
 
 #[derive(Deserialize, Debug)]
-pub struct WexbdcManifest {
+pub struct WebxdcManifest {
     /// Webxdc application identifier.
     pub app_id: String,
 
@@ -49,7 +49,7 @@ pub async fn import_many(
     let xdcget_lock = fs::read_to_string(path.join("xdcget.lock"))
         .await
         .context("Failed to read xdcget.lock")?;
-    let xdc_metas: HashMap<String, WexbdcManifest> = toml::from_str(&xdcget_lock)?;
+    let xdc_metas: HashMap<String, WebxdcManifest> = toml::from_str(&xdcget_lock)?;
 
     let new_app_ids = HashSet::<_, RandomState>::from_iter(xdc_metas.keys().cloned());
     let curr_app_ids = HashSet::<_, RandomState>::from_iter(

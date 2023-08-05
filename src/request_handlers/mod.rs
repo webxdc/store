@@ -18,7 +18,7 @@ pub mod genesis;
 pub mod store;
 
 #[derive(Deserialize)]
-pub struct WexbdcManifest {
+pub struct WebxdcManifest {
     /// Webxdc application identifier.
     pub app_id: String,
 

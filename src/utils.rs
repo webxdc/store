@@ -27,7 +27,7 @@ use crate::{
     bot::State,
     db,
     messages::store_message,
-    request_handlers::{AppInfo, WebxdcStatusUpdatePayload, WexbdcManifest},
+    request_handlers::{AppInfo, WebxdcManifest, WebxdcStatusUpdatePayload},
 };
 
 pub(crate) fn project_dirs() -> Result<ProjectDirs> {
@@ -229,7 +229,7 @@ pub async fn send_update_payload_only<T: Serialize>(
     Ok(())
 }
 
-pub async fn get_webxdc_manifest(reader: &ZipFileReader) -> Result<WexbdcManifest> {
+pub async fn get_webxdc_manifest(reader: &ZipFileReader) -> Result<WebxdcManifest> {
     let entries = reader.file().entries();
     let manifest_index = entries
         .iter()
