@@ -1,3 +1,6 @@
+# this repo was moved to https://codeberg.org/webxdc/store
+
+
 ## WebXDC store: discover and share the latest apps to your chats
 
 **Status: ALPHA, use at your own risk**
